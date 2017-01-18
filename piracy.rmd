@@ -60,5 +60,5 @@ leaflet(data = world) %>%
     popup = ~paste0(
       "<b>Date: </b>", DateOfOcc, "<br>",
       "<b>Victim: </b>", Victim, "<br>",
-      "<b>Description: </b>", paste0(Desc1,Desc2,sep=" "), "<br>"))
+      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>"))
 ```
