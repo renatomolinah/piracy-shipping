@@ -35,14 +35,20 @@ ASAM <- readOGR(dsn = "data/ASAM_shp", layer = "ASAM 18 JAN 17", stringsAsFactor
 ## read in EEZ
 eez <- readOGR(dsn = "data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
 
+## set projection
+proj4string(ASAM)<-proj4string(eez)
+
+## figure out eez and ASAM overlap
+eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
 ## set world base map
 world <- map("world", fill = TRUE, plot = FALSE)
 ```
 ## Plot data
 
 ```{r plot}
-piracy <- ASAM %>%
-         subset(ASAM@data$Aggressor == "Pirates")
+piracy <- eezASAMOverlap %>%
+         subset(eezASAMOverlap@data$Aggressor == "Pirates")
+
 leaflet(data = world) %>%
   # fitBounds(0, 60, 35, 72) %>%
   addPolygons(
@@ -58,6 +64,7 @@ leaflet(data = world) %>%
   addMarkers(
     data = piracy,
     popup = ~paste0(
+       "<b>EEZ: </b>", GeoName, "<br>",
       "<b>Date: </b>", DateOfOcc, "<br>",
       "<b>Victim: </b>", Victim, "<br>",
       "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>"))
