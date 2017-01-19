@@ -63,12 +63,12 @@ somaliPiracy <- eezASAMOverlap %>%
 eezSomalia <- eez %>%
   subset(GeoName == "Somali Exclusive Economic Zone")
 
-impactZones <- gBuffer(somaliPiracy,width=0.25,byid=TRUE) %>%
+impactZones <- gBuffer(somaliPiracy,width=0.5,byid=TRUE) %>%
   SpatialPolygonsDataFrame(data=somaliPiracy@data,match.ID=TRUE)
 impactZones@data$Control <- "Impact"
 
 controlZones <- impactZones %>%
-  gBuffer(width=0.25,byid=TRUE) 
+  gBuffer(width=0.5,byid=TRUE) 
 
 controlZones<- controlZones - impactZones
 controlZones@data$Control <- "Control"
@@ -76,6 +76,30 @@ controlZones@data$Control <- "Control"
 ## Only look inside Somalia EEZ
 impactZones <- raster::intersect(impactZones,eezSomalia)
 controlZones <- raster::intersect(controlZones,eezSomalia)
+
+impactAreas <- lapply(impactZones@data$Reference,function(x){
+  temp<-SpatialPolygons((subset(impactZones,Reference==x)@polygons)) %>%
+      areaPolygon() %>%
+      as_data_frame() %>%
+      mutate(Reference=x,
+             area_km2=value/1e6,
+             Control="Impact")
+}) %>%
+  bind_rows()
+
+controlAreas <- lapply(controlZones@data$Reference,function(x){
+  temp<-SpatialPolygons((subset(controlZones,Reference==x)@polygons)) %>%
+      areaPolygon() %>%
+      as_data_frame() %>%
+      mutate(Reference=x,
+             area_km2=value/1e6,
+             Control="Control")
+}) %>%
+  bind_rows()
+
+masterAreas <- bind_rows(impactAreas,controlAreas) %>%
+  left_join(somaliPiracy@data %>%
+              dplyr::select(Reference,AttackDate = Date))
 ```
 
 
@@ -141,7 +165,7 @@ boxes <- lapply(controlZones@data$Reference,function(x){
     as_data_frame
   
   box <- cbind(box[1,],box[2,])
-  colnames(box) <- c("min_lon", "min_lat","max_lon","max_lat")
+  colnames(box) <- c("min_lon","max_lon", "min_lat","max_lat")
   box <- box %>%
     as_data_frame %>%
     mutate(Reference = x)
@@ -151,16 +175,16 @@ boxes <- lapply(controlZones@data$Reference,function(x){
 GFW_connection <- src_bigquery("ucsb-gfw", "fao_v2", max_pages = Inf)
 fao_file <- "all_years_clean_effort"
 
-fishingEffort <- lapply(c("2016-209"), function(x){
-#fishingEffort <- lapply(somaliPiracy@data$Reference, function(x){
+#fishingEffort <- lapply(c("2016-209"), function(x){
+fishingEffort <- lapply(somaliPiracy@data$Reference, function(x){
+  print(x)
   tempBox <- boxes[which(boxes$Reference == x),]
   max_lat <- tempBox$max_lat
   min_lat <- tempBox$min_lat
   max_lon <- tempBox$max_lon
   min_lon <- tempBox$min_lon
-  
   tbl(GFW_connection, from = fao_file) %>%
-    select(timestamp, lon, lat, hours, measure_new_score) %>%
+    dplyr::select(timestamp, lon, lat, hours, measure_new_score) %>%
     filter(
       lat < max_lat &
         lat > min_lat &
@@ -173,5 +197,71 @@ fishingEffort <- lapply(c("2016-209"), function(x){
 })   %>%
   ## bind over all attacks
   bind_rows()
+
+coordinates(fishingEffort) <- c("lon", "lat")
+proj4string(fishingEffort) <- sp::proj4string(somaliPiracy)
+
+daily_fishing_effort <- lapply(somaliPiracy@data$Reference,function(x){
+  controlEffort <- raster::intersect(subset(fishingEffort,Reference == x),
+                                     subset(controlZones,Reference == x)) %>%
+    as_data_frame()
+  
+  impactEffort <- raster::intersect(subset(fishingEffort,Reference == x),
+                                    subset(impactZones,Reference == x)) %>%
+    as_data_frame()
+  
+  rbind(controlEffort,impactEffort)
+}) %>%
+  bind_rows() %>%
+  mutate(Date = floor_date(timestamp, unit = "days")) %>%
+  group_by(Reference,Control,Date) %>%
+  summarize(Total_Hours = sum(hours)) %>%
+  left_join(masterAreas,by=c("Reference","Control")) %>%
+  mutate(hours_per_km2 = Total_Hours/area_km2)
 ```
 
+## Statistics
+Here we perform some statistics on the daily fishing effort data. These include:  
+  
+* Use a 30-day rolling mean for daily fishing effort [hours/km^2]
+  
+* Get predicted values from a regression that includes calendar effects, ENSO effect, and site-level effect  
+  
+* Detrend the data by subtracting this predicted regression from the observed values   
+  
+```{r stats,error=FALSE,message=FALSE,warning=FALSE}
+## read in enso data
+enso <- 
+  read_table("http://www.esrl.noaa.gov/psd/gcos_wgsp/Timeseries/Data/nino34.long.anom.data",
+             na = c("-99.99", "99.99"), skip = 1, n_max = year(Sys.time()) - 1870 + 1,
+             col_names = c("year", 1:12)) %>%
+  filter(year >= min(year(daily_fishing_effort$Date))) %>%
+  filter(year <= max(year(daily_fishing_effort$Date))) %>%
+  gather(month, enso, -year) %>%
+  mutate(month = as.double(month))
+
+## add column for 30 day rolling mean, join on enso data
+daily_fishing_effort <- daily_fishing_effort %>%
+  mutate(year = year(Date),
+         month = month(Date)) %>%
+  left_join(enso, by = c("year", "month"))
+
+seas_pred <-
+  daily_fishing_effort %>% 
+  group_by(Reference,Control) %>%
+  do(pred = predict(lm(hours_per_km2 ~ factor(month) + factor(wday(Date)), data = .))) %>%
+  ungroup()
+```
+
+```{r resultsDailyEffort, fig.width=8.5, fig.height=6,error=FALSE,message=FALSE,warning=FALSE}
+lapply(somaliPiracy@data$Reference,function(x){
+  
+  daily_fishing_effort_temp <- daily_fishing_effort %>%
+    subset(Reference == x) 
+  daily_fishing_effort_temp %>%
+    ggplot(aes(x=as_date(Date),y=hours_per_km2,col=Control,area=Control)) +
+    geom_line(lwd=0.8) +
+    geom_vline(aes(xintercept = as.numeric(as_date(daily_fishing_effort$AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
+  scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31')))
+})
+```
