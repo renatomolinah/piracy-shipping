@@ -218,6 +218,20 @@ daily_fishing_effort <- lapply(somaliPiracy@data$Reference,function(x){
   summarize(Total_Hours = sum(hours)) %>%
   left_join(masterAreas,by=c("Reference","Control")) %>%
   mutate(hours_per_km2 = Total_Hours/area_km2)
+
+all_dates = seq(as.Date("2012-01-01"), as.Date("2016-12-31"), by="day")
+
+completeDF <- expand.grid(all_dates,c("Control","Impact"),somaliPiracy@data$Reference)
+colnames(completeDF) <- c("Date","Control","Reference")
+daily_fishing_effort <- completeDF %>%
+  as_data_frame() %>%
+  mutate(Date = floor_date(Date, unit = "days")) %>%
+  left_join(masterAreas,by=c("Reference","Control")) %>%
+  left_join(daily_fishing_effort %>%
+              mutate(Date = as_date(Date)) %>%
+              dplyr::select(Date,Control,Reference,Total_Hours,hours_per_km2),by=c("Date","Control","Reference")) %>%
+  mutate(Total_Hours = ifelse(is.na(Total_Hours),0,Total_Hours),
+         hours_per_km2 = ifelse(is.na(hours_per_km2),0,hours_per_km2))
 ```
 
 ## Statistics
@@ -238,10 +252,14 @@ enso <-
   filter(year >= min(year(daily_fishing_effort$Date))) %>%
   filter(year <= max(year(daily_fishing_effort$Date))) %>%
   gather(month, enso, -year) %>%
-  mutate(month = as.double(month))
+  mutate(month = as.double(month),
+         enso = ifelse(is.na(enso),mean(enso,na.rm=TRUE),enso))
 
 ## add column for 30 day rolling mean, join on enso data
 daily_fishing_effort <- daily_fishing_effort %>%
+  mutate(fhours_30drm = zoo::rollmean(hours_per_km2, 30, fill=0),
+         year = year(Date),
+         month = month(Date)) %>%
   mutate(year = year(Date),
          month = month(Date)) %>%
   left_join(enso, by = c("year", "month"))
@@ -249,8 +267,12 @@ daily_fishing_effort <- daily_fishing_effort %>%
 seas_pred <-
   daily_fishing_effort %>% 
   group_by(Reference,Control) %>%
-  do(pred = predict(lm(hours_per_km2 ~ factor(month) + factor(wday(Date)), data = .))) %>%
+  do(pred = predict(lm(fhours_30drm ~ factor(month) + factor(wday(Date)) + enso, data = .))) %>%
   ungroup()
+
+daily_fishing_effort$pred <- unlist(seas_pred$pred)
+daily_fishing_effort$fhours_dtrend <- daily_fishing_effort$hours_per_km2 - daily_fishing_effort$pred 
+daily_fishing_effort$fhours_dtrend30drm = zoo::rollmean(daily_fishing_effort$fhours_dtrend, 30, fill=0)
 ```
 
 ```{r resultsDailyEffort, fig.width=8.5, fig.height=6,error=FALSE,message=FALSE,warning=FALSE}
@@ -259,9 +281,9 @@ lapply(somaliPiracy@data$Reference,function(x){
   daily_fishing_effort_temp <- daily_fishing_effort %>%
     subset(Reference == x) 
   daily_fishing_effort_temp %>%
-    ggplot(aes(x=as_date(Date),y=hours_per_km2,col=Control,area=Control)) +
+    ggplot(aes(x=as_date(Date),y=fhours_dtrend30drm,col=Control,area=Control)) +
     geom_line(lwd=0.8) +
-    geom_vline(aes(xintercept = as.numeric(as_date(daily_fishing_effort$AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
+    geom_vline(aes(xintercept = as.numeric(as_date(AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
   scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31')))
 })
 ```
