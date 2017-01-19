@@ -47,7 +47,7 @@ eez <- readOGR(dsn = "data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsA
 ## set projection
 proj4string(ASAM)<-proj4string(eez)
 
-## figure out eez and ASAM overlap
+## look only at events happening within eezs
 eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
 ## set world base map
 world <- map("world", fill = TRUE, plot = FALSE)
@@ -71,6 +71,10 @@ controlZones <- impactZones %>%
 
 controlZones<- controlZones - impactZones
 controlZones@data$Control <- "Control"
+
+## Only look inside Somalia EEZ
+impactZones <- raster::intersect(impactZones,eezSomalia)
+controlZones <- raster::intersect(controlZones,eezSomalia)
 ```
 
 
@@ -105,7 +109,7 @@ leaflet(data = world) %>%
               fillOpacity = 0.5,
     popup = ~paste0(
       "<b>Reference ID: </b>", Reference, "<br>",
-       "<b>EEZ: </b>", GeoName, "<br>",
+       "<b>EEZ: </b>", GeoName.1, "<br>",
       "<b>Zone type: </b>", Control, "<br>",
       "<b>Date: </b>", Date, "<br>",
       "<b>Aggressor: </b>", Aggressor, "<br>",
@@ -117,7 +121,7 @@ leaflet(data = world) %>%
               fillOpacity = 0.5,
     popup = ~paste0(
       "<b>Reference ID: </b>", Reference, "<br>",
-       "<b>EEZ: </b>", GeoName, "<br>",
+       "<b>EEZ: </b>", GeoName.2, "<br>",
       "<b>Zone type: </b>", Control, "<br>",
       "<b>Date: </b>", Date, "<br>",
       "<b>Aggressor: </b>", Aggressor, "<br>",
