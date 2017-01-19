@@ -39,6 +39,8 @@ ASAM@data <- ASAM@data %>%
 
 ASAM <- ASAM %>%
   subset(Year > 2012)
+## Remove duplicates
+ASAM <- remove.duplicates(ASAM)
 ## read in EEZ
 eez <- readOGR(dsn = "data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
 
@@ -50,15 +52,31 @@ eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
 ## set world base map
 world <- map("world", fill = TRUE, plot = FALSE)
 ```
-## Plot data
-
-```{r plot}
+## Set up buffers and controls
+```{r buffer}
+## Just look at Somalia
 somaliPiracy <- eezASAMOverlap %>%
-  subset(Aggressor == "Pirates") %>%
+  #subset(Aggressor == "Pirates") %>%
   subset(GeoName == "Somali Exclusive Economic Zone")
 
 eezSomalia <- eez %>%
   subset(GeoName == "Somali Exclusive Economic Zone")
+
+impactZones <- gBuffer(somaliPiracy,width=0.25,byid=TRUE) %>%
+  SpatialPolygonsDataFrame(data=somaliPiracy@data,match.ID=TRUE)
+impactZones@data$Control <- "Impact"
+
+controlZones <- impactZones %>%
+  gBuffer(width=0.25,byid=TRUE) 
+
+controlZones<- controlZones - impactZones
+controlZones@data$Control <- "Control"
+```
+
+
+## Plot data
+
+```{r plot}
 
 leaflet(data = world) %>%
   # fitBounds(0, 60, 35, 72) %>%
@@ -75,8 +93,34 @@ leaflet(data = world) %>%
   addMarkers(
     data = somaliPiracy,
     popup = ~paste0(
+      "<b>Reference ID: </b>", Reference, "<br>",
        "<b>EEZ: </b>", GeoName, "<br>",
       "<b>Date: </b>", Date, "<br>",
+      "<b>Aggressor: </b>", Aggressor, "<br>",
+      "<b>Victim: </b>", Victim, "<br>",
+      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
+  addPolygons(data=impactZones,
+              color="red",
+              stroke=FALSE,
+              fillOpacity = 0.5,
+    popup = ~paste0(
+      "<b>Reference ID: </b>", Reference, "<br>",
+       "<b>EEZ: </b>", GeoName, "<br>",
+      "<b>Zone type: </b>", Control, "<br>",
+      "<b>Date: </b>", Date, "<br>",
+      "<b>Aggressor: </b>", Aggressor, "<br>",
+      "<b>Victim: </b>", Victim, "<br>",
+      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
+  addPolygons(data=controlZones,
+              color="green",
+              stroke=FALSE,
+              fillOpacity = 0.5,
+    popup = ~paste0(
+      "<b>Reference ID: </b>", Reference, "<br>",
+       "<b>EEZ: </b>", GeoName, "<br>",
+      "<b>Zone type: </b>", Control, "<br>",
+      "<b>Date: </b>", Date, "<br>",
+      "<b>Aggressor: </b>", Aggressor, "<br>",
       "<b>Victim: </b>", Victim, "<br>",
       "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>"))
 ```
