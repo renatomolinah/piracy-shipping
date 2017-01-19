@@ -26,6 +26,7 @@ library(readr)
 library(broom)
 library(geosphere)
 library(raster)
+library(bigrquery)
 ```
 ## Load anti-shipping activity messages
 ```{r load_data, results='hide',error=FALSE,message=FALSE,warning=FALSE}
@@ -78,7 +79,7 @@ controlZones <- raster::intersect(controlZones,eezSomalia)
 ```
 
 
-## Plot data
+## Plot locations of attacks
 
 ```{r plot}
 
@@ -129,3 +130,48 @@ leaflet(data = world) %>%
       "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
   fitBounds(xmin(extent(eezSomalia)), ymin(extent(eezSomalia)), xmax(extent(eezSomalia)), ymax(extent(eezSomalia)))
 ```
+
+## Load GFW data
+
+```{r GFWdata}
+## Create bounding box around each zone
+boxes <- lapply(controlZones@data$Reference,function(x){
+  temp <- subset(controlZones,Reference == x)
+  box <- bbox(temp) %>%
+    as_data_frame
+  
+  box <- cbind(box[1,],box[2,])
+  colnames(box) <- c("min_lon", "min_lat","max_lon","max_lat")
+  box <- box %>%
+    as_data_frame %>%
+    mutate(Reference = x)
+}) %>%
+  bind_rows()
+
+GFW_connection <- src_bigquery("ucsb-gfw", "fao_v2", max_pages = Inf)
+fao_file <- "all_years_clean_effort"
+
+fishingEffort <- lapply(c("2016-209"), function(x){
+#fishingEffort <- lapply(somaliPiracy@data$Reference, function(x){
+  tempBox <- boxes[which(boxes$Reference == x),]
+  max_lat <- tempBox$max_lat
+  min_lat <- tempBox$min_lat
+  max_lon <- tempBox$max_lon
+  min_lon <- tempBox$min_lon
+  
+  tbl(GFW_connection, from = fao_file) %>%
+    select(timestamp, lon, lat, hours, measure_new_score) %>%
+    filter(
+      lat < max_lat &
+        lat > min_lat &
+        lon < max_lon &
+        lon > min_lon &
+        measure_new_score > 0.5
+    ) %>%
+    collect(n=Inf) %>%
+    mutate(Reference = tempBox$Reference)
+})   %>%
+  ## bind over all attacks
+  bind_rows()
+```
+
