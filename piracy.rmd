@@ -122,5 +122,6 @@ leaflet(data = world) %>%
       "<b>Date: </b>", Date, "<br>",
       "<b>Aggressor: </b>", Aggressor, "<br>",
       "<b>Victim: </b>", Victim, "<br>",
-      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>"))
+      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
+  fitBounds(xmin(extent(eezSomalia)), ymin(extent(eezSomalia)), xmax(extent(eezSomalia)), ymax(extent(eezSomalia)))
 ```
