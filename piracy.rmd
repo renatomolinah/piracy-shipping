@@ -111,12 +111,12 @@ somaliPiracy <- masterAttacks %>%
 eezSomalia <- eez %>%
   subset(GeoName == "Somali Exclusive Economic Zone")
 
-impactZones <- gBuffer(somaliPiracy,width=0.25,byid=TRUE) %>%
+impactZones <- gBuffer(somaliPiracy,width=1,byid=TRUE) %>%
   SpatialPolygonsDataFrame(data=somaliPiracy@data,match.ID=TRUE)
 impactZones@data$Control <- "Impact"
 
 controlZones <- impactZones %>%
-  gBuffer(width=0.25,byid=TRUE) 
+  gBuffer(width=1,byid=TRUE) 
 
 controlZones<- controlZones - impactZones
 controlZones@data$Control <- "Control"
@@ -311,12 +311,13 @@ daily_fishing_effort <- daily_fishing_effort %>%
          month = month(Date)) %>%
   mutate(year = year(Date),
          month = month(Date)) %>%
-  left_join(enso, by = c("year", "month"))
+  left_join(enso, by = c("year", "month")) %>% 
+  mutate(zone = paste(Reference,Control,sep="_"))
 
 seas_pred <-
-  daily_fishing_effort %>% 
-  group_by(Reference,Control) %>%
-  do(pred = predict(lm(fhours_30drm ~ factor(month) + factor(wday(Date)) + enso, data = .))) %>%
+  daily_fishing_effort %>%
+  group_by(zone) %>%
+  do(pred = predict(lm(fhours_30drm ~ factor(month) + factor(wday(Date)), data = .))) %>%
   ungroup()
 
 daily_fishing_effort$pred <- unlist(seas_pred$pred)
@@ -330,7 +331,7 @@ lapply(somaliPiracy@data$Reference,function(x){
   daily_fishing_effort_temp <- daily_fishing_effort %>%
     subset(Reference == x) 
   daily_fishing_effort_temp %>%
-    ggplot(aes(x=as_date(Date),y=hours_per_km2,col=Control,area=Control)) +
+    ggplot(aes(x=as_date(Date),y=fhours_30drm,col=Control,area=Control)) +
     geom_line(lwd=0.8) +
     geom_vline(aes(xintercept = as.numeric(as_date(AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
   scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31')))
