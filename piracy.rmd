@@ -104,7 +104,7 @@ data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",masterAttacks@data$Geo
 ## Set up buffers and controls
 ```{r buffer}
 ## Just look at Somalia
-somaliPiracy <- eezASAMOverlap %>%
+somaliPiracy <- masterAttacks %>%
   #subset(Aggressor == "Pirates") %>%
   subset(GeoName == "Somali Exclusive Economic Zone")
 
