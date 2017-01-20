@@ -51,13 +51,44 @@ proj4string(ASAM)<-proj4string(eez)
 
 ## look only at events happening within eezs
 eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
+## events in high seas
+highSeasOverlap <- subset(ASAM,!(Reference %in% eezASAMOverlap@data$Reference))
+
+highSeasOverlap@data <- highSeasOverlap@data %>%
+  mutate(PolygonID = NA,
+         MRGID = NA,
+         GeoName = "High Seas",
+         Pol_type = NA,
+         MRGID_Ter1 = NA,
+         Territory1 = NA,
+         MRGID_Sov1 = NA,
+         Sovereign1 = NA,
+         ISO_Ter1 = NA,
+         MRGID_Ter2 = NA,
+         Territory2 = NA,
+         MRGID_Sov2 = NA,
+         Sovereign2 = NA,
+         ISO_Ter2 = NA,
+         MRGID_Ter3 = NA,
+         Territory3 = NA,
+         MRGID_Sov3 = NA,
+         Sovereign3 = NA,
+         ISO_Ter3 = NA,
+         x_1 = NA,
+         y_1 = NA,
+         Area_km2 = NA,
+         MRGID_EEZ = NA)
+  
+masterAttacks <- eezASAMOverlap %>%
+  rbind(highSeasOverlap) %>%
+  remove.duplicates()
 ## set world base map
 world <- map("world", fill = TRUE, plot = FALSE)
 ```
 
 ## Plot attack data
 ```{r attackPlot}
-data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",eezASAMOverlap@data$GeoName)) %>%
+data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",masterAttacks@data$GeoName)) %>%
   group_by(country) %>%
   summarize(n = n()) %>%
   filter(n>10) %>%
