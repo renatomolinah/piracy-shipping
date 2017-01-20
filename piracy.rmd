@@ -334,6 +334,9 @@ lapply(somaliPiracy@data$Reference,function(x){
     ggplot(aes(x=as_date(Date),y=fhours_30drm,col=Control,area=Control)) +
     geom_line(lwd=0.8) +
     geom_vline(aes(xintercept = as.numeric(as_date(AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
-  scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31')))
+  scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31'))) +
+  xlab("") +
+  ylab("Fishing effort [hours/km^2]\nRolling 30-day mean") +
+  ggtitle(paste("Attack Reference ID: ",x,"\nDashed blue line represents attack date"))
 })
 ```
