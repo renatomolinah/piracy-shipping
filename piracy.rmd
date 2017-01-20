@@ -197,7 +197,8 @@ fishingEffort <- lapply(somaliPiracy@data$Reference, function(x){
 })   %>%
   ## bind over all attacks
   bind_rows()
-
+save(fishingEffort,file="data/fishingEffort.Rdata")
+load("data/fishingEffort.Rdata")
 coordinates(fishingEffort) <- c("lon", "lat")
 proj4string(fishingEffort) <- sp::proj4string(somaliPiracy)
 
@@ -281,7 +282,7 @@ lapply(somaliPiracy@data$Reference,function(x){
   daily_fishing_effort_temp <- daily_fishing_effort %>%
     subset(Reference == x) 
   daily_fishing_effort_temp %>%
-    ggplot(aes(x=as_date(Date),y=fhours_dtrend30drm,col=Control,area=Control)) +
+    ggplot(aes(x=as_date(Date),y=hours_per_km2,col=Control,area=Control)) +
     geom_line(lwd=0.8) +
     geom_vline(aes(xintercept = as.numeric(as_date(AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
   scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31')))
