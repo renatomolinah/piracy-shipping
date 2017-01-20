@@ -29,6 +29,7 @@ library(raster)
 library(bigrquery)
 ```
 ## Load anti-shipping activity messages
+Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
 ```{r load_data, results='hide',error=FALSE,message=FALSE,warning=FALSE}
 ## load anti-shipping data
 ASAM <- readOGR(dsn = "data/ASAM_shp", layer = "ASAM 18 JAN 17", stringsAsFactors = FALSE)
@@ -53,6 +54,22 @@ eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
 ## set world base map
 world <- map("world", fill = TRUE, plot = FALSE)
 ```
+
+## Plot attack data
+```{r attackPlot}
+data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",eezASAMOverlap@data$GeoName)) %>%
+  group_by(country) %>%
+  summarize(n = n()) %>%
+  filter(n>10) %>%
+  ggplot(aes(x=reorder(country,-n),y=n)) +
+           geom_histogram(stat="identity") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Country") +
+  ylab("Number of attacks\n2012 - 2016")
+
+```
+
+
 ## Set up buffers and controls
 ```{r buffer}
 ## Just look at Somalia
@@ -63,12 +80,12 @@ somaliPiracy <- eezASAMOverlap %>%
 eezSomalia <- eez %>%
   subset(GeoName == "Somali Exclusive Economic Zone")
 
-impactZones <- gBuffer(somaliPiracy,width=0.5,byid=TRUE) %>%
+impactZones <- gBuffer(somaliPiracy,width=0.25,byid=TRUE) %>%
   SpatialPolygonsDataFrame(data=somaliPiracy@data,match.ID=TRUE)
 impactZones@data$Control <- "Impact"
 
 controlZones <- impactZones %>%
-  gBuffer(width=0.5,byid=TRUE) 
+  gBuffer(width=0.25,byid=TRUE) 
 
 controlZones<- controlZones - impactZones
 controlZones@data$Control <- "Control"
