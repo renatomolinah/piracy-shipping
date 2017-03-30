@@ -39,8 +39,11 @@ ASAM@data <- ASAM@data %>%
          Year = year(Date)) %>%
   dplyr::select(-DateOfOcc)
 
+vesselTypes <- unique(ASAM@data$Victim)[grepl("Fish",unique(ASAM@data$Victim)) | grepl("FISH",unique(ASAM@data$Victim)) | grepl("fish",unique(ASAM@data$Victim))]
+
 ASAM <- ASAM %>%
   subset(Year > 2012)
+  # subset(Victim %in% vesselTypes)
 ## Remove duplicates
 ASAM <- remove.duplicates(ASAM)
 ## read in EEZ
@@ -83,15 +86,19 @@ masterAttacks <- eezASAMOverlap %>%
   rbind(highSeasOverlap) %>%
   remove.duplicates()
 ## set world base map
-world <- map("world", fill = TRUE, plot = FALSE)
+#world <- map("world", fill = TRUE, plot = FALSE)
+world <- readOGR(dsn = "data/TM_WORLD_BORDERS-0.3", layer = "TM_WORLD_BORDERS-0.3", stringsAsFactors = FALSE) %>%
+  gUnaryUnion(id = .@data$country)
+detach("package:rgdal", unload=TRUE)
 ```
 
 ## Plot attack data
 ```{r attackPlot}
+
 data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",masterAttacks@data$GeoName)) %>%
   group_by(country) %>%
   summarize(n = n()) %>%
-  filter(n>10) %>%
+  #filter(n > 10) %>%
   ggplot(aes(x=reorder(country,-n),y=n)) +
            geom_histogram(stat="identity") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -103,27 +110,27 @@ data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",masterAttacks@data$Geo
 
 ## Set up buffers and controls
 ```{r buffer}
-## Just look at Somalia
-somaliPiracy <- masterAttacks %>%
-  #subset(Aggressor == "Pirates") %>%
-  subset(GeoName == "Somali Exclusive Economic Zone")
+# ## Just look at Somalia
+# somaliPiracy <- masterAttacks %>%
+#   #subset(Aggressor == "Pirates") %>%
+#   subset(GeoName == "Somali Exclusive Economic Zone")
+# 
+# eezSomalia <- eez %>%
+#   subset(GeoName == "Somali Exclusive Economic Zone")
 
-eezSomalia <- eez %>%
-  subset(GeoName == "Somali Exclusive Economic Zone")
-
-impactZones <- gBuffer(somaliPiracy,width=1,byid=TRUE) %>%
-  SpatialPolygonsDataFrame(data=somaliPiracy@data,match.ID=TRUE)
+impactZones <- gBuffer(masterAttacks,width=0.5,byid=TRUE, quadsegs=1, capStyle="SQUARE") %>%
+  SpatialPolygonsDataFrame(data=masterAttacks@data,match.ID=TRUE)
 impactZones@data$Control <- "Impact"
 
-controlZones <- impactZones %>%
-  gBuffer(width=1,byid=TRUE) 
+controlZones <- gBuffer(masterAttacks,width=1,byid=TRUE, quadsegs=1, capStyle="SQUARE") %>%
+  SpatialPolygonsDataFrame(data=masterAttacks@data,match.ID=TRUE)
 
 controlZones<- controlZones - impactZones
 controlZones@data$Control <- "Control"
 
 ## Only look inside Somalia EEZ
-impactZones <- raster::intersect(impactZones,eezSomalia)
-controlZones <- raster::intersect(controlZones,eezSomalia)
+#impactZones <- raster::intersect(impactZones,eezSomalia)
+#controlZones <- raster::intersect(controlZones,eezSomalia)
 
 impactAreas <- lapply(impactZones@data$Reference,function(x){
   temp<-SpatialPolygons((subset(impactZones,Reference==x)@polygons)) %>%
@@ -146,7 +153,7 @@ controlAreas <- lapply(controlZones@data$Reference,function(x){
   bind_rows()
 
 masterAreas <- bind_rows(impactAreas,controlAreas) %>%
-  left_join(somaliPiracy@data %>%
+  left_join(masterAttacks@data %>%
               dplyr::select(Reference,AttackDate = Date))
 ```
 
@@ -155,60 +162,51 @@ masterAreas <- bind_rows(impactAreas,controlAreas) %>%
 
 ```{r plot}
 
-leaflet(data = world) %>%
+leaflet(data = eez) %>%
   # fitBounds(0, 60, 35, 72) %>%
   addPolygons(
-    stroke = FALSE, fillOpacity = 1, smoothFactor = 1, color = "white"
-  )  %>%
-  addPolygons(
-    data = eezSomalia,
-    group = "eez",
+    fillOpacity = 0.15, 
+    fillColor = "blue", 
     stroke=TRUE,
     weight=1,
-    popup = ~paste0(
-      "<b>EEZ: </b>", GeoName, "<br>")) %>%
-  addMarkers(
-    data = somaliPiracy,
-    popup = ~paste0(
-      "<b>Reference ID: </b>", Reference, "<br>",
-       "<b>EEZ: </b>", GeoName, "<br>",
-      "<b>Date: </b>", Date, "<br>",
-      "<b>Aggressor: </b>", Aggressor, "<br>",
-      "<b>Victim: </b>", Victim, "<br>",
-      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
+    color="black",
+    popup = ~paste0("<font color=#000000>",
+      "<b>EEZ: </b>", GeoName, "<br>",
+    "</font>"))  %>%
   addPolygons(data=impactZones,
               color="red",
               stroke=FALSE,
               fillOpacity = 0.5,
-    popup = ~paste0(
-      "<b>Reference ID: </b>", Reference, "<br>",
-       "<b>EEZ: </b>", GeoName.1, "<br>",
-      "<b>Zone type: </b>", Control, "<br>",
-      "<b>Date: </b>", Date, "<br>",
-      "<b>Aggressor: </b>", Aggressor, "<br>",
-      "<b>Victim: </b>", Victim, "<br>",
-      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
-  addPolygons(data=controlZones,
-              color="green",
-              stroke=FALSE,
-              fillOpacity = 0.5,
-    popup = ~paste0(
-      "<b>Reference ID: </b>", Reference, "<br>",
-       "<b>EEZ: </b>", GeoName.2, "<br>",
-      "<b>Zone type: </b>", Control, "<br>",
-      "<b>Date: </b>", Date, "<br>",
-      "<b>Aggressor: </b>", Aggressor, "<br>",
-      "<b>Victim: </b>", Victim, "<br>",
-      "<b>Description: </b>", gsub("NA","",paste0(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>")) %>%
-  fitBounds(xmin(extent(eezSomalia)), ymin(extent(eezSomalia)), xmax(extent(eezSomalia)), ymax(extent(eezSomalia)))
+              popup = ~paste0("<font color=#000000>",
+                "<b>Reference ID: </b>", Reference, "<br>",
+                "<b>EEZ: </b>", GeoName, "<br>",
+                "<b>Date: </b>", Date, "<br>",
+                "<b>Aggressor: </b>", Aggressor, "<br>",
+                "<b>Victim: </b>", Victim, "<br>",
+                "<b>Description: </b>", gsub("NA","",paste(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>",
+                 "</font>")) %>%
+  # addPolygons(data=controlZones,
+  #             color="green",
+  #             stroke=FALSE,
+  #             fillOpacity = 0.5) %>%
+  addPolygons(
+    data = world,
+    group = "world",
+    fillColor="white",
+    color="black",
+    stroke=TRUE,
+    weight=1,
+    fillOpacity = 1)
 ```
 
 ## Load GFW data
 
 ```{r GFWdata}
 ## Create bounding box around each zone
-boxes <- lapply(controlZones@data$Reference,function(x){
-  temp <- subset(controlZones,Reference == x)
+# boxes <- lapply(controlZones@data$Reference,function(x){
+#   temp <- subset(controlZones,Reference == x)
+boxes <- lapply(impactZones@data$Reference,function(x){
+  temp <- subset(impactZones,Reference == x)
   box <- bbox(temp) %>%
     as_data_frame
   
@@ -220,57 +218,121 @@ boxes <- lapply(controlZones@data$Reference,function(x){
 }) %>%
   bind_rows()
 
-GFW_connection <- src_bigquery("ucsb-gfw", "fao_v2", max_pages = Inf)
-fao_file <- "all_years_clean_effort"
-
+#GFW_connection <- src_bigquery("ucsb-gfw", "all_fishing_effort", max_pages = Inf)
+#fao_file <- "all_fishing_effort_all_years"
+grid_resolution_degree <- 0.25 # Set resolution of raster grid, degrees
 #fishingEffort <- lapply(c("2016-209"), function(x){
-fishingEffort <- lapply(somaliPiracy@data$Reference, function(x){
+fishingEffort <- lapply(masterAttacks@data$Reference, function(x){
   print(x)
   tempBox <- boxes[which(boxes$Reference == x),]
   max_lat <- tempBox$max_lat
   min_lat <- tempBox$min_lat
   max_lon <- tempBox$max_lon
   min_lon <- tempBox$min_lon
-  tbl(GFW_connection, from = fao_file) %>%
-    dplyr::select(timestamp, lon, lat, hours, measure_new_score) %>%
-    filter(
-      lat < max_lat &
-        lat > min_lat &
-        lon < max_lon &
-        lon > min_lon &
-        measure_new_score > 0.5
-    ) %>%
-    collect(n=Inf) %>%
-    mutate(Reference = tempBox$Reference)
+    sql <-  paste("SELECT
+DATE(timestamp) Date,
+SUM(hours) total_hours,
+FROM
+ all_fishing_effort.all_fishing_effort_all_years
+WHERE
+ measure_new_score >=.5
+AND
+hours > 0
+ AND 
+lat <",max_lat,"
+AND
+lat >",min_lat,"
+AND
+lon <",max_lon,"
+AND
+lon >",min_lon,"
+AND
+NOT (distance_from_shore < 1000 AND implied_speed < 1)
+GROUP BY
+Date",
+sep="")
+    project <-  "ucsb-gfw"
+    binned_effort <- query_exec(sql,project,max_pages = Inf) %>%
+      mutate(Reference = tempBox$Reference)
+#   sql <-  paste("SELECT
+#  FLOOR(lat/",grid_resolution_degree,") * ",grid_resolution_degree," lat_bin,
+#  FLOOR(lon/",grid_resolution_degree,") * ",grid_resolution_degree," lon_bin,
+# DATE(timestamp) Date,
+# hours
+# FROM
+#  all_fishing_effort.all_fishing_effort_all_years
+# WHERE
+#  measure_new_score >=.5
+# AND
+# hours > 0
+#  AND 
+# lat <",max_lat,"
+# AND
+# lat >",min_lat,"
+# AND
+# lon <",max_lon,"
+# AND
+# lon >",min_lon,"
+# AND
+# NOT (distance_from_shore < 1000 AND implied_speed < 1)
+# GROUP BY
+# Date,
+#  lat_bin,
+#  lon_bin,
+# hours",
+# sep="")
+#     project <-  "ucsb-gfw"
+#     binned_effort <- query_exec(sql,project,max_pages = Inf) %>%
+#       mutate(Reference = tempBox$Reference)
+  # tbl(GFW_connection, from = fao_file) %>%
+  #   dplyr::select(mmsi, timestamp, lon, lat, hours, measure_new_score,flag_country_name,eez_name,distance_from_shore,implied_speed) %>%
+  #   filter(
+  #     lat < max_lat &
+  #       lat > min_lat &
+  #       lon < max_lon &
+  #       lon > min_lon &
+  #       measure_new_score > 0.5 &
+  #       !(distance_from_shore < 1000 & implied_speed < 1)
+  #   ) %>%
+  #   collect(n=Inf) %>%
+  #   mutate(Reference = tempBox$Reference)
 })   %>%
   ## bind over all attacks
   bind_rows()
 save(fishingEffort,file="data/fishingEffort.Rdata")
 load("data/fishingEffort.Rdata")
-coordinates(fishingEffort) <- c("lon", "lat")
-proj4string(fishingEffort) <- sp::proj4string(somaliPiracy)
+#coordinates(fishingEffort) <- c("lon_bin", "lat_bin")
+#proj4string(fishingEffort) <- sp::proj4string(masterAttacks)
 
-daily_fishing_effort <- lapply(somaliPiracy@data$Reference,function(x){
-  controlEffort <- raster::intersect(subset(fishingEffort,Reference == x),
-                                     subset(controlZones,Reference == x)) %>%
-    as_data_frame()
-  
-  impactEffort <- raster::intersect(subset(fishingEffort,Reference == x),
-                                    subset(impactZones,Reference == x)) %>%
-    as_data_frame()
-  
-  rbind(controlEffort,impactEffort)
-}) %>%
-  bind_rows() %>%
-  mutate(Date = floor_date(timestamp, unit = "days")) %>%
-  group_by(Reference,Control,Date) %>%
-  summarize(Total_Hours = sum(hours)) %>%
+# daily_fishing_effort <- lapply(masterAttacks@data$Reference,function(x){
+#   if(!(x %in% unique(fishingEffort$Reference))) return()
+#   controlEffort <- fishingEffort[!is.na(over(fishingEffort,as(controlZones,"SpatialPolygons"))),]
+#   impactEffort <- fishingEffort[!is.na(over(fishingEffort,as(impactZones,"SpatialPolygons"))),]
+#   
+#   controlEffort <- controlEffort@data %>%
+#     mutate(Control = "Control")
+#   
+#   impactEffort <- impactEffort@data %>%
+#     mutate(Control = "Impact")
+#   
+#   all_effort <- bind_rows(controlEffort,impactEffort)
+# }) %>%
+#   bind_rows() %>%
+#   #mutate(Date = floor_date(timestamp, unit = "days")) %>%
+#   group_by(Reference,Control,Date) %>%
+#   summarize(Total_Hours = sum(hours)) %>%
+#   left_join(masterAreas,by=c("Reference","Control")) %>%
+#   mutate(hours_per_km2 = Total_Hours/area_km2)
+
+daily_fishing_effort <- fishingEffort %>%
+  mutate(Control = "Impact") %>%
   left_join(masterAreas,by=c("Reference","Control")) %>%
+  rename(Total_Hours = total_hours) %>%
   mutate(hours_per_km2 = Total_Hours/area_km2)
 
 all_dates = seq(as.Date("2012-01-01"), as.Date("2016-12-31"), by="day")
 
-completeDF <- expand.grid(all_dates,c("Control","Impact"),somaliPiracy@data$Reference)
+completeDF <- expand.grid(all_dates,c("Control","Impact"),masterAttacks@data$Reference)
 colnames(completeDF) <- c("Date","Control","Reference")
 daily_fishing_effort <- completeDF %>%
   as_data_frame() %>%
@@ -281,6 +343,11 @@ daily_fishing_effort <- completeDF %>%
               dplyr::select(Date,Control,Reference,Total_Hours,hours_per_km2),by=c("Date","Control","Reference")) %>%
   mutate(Total_Hours = ifelse(is.na(Total_Hours),0,Total_Hours),
          hours_per_km2 = ifelse(is.na(hours_per_km2),0,hours_per_km2))
+
+daily_fishing_effort <- daily_fishing_effort %>%
+  left_join(masterAttacks@data %>%
+              dplyr::select(Reference,
+                     GeoName))
 ```
 
 ## Statistics
@@ -288,7 +355,7 @@ Here we perform some statistics on the daily fishing effort data. These include:
   
 * Use a 30-day rolling mean for daily fishing effort [hours/km^2]
   
-* Get predicted values from a regression that includes calendar effects, ENSO effect, and site-level effect  
+* Get predicted values from a regression that includes calendar effects and ENSO effect
   
 * Detrend the data by subtracting this predicted regression from the observed values   
   
@@ -326,17 +393,32 @@ daily_fishing_effort$fhours_dtrend30drm = zoo::rollmean(daily_fishing_effort$fho
 ```
 
 ```{r resultsDailyEffort, fig.width=8.5, fig.height=6,error=FALSE,message=FALSE,warning=FALSE}
-lapply(somaliPiracy@data$Reference,function(x){
-  
-  daily_fishing_effort_temp <- daily_fishing_effort %>%
-    subset(Reference == x) 
-  daily_fishing_effort_temp %>%
-    ggplot(aes(x=as_date(Date),y=fhours_30drm,col=Control,area=Control)) +
-    geom_line(lwd=0.8) +
-    geom_vline(aes(xintercept = as.numeric(as_date(AttackDate[1]))),linetype=2,lwd=1.2,col="blue") +
-  scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31'))) +
+# lapply(unique(fishingEffort$Reference),function(x){
+#   
+#   daily_fishing_effort_temp <- daily_fishing_effort %>%
+#     subset(Reference == x) 
+#   daily_fishing_effort_temp %>%
+#     ggplot(aes(x=as_date(Date),y=fhours_30drm,col=Control,area=Control)) +
+#     geom_line(lwd=0.8) +
+#     geom_vline(aes(xintercept = as.numeric(as_date(AttackDate[1]))),linetype=2,lwd=1,col="blue") +
+#   scale_x_date(limits = as.Date(c('2012-01-01','2016-12-31'))) +
+#   xlab("") +
+#   ylab("Fishing effort [hours/km^2]\nRolling 30-day mean") +
+#   ggtitle(paste("Country: ",daily_fishing_effort_temp$GeoName[1],"\nAttack Reference ID: ",x,"\nDashed blue line represents attack date"))
+# })
+
+library(trelliscopejs)
+cum_fishing_effort <- daily_fishing_effort %>%
+  group_by(Reference) %>%
+  summarize(cum_effort = sum(Total_Hours))
+
+daily_fishing_effort %>%
+  left_join(cum_fishing_effort,by=c("Reference")) %>%
+  ggplot(aes(x=Date,y=Total_Hours)) +
+  geom_line()  +
   xlab("") +
-  ylab("Fishing effort [hours/km^2]\nRolling 30-day mean") +
-  ggtitle(paste("Attack Reference ID: ",x,"\nDashed blue line represents attack date"))
-})
+  ylab("Daily fishing effort [hours]") +
+  geom_vline(xintercept = as.numeric(as_date(daily_fishing_effort$AttackDate[1])),linetype=2,lwd=1,col="darkorange") +
+  facet_trelliscope(~ Reference, nrow = 3, ncol = 3,self_contained = TRUE,
+                    state = list(sort = list(sort_spec("cum_effort",dir="desc"))))
 ```
