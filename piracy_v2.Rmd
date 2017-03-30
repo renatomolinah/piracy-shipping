@@ -210,11 +210,23 @@ numRecentAttacksFunc <- function(lon,lat,attackDate){
 } %>%
   unlist()
 
+enso <- 
+  read_table("http://www.esrl.noaa.gov/psd/gcos_wgsp/Timeseries/Data/nino34.long.anom.data",
+             na = c("-99.99", "99.99"), skip = 1, n_max = year(Sys.time()) - 1870 + 1,
+             col_names = c("Year", 1:12)) %>%
+  filter(Year >= 2012) %>%
+  filter(Year <= 2016) %>%
+  gather(Month, enso, -Year) %>%
+  mutate(Month = as.double(Month),
+         Enso = ifelse(is.na(enso),mean(enso,na.rm=TRUE),enso))
+
 processedFishingEffort <- fishingEffort %>%
   mutate(Date = date(Date)) %>%
   left_join(latLonAttackDF,by = c("lat_bin", "lon_bin", "Date")) %>%
   mutate(number_attacks=replace(number_attacks, is.na(number_attacks), 0),
          Day = day(Date),
-         Month = month(Date))
+         Month = month(Date),
+         Year = year(Date)) %>%
+  left_join(enso,by=c("Month","Year"))
 
 ```
