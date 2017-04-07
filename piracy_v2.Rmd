@@ -19,6 +19,8 @@ library(lubridate)
 library(tidyverse)
 library(raster)
 library(bigrquery)
+library(RcppRoll)
+library(broom)
 ```
 ## Load anti-shipping activity messages
 Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
@@ -197,36 +199,31 @@ latLonAttackDF <- map(masterAttacks@data$Reference, function(x){
 
 recentDaysThreshold <- 30
 
-numRecentAttacksFunc <- function(lon,lat,attackDate){
-    pmap(list(lon,lat,attackDate),function(x,y,z){
-      recentDateVec <- seq(date(z) - recentDaysThreshold, date(z),by="days")
-      n_attacks <- latLonAttackDF %>%
-        filter(lon_bin == x &
-                 lat_bin == y &
-                 date(z) %in% recentDateVec) %>%
-        summarize(attack_count = n()) %>%
-        as.numeric()
-  })
-} %>%
-  unlist()
-
 enso <- 
   read_table("http://www.esrl.noaa.gov/psd/gcos_wgsp/Timeseries/Data/nino34.long.anom.data",
              na = c("-99.99", "99.99"), skip = 1, n_max = year(Sys.time()) - 1870 + 1,
              col_names = c("Year", 1:12)) %>%
-  filter(Year >= 2012) %>%
+  filter(Year >= 2011) %>%
   filter(Year <= 2016) %>%
   gather(Month, enso, -Year) %>%
   mutate(Month = as.double(Month),
-         Enso = ifelse(is.na(enso),mean(enso,na.rm=TRUE),enso))
+         enso = ifelse(is.na(enso),mean(enso,na.rm=TRUE),enso))
 
 processedFishingEffort <- fishingEffort %>%
   mutate(Date = date(Date)) %>%
   left_join(latLonAttackDF,by = c("lat_bin", "lon_bin", "Date")) %>%
-  mutate(number_attacks=replace(number_attacks, is.na(number_attacks), 0),
-         Day = day(Date),
+  mutate(number_attacks=replace(number_attacks, is.na(number_attacks), 0)) %>%
+  complete(nesting(lat_bin, lon_bin,eez_iso3),
+       Date=seq(from=min(.$Date)-30,to=max(.$Date), by=1), 
+       fill=list(total_hours=0,
+                 total_vessels=0,
+                 number_attacks=0)) %>%
+  mutate(number_attacks_recent_30=roll_sum(x=number_attacks!=0, n=recentDaysThreshold, fill=0, align="right"),
          Month = month(Date),
          Year = year(Date)) %>%
   left_join(enso,by=c("Month","Year"))
-
+         
+piracyModel <- glm(total_hours ~ factor(number_attacks_recent_30) + factor(eez_iso3) + factor(wday(Date)) + factor(Month) + factor(Year) + enso,
+                   family="poisson", 
+                   data=processedFishingEffort)
 ```
