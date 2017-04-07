@@ -223,7 +223,7 @@ processedFishingEffort <- fishingEffort %>%
          Year = year(Date)) %>%
   left_join(enso,by=c("Month","Year"))
          
-piracyModel <- glm(total_hours ~ umber_attacks_recent_30) + factor(eez_iso3) + factor(wday(Date)) + factor(Month) + enso,
+piracyModel <- glm(total_hours ~ number_attacks_recent_30 + factor(eez_iso3) + factor(wday(Date)) + factor(Month) + enso,
                    family="poisson", 
                    data=processedFishingEffort)
 ```
