@@ -179,7 +179,7 @@ latLonCombos <- fishingEffort %>%
                 lat_bin) %>%
   distinct()
 
-distanceThreshold <- 100
+distanceThreshold <- 50
 
 latLonAttackDF <- map(masterAttacks@data$Reference, function(x){
   temp <- subset(masterAttacks,masterAttacks@data$Reference == x)
@@ -197,7 +197,7 @@ latLonAttackDF <- map(masterAttacks@data$Reference, function(x){
   group_by(lon_bin,lat_bin,Date) %>%
   summarize(number_attacks = n())
 
-recentDaysThreshold <- 30
+recentDaysThreshold <- 7
 
 enso <- 
   read_table("http://www.esrl.noaa.gov/psd/gcos_wgsp/Timeseries/Data/nino34.long.anom.data",
@@ -214,16 +214,18 @@ processedFishingEffort <- fishingEffort %>%
   left_join(latLonAttackDF,by = c("lat_bin", "lon_bin", "Date")) %>%
   mutate(number_attacks=replace(number_attacks, is.na(number_attacks), 0)) %>%
   complete(nesting(lat_bin, lon_bin,eez_iso3),
-       Date=seq(from=min(.$Date)-30,to=max(.$Date), by=1), 
+       Date=seq(from=min(.$Date)-recentDaysThreshold,to=max(.$Date), by=1), 
        fill=list(total_hours=0,
                  total_vessels=0,
                  number_attacks=0)) %>%
-  mutate(number_attacks_recent_30=roll_sum(x=number_attacks!=0, n=recentDaysThreshold, fill=0, align="right"),
+  mutate(number_attacks_recent=roll_sum(x=number_attacks!=0, n=recentDaysThreshold, fill=0, align="right"),
          Month = month(Date),
          Year = year(Date)) %>%
   left_join(enso,by=c("Month","Year"))
          
-piracyModel <- glm(total_hours ~ number_attacks_recent_30 + factor(eez_iso3) + factor(wday(Date)) + factor(Month) + enso,
-                   family="poisson", 
-                   data=processedFishingEffort)
+# piracyModel <- glm(total_hours ~ number_attacks_recent + factor(eez_iso3) + factor(wday(Date)) + factor(Month),
+#                    family="poisson",
+#                    data=processedFishingEffort)
+# 
+# summary(piracyModel)
 ```
