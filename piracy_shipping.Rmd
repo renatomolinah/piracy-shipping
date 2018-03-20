@@ -1,0 +1,160 @@
+---
+title: "Piracy and Shipping"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(glue)
+library(bigrquery)
+
+# Port names from world ports database
+# https://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_62&pubCode=0015
+# For each region, create all combinations of port voyages
+# For each region, add id for every pair (which ignores order)
+
+south_china_sea_ports <- c("MANILA,PHL",
+                           "JAKARTA,IDN",
+                           "HONG KONG,HKG") %>%
+  expand.grid(from_port = .,
+              to_port = .) %>%
+  filter(from_port != to_port) %>%
+  mutate(region = "South China Sea") %>%
+  mutate(n1 = as.numeric(from_port),
+         n2 = as.numeric(to_port)) %>%
+  mutate(pair_id  = with({m1 = ifelse(n1 < n2, n1, n2);
+  m2 = ifelse(n1 < n2, n2, n1);
+  return(as.numeric(interaction(m1, m2, drop=TRUE)))}))
+
+gulf_guinea_ports <- c("ABIDJAN,CIV",
+                       "TEMA,GHA",
+                       "PORT HARCOURT,NGA",
+                       "LUANDA,AGO") %>%
+  expand.grid(from_port = .,
+              to_port = .) %>%
+  filter(from_port != to_port) %>%
+  mutate(region = "Gulf of Guinea") %>%
+  mutate(n1 = as.numeric(from_port),
+         n2 = as.numeric(to_port)) %>%
+  mutate(pair_id  = with({m1 = ifelse(n1 < n2, n1, n2);
+  m2 = ifelse(n1 < n2, n2, n1);
+  return(as.numeric(interaction(m1, m2, drop=TRUE)))}))
+
+# Merge all ports together
+all_ports <- bind_rows(south_china_sea_ports,
+                       gulf_guinea_ports) %>%
+  dplyr::select(-n1,-n2) %>%
+  group_by(region, pair_id) %>%
+  mutate(pair_name = paste(from_port[1], to_port[1], sep = " <-> ")) %>%
+  ungroup() %>%
+  mutate(from_country = gsub(".*,","",from_port),
+         to_country = gsub(".*,","",to_port))
+```
+
+# Included routes
+```{r port_table, echo = FALSE, results = 'asis', warnings = FALSE}
+knitr::kable(all_ports %>%
+               ungroup() %>%
+               dplyr::select(-pair_id,-from_country,-to_country))
+```
+
+
+```{r gfw_query, echo = FALSE, message=FALSE, warning = FALSE, eval = FALSE}
+# Create filter for all port combinations
+port_filter <- paste0("(from_port = '", all_ports$from_port,"'",
+                      " AND to_port = '",all_ports$to_port, "')") %>%
+  glue::collapse(sep = " OR ")
+
+# Define SQL query
+sql <-glue(
+  "SELECT
+mmsi,
+from_port,
+to_port,
+DATE(departure_timestamp) departure_date,
+DATE(arrival_timestamp) arrival_date,
+distance_km,
+hours,
+ais_pings
+FROM
+[ucsb-gfw:piracy.all_cargo_voyages]
+WHERE
+{port_filter}"
+)
+project <-  "ucsb-gfw"
+
+## Run the query    
+voyages <- query_exec(sql, project, max_pages = Inf)
+write_csv(voyages,"data/cached_data/voyages.csv")
+
+sql_from_ports <- 
+  "SELECT
+from_port
+FROM
+[ucsb-gfw:piracy.all_cargo_voyages]
+GROUP BY
+from_port
+ORDER BY
+from_port"
+sql_to_ports <- 
+  "SELECT
+to_port
+FROM
+[ucsb-gfw:piracy.all_cargo_voyages]
+GROUP BY
+to_port
+ORDER BY
+to_port"
+from_ports <- query_exec(sql_from_ports, project, max_pages = Inf)
+to_ports <- query_exec(sql_to_ports, project, max_pages = Inf)
+ports_processed <- data.frame(port = unique(c(from_ports$from_port,to_ports$to_port))) %>%
+  mutate(real_port = grepl("^[a-zA-Z0]+",port)) %>%
+  filter(real_port) %>%
+  dplyr::select(-real_port)
+write_csv(ports_processed,"data/cached_data/ports.csv")
+```
+
+# Distance traveled and pirate attacks by route
+
+```{r plot_data, echo = FALSE, warning = FALSE, message=FALSE}
+
+voyages <- read_csv("data/cached_data/voyages.csv")
+
+voyages_processed <- voyages %>%
+  left_join(all_ports) %>%
+  mutate(departure_date = as.Date(departure_date))
+
+attacks <- read_csv("data/cached_data/attacks.csv") %>%
+  mutate(Date = as.Date(Date)) %>%
+  filter(Date < max(voyages_processed$departure_date))
+
+map(unique(all_ports$region), function(x){
+  temp_ports <- all_ports %>%
+    filter(region == x)
+  # Subset attacks to only be in EEZs where ports are located
+  temp_attacks <- attacks %>%
+    filter(ISO_Ter1 %in% c(temp_ports$from_country,temp_ports$to_country) &
+             Aggressor == "Pirates")
+  map(unique(temp_ports$pair_name), function(y){
+      voyages_processed %>%
+        filter(region == x &
+                 pair_name == y) %>%
+        mutate(from_port = paste0("Departure Port: ", from_port)) %>%
+        ggplot(aes(x = departure_date, y = distance_km)) +
+        geom_vline(xintercept = temp_attacks$Date, color = "red", alpha = 0.25) +
+        geom_smooth(stat = "smooth", formula = y ~ x, method = "loess") +
+        geom_point() +
+        facet_wrap(~from_port, ncol = 1) +
+        scale_x_date(labels = scales::date_format("%m-%Y")) +
+        xlab("Departure Date") +
+        ylab("Distance Traveled [km]") +
+        ggtitle(paste0("Route: ",y))
+  })
+})
+```
+
+
+
