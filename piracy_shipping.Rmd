@@ -21,7 +21,7 @@ south_china_sea_ports <- c("MANILA,PHL",
                            "HONG KONG,HKG") %>%
   expand.grid(from_port = .,
               to_port = .) %>%
-  filter(from_port != to_port) %>%
+  #filter(from_port != to_port) %>%
   mutate(region = "South China Sea") %>%
   mutate(n1 = as.numeric(from_port),
          n2 = as.numeric(to_port)) %>%
@@ -35,7 +35,7 @@ gulf_guinea_ports <- c("ABIDJAN,CIV",
                        "LUANDA,AGO") %>%
   expand.grid(from_port = .,
               to_port = .) %>%
-  filter(from_port != to_port) %>%
+  #filter(from_port != to_port) %>%
   mutate(region = "Gulf of Guinea") %>%
   mutate(n1 = as.numeric(from_port),
          n2 = as.numeric(to_port)) %>%
@@ -67,6 +67,10 @@ knitr::kable(all_ports %>%
 port_filter <- paste0("(from_port = '", all_ports$from_port,"'",
                       " AND to_port = '",all_ports$to_port, "')") %>%
   glue::collapse(sep = " OR ")
+# Create filter for all relevant country combinations
+country_filter <- paste0("(from_port CONTAINS ',", all_ports$from_country,"'",
+                      " AND to_port CONTAINS ',",all_ports$to_country, "')") %>%
+  glue::collapse(sep = " OR ")
 
 # Define SQL query
 sql <-glue(
@@ -82,47 +86,59 @@ ais_pings
 FROM
 [ucsb-gfw:piracy.all_cargo_voyages]
 WHERE
-{port_filter}"
+{country_filter}"
 )
 project <-  "ucsb-gfw"
 
 ## Run the query    
 voyages <- query_exec(sql, project, max_pages = Inf)
 write_csv(voyages,"data/cached_data/voyages.csv")
-
-sql_from_ports <- 
-  "SELECT
-from_port
-FROM
-[ucsb-gfw:piracy.all_cargo_voyages]
-GROUP BY
-from_port
-ORDER BY
-from_port"
-sql_to_ports <- 
-  "SELECT
-to_port
-FROM
-[ucsb-gfw:piracy.all_cargo_voyages]
-GROUP BY
-to_port
-ORDER BY
-to_port"
-from_ports <- query_exec(sql_from_ports, project, max_pages = Inf)
-to_ports <- query_exec(sql_to_ports, project, max_pages = Inf)
-ports_processed <- data.frame(port = unique(c(from_ports$from_port,to_ports$to_port))) %>%
-  mutate(real_port = grepl("^[a-zA-Z0]+",port)) %>%
-  filter(real_port) %>%
-  dplyr::select(-real_port)
-write_csv(ports_processed,"data/cached_data/ports.csv")
+# sql_from_ports <- 
+#   "SELECT
+# from_port
+# FROM
+# [ucsb-gfw:piracy.all_cargo_voyages]
+# GROUP BY
+# from_port
+# ORDER BY
+# from_port"
+# sql_to_ports <- 
+#   "SELECT
+# to_port
+# FROM
+# [ucsb-gfw:piracy.all_cargo_voyages]
+# GROUP BY
+# to_port
+# ORDER BY
+# to_port"
+# from_ports <- query_exec(sql_from_ports, project, max_pages = Inf)
+# to_ports <- query_exec(sql_to_ports, project, max_pages = Inf)
+# ports_processed <- data.frame(port = unique(c(from_ports$from_port,to_ports$to_port))) %>%
+#   mutate(real_port = grepl("^[a-zA-Z0]+",port)) %>%
+#   filter(real_port) %>%
+#   dplyr::select(-real_port)
+# write_csv(ports_processed,"data/cached_data/ports.csv")
 ```
+
+```{r}
+voyages <- read_csv("data/cached_data/voyages.csv")
+# Process voyages for renato
+voyages_processed <- voyages %>%
+  mutate(from_country = gsub(".*,","",from_port),
+         to_country = gsub(".*,","",to_port)) %>%
+  mutate(region = case_when(from_country %in% (all_ports %>% filter(region == "South China Sea") %>% .$from_country %>% unique()) &
+                            to_country %in% (all_ports %>% filter(region == "South China Sea") %>% .$from_country %>% unique())  ~ "South China Sea",
+                            from_country %in% (all_ports %>% filter(region == "Gulf of Guinea") %>% .$from_country %>% unique()) &
+                            to_country %in% (all_ports %>% filter(region == "Gulf of Guinea") %>% .$from_country %>% unique())~ "Gulf of Guinea")) %>%
+  filter(!is.na(region))
+
+write_csv(voyages_processed,"data/cached_data/voyages.csv")
+```
+
 
 # Distance traveled and pirate attacks by route
 
 ```{r plot_data, echo = FALSE, warning = FALSE, message=FALSE}
-
-voyages <- read_csv("data/cached_data/voyages.csv")
-
 voyages_processed <- voyages %>%
   left_join(all_ports) %>%
   mutate(departure_date = as.Date(departure_date))
