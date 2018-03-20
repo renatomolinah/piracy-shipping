@@ -21,6 +21,8 @@ library(raster)
 library(bigrquery)
 library(RcppRoll)
 library(broom)
+library(modelr)
+library(padr)
 ```
 ## Load anti-shipping activity messages
 Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
@@ -173,13 +175,18 @@ load("data/eezFishingEffort.Rdata")
 ```
 
 ```{r}
+fishingEffort <- fishingEffort %>%
+  mutate(Date = date(Date),
+         Month = month(Date),
+         Year = year(Date))
+
 latLonCombos <- fishingEffort %>%
   as_tibble() %>%
   dplyr::select(lon_bin,
                 lat_bin) %>%
   distinct()
 
-distanceThreshold <- 50
+distanceThreshold <- 10
 
 latLonAttackDF <- map(masterAttacks@data$Reference, function(x){
   temp <- subset(masterAttacks,masterAttacks@data$Reference == x)
@@ -194,10 +201,11 @@ latLonAttackDF <- map(masterAttacks@data$Reference, function(x){
 }) %>%
   bind_rows() %>%
   filter(Distance <= distanceThreshold) %>%
-  group_by(lon_bin,lat_bin,Date) %>%
+  mutate(Location = paste(lat_bin,lon_bin,sep="_")) %>%
+  group_by(Location,Date) %>%
   summarize(number_attacks = n())
 
-recentDaysThreshold <- 7
+recentDaysThreshold <- 14
 
 enso <- 
   read_table("http://www.esrl.noaa.gov/psd/gcos_wgsp/Timeseries/Data/nino34.long.anom.data",
@@ -210,22 +218,27 @@ enso <-
          enso = ifelse(is.na(enso),mean(enso,na.rm=TRUE),enso))
 
 processedFishingEffort <- fishingEffort %>%
-  mutate(Date = date(Date)) %>%
-  left_join(latLonAttackDF,by = c("lat_bin", "lon_bin", "Date")) %>%
+  mutate(Location = paste(lat_bin,lon_bin,sep="_")) %>%
+  left_join(latLonAttackDF,by = c("Location", "Date"))  %>%
   mutate(number_attacks=replace(number_attacks, is.na(number_attacks), 0)) %>%
-  complete(nesting(lat_bin, lon_bin,eez_iso3),
-       Date=seq(from=min(.$Date)-recentDaysThreshold,to=max(.$Date), by=1), 
+  complete(nesting(Location,eez_iso3,lat_bin,lon_bin),
+       Date=seq(from=min(.$Date),to=max(.$Date), by=1),
        fill=list(total_hours=0,
                  total_vessels=0,
                  number_attacks=0)) %>%
-  mutate(number_attacks_recent=roll_sum(x=number_attacks!=0, n=recentDaysThreshold, fill=0, align="right"),
-         Month = month(Date),
+  mutate(Month = month(Date),
          Year = year(Date)) %>%
-  left_join(enso,by=c("Month","Year"))
+  arrange(Location,Date) %>%
+  mutate(number_attacks_recent=roll_sum(x=number_attacks, n=recentDaysThreshold, fill=0, align="right"),
+         recent_attack = ifelse(number_attacks_recent>0,1,0)) %>%
+  left_join(enso,by=c("Month","Year")) %>%
+  ungroup()
          
-# piracyModel <- glm(total_hours ~ number_attacks_recent + factor(eez_iso3) + factor(wday(Date)) + factor(Month),
-#                    family="poisson",
-#                    data=processedFishingEffort)
+piracyModel <- lm(log(total_hours) ~ factor(recent_attack) + enso + factor(eez_iso3) + factor(wday(Date)) + factor(Month) + factor(Year),
+                    data=processedFishingEffort)
 # 
-# summary(piracyModel)
+summary(piracyModel)
+# 
+processedFishingEffort <- processedFishingEffort %>%
+    mutate(pred = predict(piracyModel, newdata = ., type = 'response'))
 ```
