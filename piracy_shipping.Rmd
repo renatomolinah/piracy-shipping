@@ -118,6 +118,18 @@ write_csv(voyages,"data/cached_data/voyages.csv")
 #   filter(real_port) %>%
 #   dplyr::select(-real_port)
 # write_csv(ports_processed,"data/cached_data/ports.csv")
+
+sql_port_locations <-glue(
+  "SELECT
+label,
+lat,
+lon,
+anchor_group
+FROM
+[world-fishing-827:gfw_research.named_anchorages_20171120]")
+ports <- query_exec(sql_port_locations, project, max_pages = Inf)
+write_csv(ports %>%
+            rename(anchorage = label),"data/anchorages.csv")
 ```
 
 ```{r}
