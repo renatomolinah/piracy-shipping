@@ -103,7 +103,8 @@ project <-  "ucsb-gfw"
 
 ## Run the query    
 voyages <- query_exec(sql, project, max_pages = Inf)
-write_csv(voyages,"data/cached_data/voyages_nga.csv")
+write_csv(voyages %>%
+            filter(!is.na(from_port) & !is.na(to_port)),"data/cached_data/voyages_nga.csv")
 # sql_from_ports <- 
 #   "SELECT
 # from_port
