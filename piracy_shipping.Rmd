@@ -52,6 +52,11 @@ all_ports <- bind_rows(south_china_sea_ports,
   ungroup() %>%
   mutate(from_country = gsub(".*,","",from_port),
          to_country = gsub(".*,","",to_port))
+
+# Per Renato's request of April 5
+# Just look at Nigeria
+all_ports <- data.frame(from_country = "NGA",
+                        to_country = "NGA")
 ```
 
 # Included routes
@@ -70,6 +75,12 @@ port_filter <- paste0("(from_port = '", all_ports$from_port,"'",
 # Create filter for all relevant country combinations
 country_filter <- paste0("(from_port CONTAINS ',", all_ports$from_country,"'",
                       " AND to_port CONTAINS ',",all_ports$to_country, "')") %>%
+  glue::collapse(sep = " OR ")
+
+# Per Renato's request of April 5
+# Just look at voyages coming into or out of Nigeria
+country_filter <- paste0("(from_port CONTAINS ',", all_ports$from_country,"'",
+                      " OR to_port CONTAINS ',",all_ports$to_country, "')") %>%
   glue::collapse(sep = " OR ")
 
 # Define SQL query
@@ -92,7 +103,7 @@ project <-  "ucsb-gfw"
 
 ## Run the query    
 voyages <- query_exec(sql, project, max_pages = Inf)
-write_csv(voyages,"data/cached_data/voyages.csv")
+write_csv(voyages,"data/cached_data/voyages_nga.csv")
 # sql_from_ports <- 
 #   "SELECT
 # from_port
