@@ -11,7 +11,11 @@ library(tidyverse)
 library(glue)
 library(bigrquery)
 library(geosphere)
+```
 
+```{r setup, eval}
+# DON'T RUN IF YOU DON'T NEED TO
+# All data are cached uner raw_data/gfw_data
 # Just look at voyages coming into or out of Nigeria
 country_filter <- paste0("(from_anchorage CONTAINS ',NGA'",
                       " OR to_anchorage CONTAINS ',NGA')") %>%
@@ -69,7 +73,9 @@ write_csv(voyages,"raw_data/gfw_data/voyages_nga.csv")
 write_csv(anchorages,"raw_data/gfw_data/anchorages_nga.csv")
 ```
 
-```{r}
+```{r process_data}
+voyages <- read_csv("raw_data/gfw_data/voyages_nga.csv")
+anchorages <- read_csv("raw_data/gfw_data/anchorages_nga.csv")
 # Add to/from anchorage id info
 # Calculate haversine d
 voyages_processed <- voyages %>%
