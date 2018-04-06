@@ -42,14 +42,14 @@ WHERE
 project <-  "ucsb-gfw"
 
 ## Run the query    
-voyages <- query_exec(sql, project, max_pages = Inf)
-
-anchorage_ids <- unique(c(voyages$from_anchorage_id, 
-                          voyages$to_anchorage_id))
+# voyages <- query_exec(sql, project, max_pages = Inf)
+# 
+# anchorage_ids <- unique(c(voyages$from_anchorage_id, 
+#                           voyages$to_anchorage_id))
 
 # Just look at anchorages in the voyages data set
-anchorage_filter <- paste0("(s2id = '", anchorage_ids,"')") %>%
-  glue::collapse(sep = " OR ")
+# anchorage_filter <- paste0("(s2id = '", anchorage_ids,"')") %>%
+#   glue::collapse(sep = " OR ")
 
 # Define SQL query
 sql <-glue(
