@@ -65,8 +65,8 @@ project <-  "ucsb-gfw"
 ## Run the query    
 anchorages <- query_exec(sql, project, max_pages = Inf)
 
-write_csv(voyages,"data/gfw_data/voyages_nga.csv")
-write_csv(anchorages,"data/gfw_data/anchorages_nga.csv")
+write_csv(voyages,"raw_data/gfw_data/voyages_nga.csv")
+write_csv(anchorages,"raw_data/gfw_data/anchorages_nga.csv")
 ```
 
 ```{r}

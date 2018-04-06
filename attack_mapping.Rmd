@@ -84,7 +84,7 @@ highSeasOverlap@data <- highSeasOverlap@data %>%
 masterAttacks <- eezASAMOverlap %>%
   rbind(highSeasOverlap) %>%
   remove.duplicates()
-write_csv(masterAttacks@data,"data/processed_data/attacks.csv")
+write_csv(masterAttacks@data,"raw_data/processed_data/attacks.csv")
 detach("package:rgdal", unload=TRUE)
 ```
 
