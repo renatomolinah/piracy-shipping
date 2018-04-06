@@ -1,0 +1,79 @@
+---
+title: "Data construction: The cost of piracy on global shipping"
+author: "Renato Molina"
+date: "4/3/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+```
+
+## Load datasets
+
+Load the two main data sets: attacks and voyages:
+
+```{r load data}
+attacks <- read_csv("data/cached_data/attacks.csv")
+voyages <- read_csv("data/cached_data/voyages_processed_nga.csv")
+```
+
+## Create working data set
+
+# Create a function that:
+
+1. takes a voyage departure date and EEZ
+2. finds the pirate attacks in that EEZ before that date
+3. returns the minimum number of days since last pirate attack
+
+
+
+# Apply function to all voyages (takes a while - check efficency)
+
+```{r apply matching function}
+voyages2 <- voyages %>%
+  #for each voyage
+  rowwise() %>% 
+  # find and attach days since most recent attack
+  mutate(days_since_attack=find_recent_attack(departure_date,from_country))
+voyages2$days_since_attack <- as.numeric(voyages2$days_since_attack)
+```
+
+# Create raw dataset and focus on Nigeria
+
+```{r apply matching function}
+# Save the entire dataset
+write_csv(voyages2)
+# Just Nigeria
+voyages2 %>% filter(from_country=="NGA") %>% write_csv("C:/Users/oliu.MASONBEE/Documents/UCSB/Other Research/piracy/NGA_voyages_w_days_since_attack.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

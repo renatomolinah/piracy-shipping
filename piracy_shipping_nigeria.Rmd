@@ -1,0 +1,120 @@
+---
+title: "Piracy and Shipping"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(glue)
+library(bigrquery)
+library(geosphere)
+
+# Just look at voyages coming into or out of Nigeria
+country_filter <- paste0("(from_anchorage CONTAINS ',NGA'",
+                      " OR to_anchorage CONTAINS ',NGA')") %>%
+  glue::collapse(sep = " OR ")
+
+# Define SQL query
+sql <-glue(
+  "SELECT
+mmsi,
+from_anchorage,
+from_anchorage_id,
+to_anchorage,
+to_anchorage_id,
+DATE(departure_timestamp) departure_date,
+DATE(arrival_timestamp) arrival_date,
+distance_km,
+hours,
+ais_pings
+FROM
+[ucsb-gfw:piracy.all_cargo_voyages]
+WHERE
+{country_filter}"
+)
+project <-  "ucsb-gfw"
+
+## Run the query    
+voyages <- query_exec(sql, project, max_pages = Inf)
+
+anchorage_ids <- unique(c(voyages$from_anchorage_id, 
+                          voyages$to_anchorage_id))
+
+# Just look at anchorages in the voyages data set
+anchorage_filter <- paste0("(s2id = '", anchorage_ids,"')") %>%
+  glue::collapse(sep = " OR ")
+
+# Define SQL query
+sql <-glue(
+  "SELECT
+s2id,
+label,
+anchor_group,
+lat,
+lon
+FROM
+[world-fishing-827:gfw_research.named_anchorages_20171120]
+WHERE
+{anchorage_filter}"
+)
+project <-  "ucsb-gfw"
+
+## Run the query    
+anchorages <- query_exec(sql, project, max_pages = Inf)
+
+write_csv(voyages,"data/gfw_data/voyages_nga.csv")
+write_csv(anchorages,"data/gfw_data/anchorages_nga.csv")
+```
+
+```{r}
+# Add to/from anchorage id info
+# Calculate haversine d
+voyages_processed <- voyages %>%
+  filter(!is.na(from_anchorage) & !is.na(to_anchorage)) %>%
+   mutate(from_country = gsub(".*,","",from_anchorage),
+         to_country = gsub(".*,","",to_anchorage)) %>%
+  left_join(anchorages %>%
+              dplyr::select(from_anchorage_id = s2id,
+                            from_anchorage_lat = lat,
+                            from_anchorage_lon = lon),
+            by = "from_anchorage_id") %>%
+  left_join(anchorages %>%
+              dplyr::select(to_anchorage_id = s2id,
+                            to_anchorage_lat = lat,
+                            to_anchorage_lon = lon),
+            by = "to_anchorage_id") %>%
+  rowwise() %>%
+  mutate(straight_distance_km = distm(c(from_anchorage_lon,from_anchorage_lat), 
+                                      c(to_anchorage_lon,to_anchorage_lat), 
+                                      fun=distHaversine) / 1000)
+
+```
+
+```{r attack_matching}
+find_recent_attack <- function(voyage_date,EEZ) {
+  # Filter attack data by appropriate EEZ and find all attacks before 
+  relevant_attacks <- filter(attacks,Date<=voyage_date,ISO_Ter1==EEZ) %>%
+    # calculate the difference in days between each of those attacks and the voyage of interest
+    mutate(days_to_voyage=voyage_date-Date)
+  # pull out the minimum number of days (= the most recent attack)
+  out <- min(relevant_attacks$days_to_voyage)
+  # if there are no attacks before the voyage, have function return "NA" instead of "Inf"
+  if(is.infinite(out)) return(NA)
+  else(return(out))
+}
+attacks <- read_csv("data/processed_data/attacks.csv")
+
+voyages_processed <- voyages_processed %>%
+  #for each voyage
+  rowwise() %>% 
+  # find and attach days since most recent attack
+  mutate(days_since_attack_from_country=find_recent_attack(departure_date,from_country) %>%
+           as.numeric(),
+         days_since_attack_to_country=find_recent_attack(departure_date,to_country) %>%
+           as.numeric())
+
+write_csv(voyages_processed,"data/processed_data/voyages_processed_nga.csv")
+```

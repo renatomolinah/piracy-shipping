@@ -1,0 +1,132 @@
+---
+title: "Piracy Notebook v2"
+author: "Gavin McDonald"
+date: "March 30, 2017"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  html_notebook:
+    number_sections: yes
+    toc: yes
+---
+# Introduction
+
+# Methods
+## Load necessary libraries
+```{r load_libraries}
+library(rgdal)
+library(sp)
+library(leaflet)
+library(lubridate)
+library(tidyverse)
+library(raster)
+library(bigrquery)
+library(RcppRoll)
+library(broom)
+library(modelr)
+library(padr)
+```
+## Load anti-shipping activity messages
+Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
+```{r load_data, results='hide',error=FALSE,message=FALSE,warning=FALSE}
+## load anti-shipping data
+ASAM <- readOGR(dsn = "data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE)
+## Process dates, and filter out anything before 2012
+ASAM@data <- ASAM@data %>%
+  mutate(Date = as_date(DateOfOcc),
+         Year = year(Date)) %>%
+  dplyr::select(-DateOfOcc)
+
+vesselTypes <- unique(ASAM@data$Victim)[grepl("Fish",unique(ASAM@data$Victim)) | grepl("FISH",unique(ASAM@data$Victim)) | grepl("fish",unique(ASAM@data$Victim))]
+
+ASAM <- ASAM %>%
+  subset(Year > 2011)
+
+## Remove duplicates
+ASAM <- remove.duplicates(ASAM)
+## read in EEZ
+eez <- readOGR(dsn = "data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
+
+## set projection
+proj4string(ASAM)<-proj4string(eez)
+
+## look only at events happening within eezs
+eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
+## events in high seas
+highSeasOverlap <- subset(ASAM,!(Reference %in% eezASAMOverlap@data$Reference))
+
+highSeasOverlap@data <- highSeasOverlap@data %>%
+  mutate(PolygonID = NA,
+         MRGID = NA,
+         GeoName = "High Seas",
+         Pol_type = NA,
+         MRGID_Ter1 = NA,
+         Territory1 = NA,
+         MRGID_Sov1 = NA,
+         Sovereign1 = NA,
+         ISO_Ter1 = NA,
+         MRGID_Ter2 = NA,
+         Territory2 = NA,
+         MRGID_Sov2 = NA,
+         Sovereign2 = NA,
+         ISO_Ter2 = NA,
+         MRGID_Ter3 = NA,
+         Territory3 = NA,
+         MRGID_Sov3 = NA,
+         Sovereign3 = NA,
+         ISO_Ter3 = NA,
+         x_1 = NA,
+         y_1 = NA,
+         Area_km2 = NA,
+         MRGID_EEZ = NA)
+  
+masterAttacks <- eezASAMOverlap %>%
+  rbind(highSeasOverlap) %>%
+  remove.duplicates()
+write_csv(masterAttacks@data,"data/processed_data/attacks.csv")
+detach("package:rgdal", unload=TRUE)
+```
+
+## Global attack visualization
+```{r attackPlot}
+data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",masterAttacks@data$GeoName)) %>%
+  group_by(country) %>%
+  summarize(n = n()) %>%
+  filter(n > 10) %>%
+  ggplot(aes(x=reorder(country,-n),y=n)) +
+           geom_histogram(stat="identity") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Country") +
+  ylab("Number of attacks\n2012 - 2016")
+```
+
+## Plot locations of attacks
+
+```{r plot}
+leaflet() %>%
+  # fitBounds(0, 60, 35, 72) %>%
+  addPolygons(data = eez,
+    fillOpacity = 0.15, 
+    fillColor = "blue", 
+    stroke=TRUE,
+    weight=1,
+    color="black",
+    popup = ~paste0("<font color=#000000>",
+      "<b>EEZ: </b>", GeoName, "<br>",
+    "</font>"))  %>%
+  addCircleMarkers(data=masterAttacks,
+              color="red",
+              stroke=FALSE,
+              fillOpacity = 0.5,
+              radius = 3,
+              popup = ~paste0("<font color=#000000>",
+                "<b>Reference ID: </b>", Reference, "<br>",
+                "<b>EEZ: </b>", GeoName, "<br>",
+                "<b>Date: </b>", Date, "<br>",
+                "<b>Aggressor: </b>", Aggressor, "<br>",
+                "<b>Victim: </b>", Victim, "<br>",
+                "<b>Description: </b>", gsub("NA","",paste(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>",
+                 "</font>"))
+  
+```
