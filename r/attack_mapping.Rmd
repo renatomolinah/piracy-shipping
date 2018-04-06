@@ -31,7 +31,7 @@ library(padr)
 Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
 ```{r load_data, results='hide',error=FALSE,message=FALSE,warning=FALSE}
 ## load anti-shipping data
-ASAM <- readOGR(dsn = "data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE)
+ASAM <- readOGR(dsn = "../raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE)
 ## Process dates, and filter out anything before 2012
 ASAM@data <- ASAM@data %>%
   mutate(Date = as_date(DateOfOcc),
@@ -46,7 +46,7 @@ ASAM <- ASAM %>%
 ## Remove duplicates
 ASAM <- remove.duplicates(ASAM)
 ## read in EEZ
-eez <- readOGR(dsn = "data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
+eez <- readOGR(dsn = "../raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
 
 ## set projection
 proj4string(ASAM)<-proj4string(eez)
@@ -84,7 +84,7 @@ highSeasOverlap@data <- highSeasOverlap@data %>%
 masterAttacks <- eezASAMOverlap %>%
   rbind(highSeasOverlap) %>%
   remove.duplicates()
-write_csv(masterAttacks@data,"raw_data/processed_data/attacks.csv")
+#write_csv(masterAttacks@data,"../processed_data/attacks.csv")
 detach("package:rgdal", unload=TRUE)
 ```
 

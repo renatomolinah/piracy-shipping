@@ -69,13 +69,13 @@ project <-  "ucsb-gfw"
 ## Run the query    
 #anchorages <- query_exec(sql, project, max_pages = Inf)
 
-#write_csv(voyages,"raw_data/gfw_data/voyages_nga.csv")
-#write_csv(anchorages,"raw_data/gfw_data/anchorages_nga.csv")
+#write_csv(voyages,"../raw_data/gfw_data/voyages_nga.csv")
+#write_csv(anchorages,"../raw_data/gfw_data/anchorages_nga.csv")
 ```
 
 ```{r process_data}
-voyages <- read_csv("raw_data/gfw_data/voyages_nga.csv")
-anchorages <- read_csv("raw_data/gfw_data/anchorages_nga.csv")
+voyages <- read_csv("../raw_data/gfw_data/voyages_nga.csv")
+anchorages <- read_csv("../raw_data/gfw_data/anchorages_nga.csv")
 # Add to/from anchorage id info
 # Calculate haversine d
 voyages_processed <- voyages %>%
@@ -111,7 +111,7 @@ find_recent_attack <- function(voyage_date,EEZ) {
   if(is.infinite(out)) return(NA)
   else(return(out))
 }
-attacks <- read_csv("data/processed_data/attacks.csv")
+attacks <- read_csv("../processed_data/attacks.csv")
 
 voyages_processed <- voyages_processed %>%
   #for each voyage
@@ -122,5 +122,5 @@ voyages_processed <- voyages_processed %>%
          days_since_attack_to_country=find_recent_attack(departure_date,to_country) %>%
            as.numeric())
 
-write_csv(voyages_processed,"processed_data/voyages_processed_nga.csv")
+write_csv(voyages_processed,"../processed_data/voyages_processed_nga.csv")
 ```
