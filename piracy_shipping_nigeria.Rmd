@@ -116,5 +116,5 @@ voyages_processed <- voyages_processed %>%
          days_since_attack_to_country=find_recent_attack(departure_date,to_country) %>%
            as.numeric())
 
-write_csv(voyages_processed,"data/processed_data/voyages_processed_nga.csv")
+write_csv(voyages_processed,"processed_data/voyages_processed_nga.csv")
 ```
