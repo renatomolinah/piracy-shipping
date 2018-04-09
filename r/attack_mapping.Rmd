@@ -91,10 +91,9 @@ expanded_asam <- expand.grid(date = date_range,
                             attack_eez) %>%
               group_by(date,lon_bin,lat_bin) %>%
               summarize(number_attacks = n()),by=c("date","lon_bin","lat_bin")) %>%
-  mutate(attacks_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
-  group_by(hotspot_id) %>%
-  mutate(days_since_attack = cumsum(!is.na(number_attacks))) %>%
-  ungroup()
+  mutate(attacks_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE))
+
+# ideas for days elapsed: https://stackoverflow.com/questions/26553638/calculate-elapsed-time-since-last-event/26554441
 ```
 
 ## Global attack visualization
