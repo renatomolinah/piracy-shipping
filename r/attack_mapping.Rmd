@@ -22,6 +22,7 @@ library(tidyverse)
 library(bigrquery)
 library(viridis)
 library(maps)
+library(zoo)
 ```
 ## Load anti-shipping activity messages
 Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
@@ -37,7 +38,7 @@ ASAM <- read_sf(dsn = "../raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsA
   mutate(Date = as_date(DateOfOcc),
          Year = year(Date)) %>%
   dplyr::select(-DateOfOcc) %>%
-  filter(Year > 2010 & Year < 2017) %>%
+  filter(Year > 2010 & Year < 2018) %>%
   `st_crs<-`(st_crs(eez)) %>%
   st_join(eez, join = st_intersects) %>%
   mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
@@ -77,6 +78,23 @@ ASAM <- ASAM %>%
 
 
 write_csv(ASAM,"../processed_data/attacks.csv")
+
+date_range <- seq(ymd('2011-01-01'),ymd('2017-12-31'), by = '1 day')
+
+expanded_asam <- expand.grid(date = date_range,
+                             hotspot_id = hotspots$hotspot_id) %>%
+  left_join(hotspots,by="hotspot_id") %>%
+  left_join(ASAM %>%
+              dplyr::select(date,
+                            lon_bin,
+                            lat_bin,
+                            attack_eez) %>%
+              group_by(date,lon_bin,lat_bin) %>%
+              summarize(number_attacks = n()),by=c("date","lon_bin","lat_bin")) %>%
+  mutate(attacks_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
+  group_by(hotspot_id) %>%
+  mutate(days_since_attack = cumsum(!is.na(number_attacks))) %>%
+  ungroup()
 ```
 
 ## Global attack visualization
