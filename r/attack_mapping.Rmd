@@ -15,95 +15,96 @@ output:
 # Methods
 ## Load necessary libraries
 ```{r load_libraries}
-library(rgdal)
-library(sp)
 library(leaflet)
+library(sf)
 library(lubridate)
 library(tidyverse)
-library(raster)
 library(bigrquery)
-library(RcppRoll)
-library(broom)
-library(modelr)
-library(padr)
+library(viridis)
+library(maps)
 ```
 ## Load anti-shipping activity messages
 Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
 ```{r load_data, results='hide',error=FALSE,message=FALSE,warning=FALSE}
+# Read in EEZ data
+# Marine Regions V9
+eez <- read_sf(dsn = "../raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
+
 ## load anti-shipping data
-ASAM <- readOGR(dsn = "../raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE)
-## Process dates, and filter out anything before 2012
-ASAM@data <- ASAM@data %>%
+## Process dates, and filter out anything before 2010
+# Join to eez data to figure out which eez each attack happens in
+ASAM <- read_sf(dsn = "../raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE) %>%
   mutate(Date = as_date(DateOfOcc),
          Year = year(Date)) %>%
-  dplyr::select(-DateOfOcc)
+  dplyr::select(-DateOfOcc) %>%
+  filter(Year > 2010 & Year < 2017) %>%
+  `st_crs<-`(st_crs(eez)) %>%
+  st_join(eez, join = st_intersects) %>%
+  mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
 
-vesselTypes <- unique(ASAM@data$Victim)[grepl("Fish",unique(ASAM@data$Victim)) | grepl("FISH",unique(ASAM@data$Victim)) | grepl("fish",unique(ASAM@data$Victim))]
+# Define cell size for hot spot map
+cell_size <- 5 #degrees
+one_over_cellsize = 1/cell_size
+
+ASAM <- do.call(rbind, st_geometry(ASAM)) %>% 
+  as_tibble() %>% 
+  cbind(ASAM$Year,
+        ASAM$Date,
+        ASAM$Aggressor,
+        ASAM$Victim,
+        ASAM$attack_eez) %>%
+  setNames(c("lon","lat","year","date","aggressor","victim","attack_eez")) %>%
+  mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
+         lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize) 
+
+# Group by bins, summarize, and add hotspot id
+ASAM_binned <- ASAM %>%
+  group_by(year,lon_bin,lat_bin) %>%
+  summarize(number_attacks = n()) %>%
+  ungroup()
+
+hotspots <- distinct(ASAM_binned %>% dplyr::select(lon_bin,lat_bin)) %>%
+  mutate(hotspot_id = 1:n())
+
+
+ASAM_binned <- ASAM_binned %>%
+  left_join(hotspots, by = c("lat_bin","lon_bin"))
 
 ASAM <- ASAM %>%
-  subset(Year > 2011)
+  left_join(ASAM_binned %>%
+              dplyr::select(year,lon_bin,lat_bin,hotspot_id),by = c("year", "lon_bin", "lat_bin")) %>%
+  dplyr::select(date,year,lat,lon,lat_bin,lon_bin,hotspot_id,aggressor,victim,attack_eez)
 
-## Remove duplicates
-ASAM <- remove.duplicates(ASAM)
-## read in EEZ
-eez <- readOGR(dsn = "../raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
 
-## set projection
-proj4string(ASAM)<-proj4string(eez)
-
-## look only at events happening within eezs
-eezASAMOverlap <- overlay<-raster::intersect(ASAM,eez)
-## events in high seas
-highSeasOverlap <- subset(ASAM,!(Reference %in% eezASAMOverlap@data$Reference))
-
-highSeasOverlap@data <- highSeasOverlap@data %>%
-  mutate(PolygonID = NA,
-         MRGID = NA,
-         GeoName = "High Seas",
-         Pol_type = NA,
-         MRGID_Ter1 = NA,
-         Territory1 = NA,
-         MRGID_Sov1 = NA,
-         Sovereign1 = NA,
-         ISO_Ter1 = NA,
-         MRGID_Ter2 = NA,
-         Territory2 = NA,
-         MRGID_Sov2 = NA,
-         Sovereign2 = NA,
-         ISO_Ter2 = NA,
-         MRGID_Ter3 = NA,
-         Territory3 = NA,
-         MRGID_Sov3 = NA,
-         Sovereign3 = NA,
-         ISO_Ter3 = NA,
-         x_1 = NA,
-         y_1 = NA,
-         Area_km2 = NA,
-         MRGID_EEZ = NA)
-  
-masterAttacks <- eezASAMOverlap %>%
-  rbind(highSeasOverlap) %>%
-  remove.duplicates()
-#write_csv(masterAttacks@data,"../processed_data/attacks.csv")
-detach("package:rgdal", unload=TRUE)
+write_csv(ASAM,"../processed_data/attacks.csv")
 ```
 
 ## Global attack visualization
-```{r attackPlot}
-data.frame(country=gsub(" Exclusive Economic Zone"," EEZ",masterAttacks@data$GeoName)) %>%
-  group_by(country) %>%
+```{r attack_histogram}
+ASAM %>%
+  group_by(attack_eez) %>%
   summarize(n = n()) %>%
   filter(n > 10) %>%
-  ggplot(aes(x=reorder(country,-n),y=n)) +
+  ggplot(aes(x=reorder(attack_eez,-n),y=n)) +
            geom_histogram(stat="identity") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   xlab("Country") +
-  ylab("Number of attacks\n2012 - 2016")
+  ylab("Number of attacks\n2010 - 2018")
 ```
 
 ## Plot locations of attacks
 
-```{r plot}
+```{r interactive_map}
+library(raster)
+attack_raster <- ASAM_binned %>% 
+  group_by(hotspot_id) %>% 
+  summarize(lon_bin = lon_bin[1], 
+            lat_bin = lat_bin[1],
+            number_attacks = sum(number_attacks)) %>%
+  dplyr::select(lon_bin, lat_bin,number_attacks)
+
+attack_raster <-  rasterFromXYZ(attack_raster, crs = st_crs(eez)$proj4string)
+
 leaflet() %>%
   # fitBounds(0, 60, 35, 72) %>%
   addPolygons(data = eez,
@@ -115,18 +116,44 @@ leaflet() %>%
     popup = ~paste0("<font color=#000000>",
       "<b>EEZ: </b>", GeoName, "<br>",
     "</font>"))  %>%
-  addCircleMarkers(data=masterAttacks,
+  addRasterImage(attack_raster, opacity = 0.5) %>%
+  addCircleMarkers(data=ASAM %>%
+                     st_as_sf(coords = c("lon","lat")) %>%
+                     `st_crs<-`(st_crs(eez)),
               color="red",
               stroke=FALSE,
               fillOpacity = 0.5,
               radius = 3,
               popup = ~paste0("<font color=#000000>",
-                "<b>Reference ID: </b>", Reference, "<br>",
-                "<b>EEZ: </b>", GeoName, "<br>",
-                "<b>Date: </b>", Date, "<br>",
-                "<b>Aggressor: </b>", Aggressor, "<br>",
-                "<b>Victim: </b>", Victim, "<br>",
-                "<b>Description: </b>", gsub("NA","",paste(Desc1,Desc2,Desc3,Desc4,Desc5,Desc6,sep=" ")), "<br>",
+                "<b>EEZ: </b>", attack_eez, "<br>",
+                "<b>Hotspot ID: </b>", hotspot_id, "<br>",
+                "<b>Date: </b>", date, "<br>",
+                "<b>Aggressor: </b>", aggressor, "<br>",
+                "<b>Victim: </b>", victim, "<br>",
                  "</font>"))
   
 ```
+
+```{r attack_raster}
+wrld = st_as_sf(maps::map('world', plot=F, fill=T))
+# Make attack plot for every year
+  ggplot() +  
+    geom_raster(data = ASAM_binned,
+                aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
+    scale_fill_viridis(na.value="white",name="Number of\nAttacks") +
+    facet_wrap(~year, ncol = 2) +
+    geom_sf(data = wrld,
+            fill = "darkgrey",
+            lwd = 0) +
+    theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.grid.major = element_line(colour = "white"),
+        panel.grid.minor = element_line(color = "white"))
+
+```
+
