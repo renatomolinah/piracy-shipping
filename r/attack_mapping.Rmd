@@ -1,7 +1,7 @@
 ---
 title: "Piracy Notebook v2"
 author: "Gavin McDonald"
-date: "March 30, 2017"
+date: "April 10, 2017"
 output:
   html_document:
     df_print: paged
@@ -189,27 +189,33 @@ proj <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84"
 
 world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", stringsAsFactors = FALSE)
 
+attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 5)
+attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
+
 # Make attack plot for every year
   ggplot() +  
     geom_raster(data = ASAM_binned,
                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
-    scale_fill_viridis(na.value="white",name="Number of Attacks",option = "D", direction = -1, end = 0.8) +
+    scale_fill_viridis(na.value="white",name="Number of Attacks",option = "D", direction = -1, end = 0.85) +
             geom_sf(data = world.land,
-            fill = "darkgrey",
+            fill = "white",
             lwd = 0) +
-    facet_wrap(~year, ncol = 3) +
+    facet_wrap(~year, ncol = 2) +
     theme_bw() +
+    ylim(attack_lat_limits) +
+    xlim(attack_lon_limits) +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
         axis.title.y=element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank(),
-        panel.grid.major = element_line(colour = "white"),
-        panel.grid.minor = element_line(color = "white"),
+        panel.grid.major = element_line(colour = "lightgrey"),
+        panel.grid.minor = element_line(color = "lightgrey"),
         strip.background =element_rect(fill="white"),
         legend.position = c(1, 0), 
-        legend.justification = c(1, 0)) +
-      guides(fill = guide_colourbar(barheight = 5, barwidth = 2.5))
+        legend.justification = c(1, 0),
+        panel.background = element_rect(fill = 'lightgrey')) +
+      guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25))
 
 ```
