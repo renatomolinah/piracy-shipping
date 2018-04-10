@@ -191,9 +191,9 @@ world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", 
 
 # Make attack plot for every year
   ggplot() +  
-    geom_tile(data = ASAM_binned,
+    geom_raster(data = ASAM_binned,
                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
-    scale_fill_viridis(na.value="white",name="Number of\nAttacks") +
+    scale_fill_viridis(na.value="white",name="Number of\nAttacks",option = "D", direction = -1, end = 0.85) +
             geom_sf(data = world.land,
             fill = "darkgrey",
             lwd = 0) +
