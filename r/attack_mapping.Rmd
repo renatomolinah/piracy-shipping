@@ -146,32 +146,32 @@ attack_raster <- ASAM_binned %>%
 
 attack_raster <-  rasterFromXYZ(attack_raster, crs = st_crs(eez)$proj4string)
 
-leaflet() %>%
-  # fitBounds(0, 60, 35, 72) %>%
-  addPolygons(data = eez,
-    fillOpacity = 0.15, 
-    fillColor = "blue", 
-    stroke=TRUE,
-    weight=1,
-    color="black",
-    popup = ~paste0("<font color=#000000>",
-      "<b>EEZ: </b>", GeoName, "<br>",
-    "</font>"))  %>%
-  addRasterImage(attack_raster, opacity = 0.5) %>%
-  addCircleMarkers(data=ASAM %>%
-                     st_as_sf(coords = c("lon","lat")) %>%
-                     `st_crs<-`(st_crs(eez)),
-              color="red",
-              stroke=FALSE,
-              fillOpacity = 0.5,
-              radius = 3,
-              popup = ~paste0("<font color=#000000>",
-                "<b>EEZ: </b>", attack_eez, "<br>",
-                "<b>Hotspot ID: </b>", hotspot_id, "<br>",
-                "<b>Date: </b>", date, "<br>",
-                "<b>Aggressor: </b>", aggressor, "<br>",
-                "<b>Victim: </b>", victim, "<br>",
-                 "</font>"))
+# leaflet() %>%
+#   # fitBounds(0, 60, 35, 72) %>%
+#   addPolygons(data = eez,
+#     fillOpacity = 0.15, 
+#     fillColor = "blue", 
+#     stroke=TRUE,
+#     weight=1,
+#     color="black",
+#     popup = ~paste0("<font color=#000000>",
+#       "<b>EEZ: </b>", GeoName, "<br>",
+#     "</font>"))  %>%
+#   addRasterImage(attack_raster, opacity = 0.5) %>%
+#   addCircleMarkers(data=ASAM %>%
+#                      st_as_sf(coords = c("lon","lat")) %>%
+#                      `st_crs<-`(st_crs(eez)),
+#               color="red",
+#               stroke=FALSE,
+#               fillOpacity = 0.5,
+#               radius = 3,
+#               popup = ~paste0("<font color=#000000>",
+#                 "<b>EEZ: </b>", attack_eez, "<br>",
+#                 "<b>Hotspot ID: </b>", hotspot_id, "<br>",
+#                 "<b>Date: </b>", date, "<br>",
+#                 "<b>Aggressor: </b>", aggressor, "<br>",
+#                 "<b>Victim: </b>", victim, "<br>",
+#                  "</font>"))
   
 ```
 
@@ -193,11 +193,11 @@ world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", 
   ggplot() +  
     geom_raster(data = ASAM_binned,
                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
-    scale_fill_viridis(na.value="white",name="Number of\nAttacks",option = "D", direction = -1, end = 0.85) +
+    scale_fill_viridis(na.value="white",name="Number of Attacks",option = "D", direction = -1, end = 0.8) +
             geom_sf(data = world.land,
             fill = "darkgrey",
             lwd = 0) +
-    facet_wrap(~year, ncol = 2) +
+    facet_wrap(~year, ncol = 3) +
     theme_bw() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
@@ -206,7 +206,10 @@ world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", 
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank(),
         panel.grid.major = element_line(colour = "white"),
-        panel.grid.minor = element_line(color = "white"))
+        panel.grid.minor = element_line(color = "white"),
+        strip.background =element_rect(fill="white"),
+        legend.position = c(1, 0), 
+        legend.justification = c(1, 0)) +
+      guides(fill = guide_colourbar(barheight = 5, barwidth = 2.5))
 
 ```
-
