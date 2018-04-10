@@ -115,8 +115,8 @@ expanded_asam <- expand.grid(date = date_range,
 
 # Push expanded table to big query
 project <-  "ucsb-gfw"
-job <- insert_upload_job(project, "piracy", "piracy_attacks", expanded_asam)
 delete_table(project, "piracy", "piracy_attacks")
+job <- insert_upload_job(project, "piracy", "piracy_attacks", expanded_asam)
 wait_for(job)
 ```
 
@@ -176,16 +176,28 @@ leaflet() %>%
 ```
 
 ```{r attack_raster}
-wrld = st_as_sf(maps::map('world', plot=F, fill=T))
+
+
+
+# Projection
+proj <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84"
+
+# Download and read in world land data
+# download.file(url="http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip", "ne_110m_land.zip", "auto")
+# unzip("ne_110m_land.zip")
+# file.remove("ne_110m_land.zip")
+
+world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", stringsAsFactors = FALSE)
+
 # Make attack plot for every year
   ggplot() +  
-    geom_raster(data = ASAM_binned,
+    geom_tile(data = ASAM_binned,
                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
     scale_fill_viridis(na.value="white",name="Number of\nAttacks") +
-    facet_wrap(~year, ncol = 2) +
-    geom_sf(data = wrld,
+            geom_sf(data = world.land,
             fill = "darkgrey",
             lwd = 0) +
+    facet_wrap(~year, ncol = 2) +
     theme_bw() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
