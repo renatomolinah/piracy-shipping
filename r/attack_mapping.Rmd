@@ -109,9 +109,10 @@ expanded_asam <- expand.grid(date = date_range,
   mutate(tmpG = cumsum(c(FALSE, as.logical(diff(number_attacks))))) %>%
   mutate(tmp_a = c(1, diff(date)) * !number_attacks) %>%
   group_by(hotspot_id,tmpG) %>%
-  mutate(days_since_attack = ifelse(tmpG == 0, NA, cumsum(tmp_a))) %>%
+  mutate(days_since_attack = ifelse(tmpG == 0, NA, cumsum(tmp_a)),
+         is_current_hotspot = ifelse(is.na(days_since_attack), NA, 1)) %>%
   ungroup() %>%
-  select(-c(tmp_a, tmpG, number_attacks, hotspot_id))
+  select(-c(tmp_a, tmpG, number_attacks))
 
 # Push expanded table to big query
 project <-  "ucsb-gfw"
