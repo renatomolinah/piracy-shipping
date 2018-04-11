@@ -21,7 +21,6 @@ library(lubridate)
 library(tidyverse)
 library(bigrquery)
 library(viridis)
-library(maps)
 library(zoo)
 library(bigrquery)
 ```
@@ -115,10 +114,11 @@ expanded_asam <- expand.grid(date = date_range,
   select(-c(tmp_a, tmpG, number_attacks))
 
 # Push expanded table to big query
-project <-  "ucsb-gfw"
-delete_table(project, "piracy", "piracy_attacks")
-job <- insert_upload_job(project, "piracy", "piracy_attacks", expanded_asam)
-wait_for(job)
+# Only run if necessary
+# project <-  "ucsb-gfw"
+# delete_table(project, "piracy", "piracy_attacks")
+# job <- insert_upload_job(project, "piracy", "piracy_attacks", expanded_asam)
+# wait_for(job)
 ```
 
 ## Global attack visualization

@@ -1,0 +1,35 @@
+---
+title: "Piracy and Shipping"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(glue)
+library(bigrquery)
+```
+
+```{r setup, eval=FALSE}
+# DON'T RUN IF YOU DON'T NEED TO
+# Just look at voyages coming into or out of Nigeria
+country_filter <- "(from_country = 'NGA' OR to_country = 'NGA')"
+
+# Define SQL query
+sql <-glue(
+  "SELECT
+*
+FROM
+[ucsb-gfw:piracy.all_cargo_voyages]
+WHERE
+{country_filter}"
+)
+project <-  "ucsb-gfw"
+
+## Run the query    
+voyages <- query_exec(sql, project, max_pages = Inf)
+
+write_csv(voyages,"../processed_data/voyages_processed_nga.csv")
+```
