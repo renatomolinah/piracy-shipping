@@ -194,17 +194,14 @@ attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 
 attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
 
 # Make attack plot for every year
-  ggplot() +  
+p_all_years <-  ggplot() +  
     geom_raster(data = ASAM_binned,
                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
-    scale_fill_viridis(na.value="white",name="Number of Attacks",option = "D", direction = -1, end = 0.95) +
+    scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
             geom_sf(data = world.land,
             fill = "lightgrey",
             lwd = 0) +
-    facet_wrap(~year, ncol = 2) +
     theme_bw() +
-    ylim(attack_lat_limits) +
-    xlim(attack_lon_limits) +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
@@ -214,9 +211,15 @@ attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 
         panel.grid.major = element_line(colour = "grey50"),
         panel.grid.minor = element_line(color = "grey50"),
         strip.background =element_rect(fill="white"),
-        legend.position = c(1, 0), 
-        legend.justification = c(1, 0),
-        panel.background = element_rect(fill = 'grey50')) +
-      guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25))
+        panel.background = element_rect(fill = 'grey50'))
 
+p_by_year <- p_all_years + 
+    facet_wrap(~year, ncol = 2) +
+      guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
+  theme(legend.position = c(1, 0), 
+        legend.justification = c(1, 0)) +
+      ylim(attack_lat_limits) +
+    xlim(attack_lon_limits)
+p_all_years
+p_by_year
 ```
