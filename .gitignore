@@ -42,3 +42,6 @@ data/.DS_Store
 *.pdf
 data/.DS_Store
 .RDataTmp
+Analysis/
+
+piracy_G/
