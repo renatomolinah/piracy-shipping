@@ -195,7 +195,7 @@ attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 
 
 # Make attack plot for every year
 p_all_years <-  ggplot() +  
-    geom_raster(data = ASAM_binned,
+    geom_tile(data = ASAM_binned,
                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
     scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
             geom_sf(data = world.land,
@@ -222,4 +222,6 @@ p_by_year <- p_all_years +
     xlim(attack_lon_limits)
 p_all_years
 p_by_year
+ggsave(filename = "../figs/attacks_aggregated_all_years.eps", plot = p_all_years, device = "eps")
+ggsave(filename = "../figs/attacks_by_year.eps", plot = p_by_year, device = "eps")
 ```
