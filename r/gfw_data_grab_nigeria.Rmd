@@ -51,8 +51,8 @@ gridded_shipping_hours <- query_exec(sql, project, max_pages = Inf)
 
 # Make smaller, to 1 degree cells
 gridded_shipping_hours_processed <- gridded_shipping_hours %>%
-  mutate(lat_bin = floor(lat_bin),
-         lon_bin = floor(lon_bin)) %>%
+#  mutate(lat_bin = floor(lat_bin),
+#         lon_bin = floor(lon_bin)) %>%
   filter(lat_bin < 90 &
            lat_bin > -90 &
            lon_bin < 180 &
