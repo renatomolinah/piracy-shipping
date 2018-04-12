@@ -222,6 +222,32 @@ p_by_year <- p_all_years +
     xlim(attack_lon_limits)
 p_all_years
 p_by_year
-ggsave(filename = "../figs/attacks_aggregated_all_years.eps", plot = p_all_years, device = "eps")
-ggsave(filename = "../figs/attacks_by_year.eps", plot = p_by_year, device = "eps")
+#ggsave(filename = "../figs/attacks_aggregated_all_years.eps", plot = p_all_years, device = "eps")
+#ggsave(filename = "../figs/attacks_by_year.eps", plot = p_by_year, device = "eps")
 ```
+
+```{r shipping_plot}
+gridded_shipping_hours_processed <- read_csv("../processed_data/gridded_shipping_hours_processed.csv")
+
+ggplot() +
+  geom_tile(data = gridded_shipping_hours_processed,
+            aes(x = lon_bin, y = lat_bin, fill=hours), 
+            colour = NA, na.rm = TRUE) + 
+  scale_fill_gradient2(name="Hours", low = "black", high = "red",na.value = "black", trans = "log") +
+  geom_sf(data = world.land,
+          fill = "lightgrey",
+          lwd = 0) +
+  theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.grid.major = element_line(colour = "black"),
+        panel.grid.minor = element_line(color = "black"),
+        strip.background =element_rect(fill="white"),
+        panel.background = element_rect(fill = 'black'))
+  
+```
+
