@@ -1,25 +1,122 @@
 \documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
-\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
-\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
-%\geometry{landscape}                		% Activate for rotated page geometry
+\usepackage[letterpaper, total={6.5in, 8in}]{geometry}                		% See geometry.pdf to learn the layout options. There are lots.                		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
 %\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
-\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+\usepackage{graphicx,adjustbox,caption}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
 								% TeX will automatically convert eps --> pdf in pdflatex		
-\usepackage{amssymb}
+\usepackage{amssymb,amsmath,amsthm,amsfonts}
+\usepackage{enumerate}
 
-%SetFonts
+\usepackage{tikz}
+\usetikzlibrary{shapes,backgrounds,arrows}
+\usepackage{xfrac}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{booktabs,dcolumn,topcapt}
+\newcolumntype{d}{D{.}{.}{2.5}}           % alignment on decimal marker
+\newcommand\mc[1]{\multicolumn{1}{c}{#1}} % shorthand macro
+\usepackage{float}
+\usepackage[document]{ragged2e}
 
-%SetFonts
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=black,
+    citecolor=black
+}
+
+\usepackage{bbm}
+
+\renewcommand{\labelenumi}{\theenumi}
+%\let\footnote=\endnote
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+\usepackage{pdflscape,dcolumn}
+
+\setlength{\parskip}{1em}
+
+\usepackage[style=chicago-authordate,backend=bibtex8,bibencoding=inputenc]{biblatex}
+\addbibresource{piracy.bib}
 
 
-\title{The Economic Effect of Piracy on Global Shipping}
-\author{}
-%\date{}							% Activate to display a given date or no date
+\title{The Effect of Piracy on the Global Shipping Industry}
+
+\author
+       {Renato Molina$^{1}$\thanks{Corresponding author: renatomolina@ucsb.edu} \qquad Gavin McDonald$^{2}$\\
+       \small{\emph{$^1$Department of Economics,}} \\
+       \small{\emph{University of California, Santa Barbara, USA}}\\
+       \small{\emph{$^2$Sustainable Fisheries Group,}} \\
+       \small{\emph{University of California, Santa Barbara, USA}}
+       }
+
+
+\date{Version: \today, click \href{https://ucsb.box.com/s/yn7a14y7d1c0d8bsimj0ire2w6c9kr6p}{\underline{HERE}} for the most updated version}
+
+
 
 \begin{document}
 \maketitle
-%\section{}
-%\subsection{}
+\begin{abstract}
+Maritime transport has been historically prone to the criminal intervention in the form of piracy. Rough assessments for the impact of modern piracy point to losses exceeding 10 billion per year worldwide, with most attacks taking place in the Straits of Malacca, West Africa, the waters off Somalia, the Coral Triangle, Chittagong and the Indian Ocean. In this paper, we unify the sparse theoretical literature with data available for both shipping routes and pirate attacks to credibly assess the causal effect of piracy on the shipping industry. We update theoretical insights to include strategic behavior across and between shippers and pirates and compile a unique geospatial dataset to test those insights. The dataset includes high spatial and temporal resolution information on pirate attacks from the US National Geospatial-Intelligence Agency as well as individual vessel tracks of all known cargo and tanker vessels that use the AIS vessel monitoring system. Our results show a highly significant effect of piracy on shipping that increases both the private cost of shipping as well as the social cost of environmental pollution due to changes in transportation behavior. 
+\end{abstract}
+JEL Classification: D20; D80; F14; H41; H87; K33; K42; L20; L90; R40\\
+\hfill
+\pagebreak
+
+
+\setstretch{1.5}
+\section{Introduction}
+ As pointed out by Adam Smith in his foundational work The Wealth of Nations: ``Coastal areas, and cities on rivers have been the fastest to develop, as their goods can be very cheaply transported across water versus land." This statement holds true today, with most metropolitan areas worldwide located adjacent to rivers or ports, and maritime transportation remaining as one of the most cost-efficient methods for international trade. Maritime transport, however, has been historically prone to the criminal intervention in the form of piracy. Rough assessments for the impact of modern piracy point to losses exceeding 10 billion per year worldwide, with most attacks taking place in the Straits of Malacca, West Africa, the waters off Somalia, the Coral Triangle, Chittagong and the Indian Ocean. To date, however, there is no unifying literature linking theoretical and empirical behavior of shippers and pirates to establish the causal effect of piracy on the shipping industry.
+
+In this paper, we unify the sparse theoretical literature with data available for both shipping routes and pirate attacks to credibly assess the causal effect of piracy on the shipping industry. To achieve this goal, we update theoretical insights to include strategic behavior across and between shippers and pirates and compile a unique geospatial dataset to test those insights. The dataset includes high spatial- and temporal resolution information on pirate attacks from the US National Geospatial-Intelligence Agency as well as individual vessel tracks of all known cargo and tanker vessels that use the AIS vessel monitoring system. Our results show a highly significant effect of piracy on shipping that increases both the private cost of shipping as well as the social cost of environmental pollution due to changes in transportation behavior. 
+
+\section{Background}
+
+\section{A model of pirates and shippers}
+
+In this section we propose a model for the interaction between pirates and shippers that derives testable predictions regarding both pirate and shipping behavior. The model builds on the previous efforts by \citeauthor{guha2011pirates} (\citeyear{guha2011pirates}) and  \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}), who championed the theoretical understanding of modern piracy. The core of these ideas, however, can be traced to two branches in the economic literature. One branch relates to the crime, and the understanding of how offenders seek and find criminal opportunities, and how potential victims try to avoid them \parencite{ becker1968crime,cook1986demand,shavell1990individual,hylton1996optimal,garoupa1997theory}. The other branch relates to conflict as contests, which studies the incentives associated with games where one party arms itself to increase the probability of winning if conflict were to occur \parencite{baik1994effort,grossman1995swords,garfinkel2007economics}.
+
+In essence, piracy can be thought of as a search problem with pirates searching for vessels, and vessels trying to avoid the match; in this case, a match means an encounter. For simplicity, assume there is one pirate and one shipper, with both of them being risk neutral. The probability of an encounter, $\phi(x,y)$, depends on the search effort of the pirate, $x$, and the avoiding and defense effort of the shipper, $y$.\footnote{\citeauthor{grossman1995swords} (\citeyear{grossman1995swords}) and \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}) assume the functional form $$\phi(x,y)=\frac{x}{x+\theta y},$$ with $\theta$ representing the effectiveness of the avoiding effort. A feasible extension to accommodate for multiple avoidance factors could be of the form $$\phi(x,y)=\frac{x}{x+\pmb{y}'\pmb{\theta}},$$ with $\pmb{y}$ and $\pmb{\theta}$ denoting a vector of efforts and their respective effectiveness.} Suppose further that $\phi_x>0$ and $\phi_{xx}<0$, and that  $\phi_y<0$ and $\phi_{yy}>0$. In other words, the pirate increasing search efforts increases the probability of an encounter at a decreasing rate, while the shipper increasing avoidance and defense effort decreases this probability at a decreasing rate. No further assumptions are required on the marginal product between efforts.
+
+Once an encounter occurs, the pirate has to decide whether to attack or not. In the case of an attack, the assault can be either successful (the pirate gets away) or unsuccessful (the pirate gets caught). A successful attack implies the pirate obtaining a prize, $b$. Following \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}) and the crime literature, suppose the pirate is not able to determine $b$ until the encounter occurs. This assumption implies that the pirate treats $b$ as a randomly distributed variable with cumulative distribution function $F(b)$ and support $[0,\bar b]$.
+
+Before attacking, the pirate compares the prize against the probability of being captured, $p$, and the associated fine, $p$. It follows that the pirate attacks whenever $b\geq ps$. Under this decision mechanism, the expected value of of a random encounter is then given by:
+\begin{equation}
+G(ps)\equiv \int_{ps}^{\bar b}(b-ps)dF(b)
+\end{equation}
+
+
+ 
+\section{Data}
+
+\section{Empirical strategy}
+
+\section{Results}
+
+\section{Discussion}
+
+\pagebreak
+\printbibliography
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
