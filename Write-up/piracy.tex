@@ -85,10 +85,41 @@ In essence, piracy can be thought of as a search problem with pirates searching 
 
 Once an encounter occurs, the pirate has to decide whether to attack or not. In the case of an attack, the assault can be either successful (the pirate gets away) or unsuccessful (the pirate gets caught). A successful attack implies the pirate obtaining a prize, $b$. Following \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}) and the crime literature, suppose the pirate is not able to determine $b$ until the encounter occurs. This assumption implies that the pirate treats $b$ as a randomly distributed variable with cumulative distribution function $F(b)$ and support $[0,\bar b]$.
 
-Before attacking, the pirate compares the prize against the probability of being captured, $p$, and the associated fine, $p$. It follows that the pirate attacks whenever $b\geq ps$. Under this decision mechanism, the expected value of of a random encounter is then given by:
+Before attacking, the pirate compares the prize against the probability of being captured, $p$, and the associated fine, $p$. It follows that the pirate attacks whenever $b\geq ps$. Under this decision mechanism, the expected value of an effective attack is then given by:
 \begin{equation}
 G(ps)\equiv \int_{ps}^{\bar b}(b-ps)dF(b)
 \end{equation}
+Note that $G'<0$, which implies that both the probability of being captured after an attack, as well as the associated fine, deter the pirate from attacking after an encounter. Assuming the cost of effort is given by $c_p$, it follows that the expected return for the pirate would be given by:
+\begin{equation}
+R_p=\phi(x,y)G(ps)-c_px
+\end{equation}
+Taking the shipper's avoiding and defense effort as given, optimal searching effort, $x^*,$ is then given by the following firs order condition:
+\begin{equation}
+\phi_x(x^*,y)G(ps)-c_p=0
+\end{equation}
+Taking total derivatives with respect to $y$:
+\begin{equation}
+\frac{\partial x^*}{\partial y}=-\frac{\phi_{xy}}{\phi_{xx}}
+\end{equation}
+Because $\phi_{xx}<0$, it follows that the response function has a slope equal to $\phi_{xy}$.
+
+Analogous to the pirate decision, the shipper also has to decide how much avoidance and defense effort to take. Suppose a voyage renders a profit $\pi(y)$ for the shipper, where
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
  
