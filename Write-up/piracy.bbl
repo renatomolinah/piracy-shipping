@@ -277,6 +277,61 @@
     \field{year}{1996}
   \endentry
 
+  \entry{lueck1995rule}{article}{}
+    \name{author}{1}{}{%
+      {{hash=LD}{%
+         family={Lueck},
+         familyi={L\bibinitperiod},
+         given={Dean},
+         giveni={D\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {The University of Chicago Press}%
+    }
+    \strng{namehash}{LD1}
+    \strng{fullhash}{LD1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{1995}
+    \field{sortinit}{L}
+    \field{sortinithash}{L}
+    \field{number}{2}
+    \field{pages}{393\bibrangedash 436}
+    \field{title}{The rule of first possession and the design of the law}
+    \field{volume}{38}
+    \field{journaltitle}{The Journal of Law and Economics}
+    \field{year}{1995}
+  \endentry
+
+  \entry{mortensen1982property}{article}{}
+    \name{author}{1}{}{%
+      {{hash=MDT}{%
+         family={Mortensen},
+         familyi={M\bibinitperiod},
+         given={Dale\bibnamedelima T},
+         giveni={D\bibinitperiod\bibinitdelim T\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {JSTOR}%
+    }
+    \strng{namehash}{MDT1}
+    \strng{fullhash}{MDT1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{1982}
+    \field{sortinit}{M}
+    \field{sortinithash}{M}
+    \field{number}{5}
+    \field{pages}{968\bibrangedash 979}
+    \field{title}{Property rights and efficiency in mating, racing, and related
+  games}
+    \field{volume}{72}
+    \field{journaltitle}{The American Economic Review}
+    \field{year}{1982}
+  \endentry
+
   \entry{shavell1990individual}{report}{}
     \name{author}{1}{}{%
       {{hash=SS}{%
