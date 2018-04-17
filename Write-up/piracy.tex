@@ -1,25 +1,197 @@
 \documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
-\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
-\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
-%\geometry{landscape}                		% Activate for rotated page geometry
+\usepackage[letterpaper, total={6.5in, 8in}]{geometry}                		% See geometry.pdf to learn the layout options. There are lots.                		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
 %\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
-\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+\usepackage{graphicx,adjustbox,caption}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
 								% TeX will automatically convert eps --> pdf in pdflatex		
-\usepackage{amssymb}
+\usepackage{amssymb,amsmath,amsthm,amsfonts}
+\usepackage{enumerate}
 
-%SetFonts
+\usepackage{tikz}
+\usetikzlibrary{shapes,backgrounds,arrows}
+\usepackage{xfrac}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{booktabs,dcolumn,topcapt}
+\newcolumntype{d}{D{.}{.}{2.5}}           % alignment on decimal marker
+\newcommand\mc[1]{\multicolumn{1}{c}{#1}} % shorthand macro
+\usepackage{float}
+\usepackage[document]{ragged2e}
 
-%SetFonts
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=black,
+    citecolor=black
+}
+
+\usepackage{bbm}
+
+\renewcommand{\labelenumi}{\theenumi}
+%\let\footnote=\endnote
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+\usepackage{pdflscape,dcolumn}
+
+\setlength{\parskip}{1em}
+
+\usepackage[style=chicago-authordate,backend=bibtex8,bibencoding=inputenc]{biblatex}
+\addbibresource{piracy.bib}
 
 
-\title{The Economic Effect of Piracy on Global Shipping}
-\author{}
-%\date{}							% Activate to display a given date or no date
+\title{The Effect of Piracy on the Global Shipping Industry}
+
+\author
+       {Renato Molina$^{1}$\thanks{Corresponding author: renatomolina@ucsb.edu} \qquad Gavin McDonald$^{2}$\\
+       \small{\emph{$^1$Department of Economics,}} \\
+       \small{\emph{University of California, Santa Barbara, USA}}\\
+       \small{\emph{$^2$Sustainable Fisheries Group,}} \\
+       \small{\emph{University of California, Santa Barbara, USA}}
+       }
+
+
+\date{Version: \today, click \href{https://ucsb.box.com/s/yn7a14y7d1c0d8bsimj0ire2w6c9kr6p}{\underline{HERE}} for the most updated version}
+
+
 
 \begin{document}
 \maketitle
-%\section{}
-%\subsection{}
+\begin{abstract}
+Maritime transport has been historically prone to the criminal intervention in the form of piracy. Rough assessments for the impact of modern piracy point to losses exceeding 10 billion per year worldwide, with most attacks taking place in the Straits of Malacca, West Africa, the waters off Somalia, the Coral Triangle, Chittagong and the Indian Ocean. In this paper, we unify the sparse theoretical literature with data available for both shipping routes and pirate attacks to credibly assess the causal effect of piracy on the shipping industry. We update theoretical insights to include strategic behavior across and between shippers and pirates and compile a unique geospatial dataset to test those insights. The dataset includes high spatial and temporal resolution information on pirate attacks from the US National Geospatial-Intelligence Agency as well as individual vessel tracks of all known cargo and tanker vessels that use the AIS vessel monitoring system. Our results show a highly significant effect of piracy on shipping that increases both the private cost of shipping as well as the social cost of environmental pollution due to changes in transportation behavior. 
+\end{abstract}
+JEL Classification: D20; D80; F14; H41; H87; K33; K42; L20; L90; R40\\
+\hfill
+\pagebreak
+
+
+\setstretch{1.5}
+\section{Introduction}
+ As pointed out by Adam Smith in his foundational work The Wealth of Nations: ``Coastal areas, and cities on rivers have been the fastest to develop, as their goods can be very cheaply transported across water versus land." This statement holds true today, with most metropolitan areas worldwide located adjacent to rivers or ports, and maritime transportation remaining as one of the most cost-efficient methods for international trade. Maritime transport, however, has been historically prone to the criminal intervention in the form of piracy. Rough assessments for the impact of modern piracy point to losses exceeding 10 billion per year worldwide, with most attacks taking place in the Straits of Malacca, West Africa, the waters off Somalia, the Coral Triangle, Chittagong and the Indian Ocean. To date, however, there is no unifying literature linking theoretical and empirical behavior of shippers and pirates to establish the causal effect of piracy on the shipping industry.
+
+In this paper, we unify the sparse theoretical literature with data available for both shipping routes and pirate attacks to credibly assess the causal effect of piracy on the shipping industry. To achieve this goal, we update theoretical insights to include strategic behavior across and between shippers and pirates and compile a unique geospatial dataset to test those insights. The dataset includes high spatial- and temporal resolution information on pirate attacks from the US National Geospatial-Intelligence Agency as well as individual vessel tracks of all known cargo and tanker vessels that use the AIS vessel monitoring system. Our results show a highly significant effect of piracy on shipping that increases both the private cost of shipping as well as the social cost of environmental pollution due to changes in transportation behavior. 
+
+\section{Background}
+
+\section{A model of pirates and shippers}
+In this section we propose a model for the interaction between pirates and shippers that derives testable predictions regarding both pirate and shipping behavior. The model builds on the previous efforts by \citeauthor{guha2011pirates} (\citeyear{guha2011pirates}) and  \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}), who championed the theoretical understanding of modern piracy. The core of these ideas, however, can be traced to two branches in the economic literature. One branch relates to crime, and the understanding of how offenders seek and find criminal opportunities and how potential victims try to avoid them \parencite{ becker1968crime,cook1986demand,shavell1990individual,hylton1996optimal,garoupa1997theory}. The other branch relates to conflict as contests, which studies the incentives associated with games where one party arms itself to increase the probability of winning if conflict were to occur \parencite{baik1994effort,grossman1995swords,garfinkel2007economics}.
+
+\subsection{A myopic game with one pirate - one shipper }
+
+In essence, piracy can be thought of as a search problem with pirates searching for vessels, and vessels trying to avoid the match; in this case, a match means an encounter. For simplicity, assume there is one pirate and one shipper, with both of them being risk neutral and myopic. For every trip, the probability of an encounter, $\phi(x,y)$, depends on the search effort of the pirate, $x$, the avoiding and defense effort of the shipper, $y$.\footnote{\citeauthor{grossman1995swords} (\citeyear{grossman1995swords}) and \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}) assume the functional form $$\phi(x,y)=\frac{x}{x+\theta y},$$ with $\theta$ representing the effectiveness of the avoiding effort. A feasible extension to accommodate for multiple avoidance factors could be of the form $$\phi(x,y)=\frac{x}{x+\pmb{y}'\pmb{\theta}},$$ with $\pmb{y}$ and $\pmb{\theta}$ denoting a vector of efforts and their respective effectiveness.} Suppose further that $\phi_x>0$ and $\phi_{xx}<0$, and that  $\phi_y<0$ and $\phi_{yy}>0$. In other words, the pirate increasing search efforts increases the probability of an encounter at a decreasing rate, while the shipper increasing avoidance and defense effort decreases this probability at a decreasing rate.
+
+Once an encounter occurs, the pirate has to decide whether to attack or not. In the case of an attack, the assault can be either successful (the pirate gets away) or unsuccessful (the pirate gets caught). A successful attack implies the pirate obtaining a prize, $b$. Following \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}) and the crime literature, suppose the pirate is not able to determine $b$ until the encounter occurs. This assumption implies that the pirate treats $b$ as a randomly distributed variable with cumulative distribution function $F(b)$ and support $[0,\bar b]$.
+
+Before attacking, the pirate compares the prize against the probability of being captured, $p$, and the associated fine, $p$. It follows that the pirate attacks whenever $b\geq ps$. Under this decision mechanism, the expected value of an effective attack is then given by:
+\begin{equation}
+G(ps)\equiv \int_{ps}^{\bar b}(b-ps)dF(b)
+\end{equation}
+Note that $G'<0$, which implies that both the probability of being captured after an attack, as well as the associated fine, deter the pirate from attacking after an encounter. Assuming the cost of the search effort is given by $c_p$, it follows that the expected return for the pirate when the shipper makes $z$ trips would be given by:
+\begin{equation}
+R_p=z\phi(x,y)G(ps)-c_px
+\end{equation}
+Taking the shipper's avoiding and defense effort as given, optimal search effort, $x^*,$ is then given by the following firs order condition:
+\begin{equation}
+z\phi_x(x^*,y)G(ps)-c_p=0\label{optx}
+\end{equation}
+
+Analogous to the pirate decision, the shipper also has to decide how much avoidance and defense effort to take. Suppose the shipper's operational profit is given by $\pi(z)$, which accounts for the number of voyages, $z$, with $\pi'>0$ and $\pi''<0$. It follows from the pirate behavior, that conditional on an encounter, the probability of an attack is given by $(1-F(ps))$. Whenever an attack occurs, the shippers losses $h$, regardless of the pirate being captured afterwards; these losses include any damaged and lost cargo, additional damages to the ship, and the cost associated with injured or captured crew. Under a constant cost of avoidance and defense effort, $c_s$, the expected return for the shipper making $z$ trips is finally given by:
+\begin{equation}
+R_s=\pi(z)-z\left(\phi(x,y)[1-F(ps)]h+c_sy\right)
+\end{equation}
+Taking the pirates's search effort as given, optimal number of trips, $z^*$, and optimal avoidance and defense effort, $y^*,$ are then given by the following first order conditions:
+\begin{align}
+-\phi_y(x,y^*)\left(1-F(ps)\right)h-c_s&=0\label{opty}\\
+\pi'(z^*)-\phi(x,y^*)[1-F(ps)]h-c_sy&=0 \label{optz}
+\end{align}
+
+Because there are no returns to scale to avoidance and defense effort, $y^*$ can be found by solving equation (\ref{opty}); which means strategical adjustment only depend on search, and avoidance and defense efforts. The optimal number of trips, $z^*$, can then be found by substituting $y^*$ into equation \ref{optz}. From this result, we can then characterize the game as follows:
+\begin{proposition}
+In a myopic piracy game with one shipper and one pirate, the cournot-nash equilibria for optimal search effort, $x^*$, optimal avoidance and defense effort, $y^*$, and number of voyages, $z^*$, solves:
+\begin{align*}
+z^*\phi_x(x^*,y^*)G(ps)-c_p&=0\\
+-\phi_y\left(1-F(ps)\right)h-c_s&=0\\
+\pi'(z^*)-\phi(x^*,y^*)[1-F(ps)]h-c_sy&=0 \\
+\end{align*}
+Equilibrium avoidance and defense effort increases as a response to search effort if $\phi_{xy}<0$, decreases if $\phi_{xy}>0$, and it remains constant if $\phi_{xy}=0$. Equilibrium search effort increases as a response to avoidance and defense effort if $\phi_{xy}>0$, decreases if $\phi_{xy}<0$, and it remains constant if $\phi_{xy}=0$. 
+\end{proposition}
+ 
+\subsection{A myopic game with N pirates -  and M shippers}
+We now extend the basic model to accommodate for a higher degree of complexity. Namely, circumstances where there are multiple pirates and shippers in a given geographical area. Under these circumstances, there are several incentives associated with the search, as well as avoidance and defense effort, and resembles the literature on race for first possession \parencite{mortensen1982property,lueck1995rule}, as well as the previous efforts to model modern piracy \parencite{hallwood2013economic}.
+
+First, suppose there are $N$ symmetric pirates indexed by $i$. The total search effort in the system is then given by $X=\sum_i x_i$. It follows that the probability of an encounter would be given by $\phi(X,y)$, with $\phi_X>0$ and $\phi_{XX}<0$. If an encounter occurs, the probability of involving pirate $i$ is then given by $x_i/X$. The expected return for pirate $i$ is then given by:
+\begin{equation}
+R^i_p=(x_i/X)\phi(X,y)G(ps)-c_px_i
+\end{equation}
+The pirate's problem is then to choose the optimal level of search effort, taking all other pirate's search efforts as well as the shippers avoidance and defense effort as given. It follows that optimal search effort for pirate $i$ satisfies the following first order condition:
+\begin{equation}
+G(ps)\left(\phi(X,y)\frac{X_{-i}}{X^2}+\phi_{x_i}(X,y)\frac{x_i}{X}\right)-c_p=0
+\end{equation}
+Invoking symmetry across all actors implies $x_i=x\;\forall\; i$, which then simplifies the above expression to:
+\begin{equation}
+G(ps)\left(\phi_{x}(Nx,y)+\phi(Nx,y)\frac{N-1}{Nx}\right)-Nc_p=0
+\end{equation}
+
+From the shipper's perspective, his expected return would be now given by:
+\begin{equation}
+R_s=\pi(z)-z\left(\phi(x,y)[1-F(ps)]h+c_sy\right)
+\end{equation}
+ 
+\section{Data}
+
+We create a global panel dataset of individual shipping voyages from 2012 to 2017 which includes information on nearby and recent anti-shipping attacks along the route of each voyage. Individual shipping vessel tracks come from AIS satellite latitude and longitude data provided by ORBCOMM. AIS transponders are required on all vessels greater than 300 tons while operating on international voyages and by many countries while operating in certain EEZs (McCauley et al. 2016), and our dataset includes over 36,000 unique known cargo or tanker vessels as defined by vessel identification data provided by Global Fishing watch (Kroodsma et al. 2018; GFW - Vessel Identification). We use anchorage data provided by Global Fishing Watch (GFW - Anchorages) to group AIS vessel pings into discrete shipping voyages between anchorages, yielding over 10,000,000 unique voyages. For each shipping voyage, we specify the unique vessel identifier (known as MMSI for vessels using AIS), vessel type (cargo or tanker), departure and arrival dates, departure and arrival anchorages and countries, and calculate total distance traveled (km) and time traveled (hours). Renato - add a note here about any filtering you do to remove unwanted voyages (i.e., remove voyages that have the same departure and arrival anchorage, voyages that appear to have traveled a shorter distance than the haversine great-circle distance between two anchorages, etc.) We overlay the vessel tracks from each voyage with a dataset of over 2,700 anti-shipping attacks from 2011 to 2017 provided by the United States National Geospatial Intelligence Agency which includes dates and locations of hostile acts against ships by pirates, robbers, and other aggressors (NGA). For each voyage, we partition the vessel track into a route of 5 degrees latitude by 5 degrees longitude cells and calculate how many of these cells have experienced an anti-shipping attack since the start of 2011, the distance (km) and time (hours) spent within cells that have experienced attacks, the number of days since the most recent attack along this route, and the total number of attacks that occurred along this route over the proceeding 30, 60, 90, 180, and 365 days. At the equator, a cell of 5 by 5 degrees is roughly equivalent 345 by 345 miles, which is a reasonable spatial area over which shipping vessel operators might make route and speed adjustment decisions in relation to recent anti-shipping attacks. Moving at 10 knots, this is an area that potential attackers could cover in just 30 hours.
+
+
+\section{Empirical strategy}
+
+\section{Results}
+
+\section{Discussion}
+
+\pagebreak
+\printbibliography
+
+\section{Appendix}
+\subsection{Proofs}
+\subsubsection{Comparative static myopic one pirate - one shipper}
+\begin{proof}
+The first order condition that dictates the pirate's optimal search effort is given by:
+\begin{equation}
+z\phi_x(x^*,y)G(ps)-c_p=0
+\end{equation}
+Taking total derivatives with respect to $y$:
+\begin{equation}
+\frac{\partial x^*}{\partial y}=-\frac{\phi_{xy}}{\phi_{xx}}
+\end{equation}
+Because $\phi_{xx}<0$, it follows that the response function has a slope equal to $\phi_{xy}$.
+
+On the other hand, the optimal amount of avoidance and defense effort is given by:
+\begin{align}
+-\phi_y\left(1-F(ps)\right)h-c_s&=0\label{opty}
+\end{align}
+As with the pirate optimal decision, totally differentiating \ref{opty}  by $x$ gives the shipper's response function:
+\begin{align}
+\frac{\partial y^*}{\partial x}&=-\frac{\phi_{xy}}{\phi_{yy}}
+\end{align}
+Because $\phi_{yy}>0$, it follows that the response function has a slope inverse to $\phi_{xy}$.
+\end{proof}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
