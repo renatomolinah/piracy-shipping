@@ -254,12 +254,24 @@ shipping_map <- ggplot() +
 shipping_map
 
 
+fancy_scientific <- function(l) {
+     # turn in to character string in scientific notation
+     l <- format(signif(l,3), scientific = TRUE)
+     # quote the part before the exponent to keep all the digits
+     l <- gsub("^(.*)e", "'\\1'e", l)
+     # turn the 'e+' into plotmath format
+     l <- gsub("e", "%*%10^", l)
+     # return this as an expression
+     parse(text=l)
+}
+
+
 shipping_piracy_overlay <-   ggplot() +
   geom_tile(data = gridded_shipping_hours_processed %>%
               filter(hours > 1000),
             aes(x = lon_bin, y = lat_bin, fill=hours), 
             colour = NA, na.rm = TRUE) + 
-  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(50000)) +
+  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(50000),labels=fancy_scientific) +
   geom_tile(data = ASAM_binned %>%
               filter(year > 2011) %>%
               group_by(lon_bin,lat_bin) %>%
@@ -281,8 +293,7 @@ shipping_piracy_overlay <-   ggplot() +
         panel.grid.minor = element_line(color = "black"),
         strip.background =element_rect(fill="white"),
         panel.background = element_rect(fill = 'black')) +
-  ggtitle("Co-occurrence of piracy attacks and shipping between 2012-2017") +
-  guides(fill=FALSE)
+  ggtitle("Co-occurrence of piracy attacks and shipping between 2012-2017")
 
 #ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = shipping_map, device = "eps")
 ```
