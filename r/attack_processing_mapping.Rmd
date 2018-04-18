@@ -193,68 +193,68 @@ proj <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84"
 
 world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", stringsAsFactors = FALSE)
 
-attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 5)
-attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
-
-# Make attack plot for every year
-p_all_years <-  ggplot() +  
-    geom_tile(data = ASAM_binned %>%
-              group_by(lon_bin,lat_bin) %>%
-              summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
-    scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
-            geom_sf(data = world.land,
-            fill = "lightgrey",
-            lwd = 0) +
-    theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank(),
-        panel.grid.major = element_line(colour = "black"),
-        panel.grid.minor = element_line(color = "black"),
-        strip.background =element_rect(fill="white"),
-        panel.background = element_rect(fill = 'black'))
-
-p_by_year <- p_all_years + 
-    facet_wrap(~year, ncol = 2) +
-      guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
-  theme(legend.position = c(1, 0), 
-        legend.justification = c(1, 0)) +
-      ylim(attack_lat_limits) +
-    xlim(attack_lon_limits)
-p_all_years
-p_by_year
-ggsave(filename = "../figs/attacks_aggregated_all_years.eps", plot = p_all_years, device = "eps")
-ggsave(filename = "../figs/attacks_by_year.eps", plot = p_by_year, device = "eps")
+# attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 5)
+# attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
+#
+# # Make attack plot for every year
+# p_all_years <-  ggplot() +  
+#     geom_tile(data = ASAM_binned %>%
+#               group_by(lon_bin,lat_bin) %>%
+#               summarize(number_attacks = sum(number_attacks)),
+#                 aes(x = lon_bin, y = lat_bin, fill=number_attacks)) + 
+#     scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
+#             geom_sf(data = world.land,
+#             fill = "lightgrey",
+#             lwd = 0) +
+#     theme_bw() +
+#   theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+#         axis.title.y=element_blank(),
+#         axis.text.y=element_blank(),
+#         axis.ticks.y=element_blank(),
+#         panel.grid.major = element_line(colour = "black"),
+#         panel.grid.minor = element_line(color = "black"),
+#         strip.background =element_rect(fill="white"),
+#         panel.background = element_rect(fill = 'black'))
+# 
+# p_by_year <- p_all_years + 
+#     facet_wrap(~year, ncol = 2) +
+#       guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
+#   theme(legend.position = c(1, 0), 
+#         legend.justification = c(1, 0)) +
+#       ylim(attack_lat_limits) +
+#     xlim(attack_lon_limits)
+# p_all_years
+# p_by_year
+# ggsave(filename = "../figs/attacks_aggregated_all_years.eps", plot = p_all_years, device = "eps")
+# ggsave(filename = "../figs/attacks_by_year.eps", plot = p_by_year, device = "eps")
 ```
 
 ```{r shipping_plot}
 gridded_shipping_hours_processed <- read_csv("../processed_data/gridded_shipping_hours_processed.csv")
 
-shipping_map <- ggplot() +
-  geom_tile(data = gridded_shipping_hours_processed %>%
-              filter(hours > 1000),
-            aes(x = lon_bin, y = lat_bin, fill=hours), 
-            colour = NA, na.rm = TRUE) + 
-  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(50000)) +
-  geom_sf(data = world.land,
-          fill = "lightgrey",
-          lwd = 0) +
-  theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank(),
-        panel.grid.major = element_line(colour = "black"),
-        panel.grid.minor = element_line(color = "black"),
-        strip.background =element_rect(fill="white"),
-        panel.background = element_rect(fill = 'black'))
-shipping_map
+# shipping_map <- ggplot() +
+#   geom_tile(data = gridded_shipping_hours_processed %>%
+#               filter(hours > 1000),
+#             aes(x = lon_bin, y = lat_bin, fill=hours), 
+#             colour = NA, na.rm = TRUE) + 
+#   scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(50000)) +
+#   geom_sf(data = world.land,
+#           fill = "lightgrey",
+#           lwd = 0) +
+#   theme_bw() +
+#   theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+#         axis.title.y=element_blank(),
+#         axis.text.y=element_blank(),
+#         axis.ticks.y=element_blank(),
+#         panel.grid.major = element_line(colour = "black"),
+#         panel.grid.minor = element_line(color = "black"),
+#         strip.background =element_rect(fill="white"),
+#         panel.background = element_rect(fill = 'black'))
+# shipping_map
 
 
 fancy_scientific <- function(l) {
@@ -295,8 +295,9 @@ shipping_piracy_overlay <-   ggplot() +
         panel.grid.major = element_line(colour = "black"),
         panel.grid.minor = element_line(color = "black"),
         strip.background =element_rect(fill="white"),
-        panel.background = element_rect(fill = 'black'))
+        panel.background = element_rect(fill = 'black'),
+        plot.margin=grid::unit(c(0,0,0,0), "mm"))
 
-ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = shipping_piracy_overlay, device = cairo_ps)
+ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = shipping_piracy_overlay, device = cairo_ps, width = 8.5, heigh = 8.5/2.45)
 ```
 
