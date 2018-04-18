@@ -1,13 +1,13 @@
 # Fdb version 3
-["bibtex piracy"] 1524075725 "piracy.aux" "piracy.bbl" "piracy" 1524075766
+["bibtex piracy"] 1524091122 "piracy.aux" "piracy.bbl" "piracy" 1524091124
   "/usr/local/texlive/2017/texmf-dist/bibtex/bst/biblatex/biblatex.bst" 1480098434 63002 075c3f13314e99e71e6ff0a472a98980 ""
-  "piracy-blx.bib" 1524075765 306 2c6dfdd86a7e54fb4f578632cfd6f159 ""
-  "piracy.aux" 1524075766 7702 25fd759553493fc3fbc721bff30ddf18 ""
-  "piracy.bib" 1524006916 5887 59d95460abc396aee0d4d1b794155eb1 ""
+  "piracy-blx.bib" 1524091123 306 2c6dfdd86a7e54fb4f578632cfd6f159 ""
+  "piracy.aux" 1524091124 7702 f5f04eae27d3c0cf97ef7f81f91855f6 ""
+  "piracy.bib" 1524075856 5887 59d95460abc396aee0d4d1b794155eb1 ""
   (generated)
   "piracy.bbl"
   "piracy.blg"
-["pdflatex"] 1524075764 "piracy.tex" "piracy.pdf" "piracy" 1524075766
+["pdflatex"] 1524091122 "piracy.tex" "piracy.pdf" "piracy" 1524091124
   "/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1480098666 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2017/texmf-dist/fonts/map/fontname/texfonts.map" 1480098670 3287 e6b82fe08f5336d4d5ebc73fb1152e87 ""
   "/usr/local/texlive/2017/texmf-dist/fonts/tfm/jknappen/ec/tcrm0600.tfm" 1480098696 1536 12e8c510d3e158fdd0e9a42e75118bd9 ""
@@ -239,16 +239,16 @@
   "/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1501531185 2371408 c107526cf2b16c4a01b0c5f68582418b ""
   "/usr/local/texlive/2017/texmf-var/web2c/pdftex/pdflatex.fmt" 1501531242 4118776 b79ac032f5b3af396c521b521222c045 ""
   "/usr/local/texlive/2017/texmf.cnf" 1495593465 577 2b71d4d888f9e5560b2e99985915a9fa ""
-  "globalmap.eps" 1524075617 17536792 15c1a79165915ce52ef0bfe7add5f31a ""
-  "piracy.aux" 1524075766 7702 25fd759553493fc3fbc721bff30ddf18 ""
-  "piracy.bbl" 1524075725 14419 8f4cae74f83aa78dd2bc1ea75ae10f3b "bibtex piracy"
-  "piracy.out" 1524075766 908 f110beb978dbcf51f01f6c5136233bc7 ""
-  "piracy.run.xml" 1524075766 2606 b7928cd353ed49e89f34ff490f2d6bca ""
-  "piracy.tex" 1524075764 18502 b00dde5e997d91684677d0fbaeca13e6 ""
+  "globalmap.eps" 1524075856 17536792 15c1a79165915ce52ef0bfe7add5f31a ""
+  "piracy.aux" 1524091124 7702 f5f04eae27d3c0cf97ef7f81f91855f6 ""
+  "piracy.bbl" 1524091122 14419 8f4cae74f83aa78dd2bc1ea75ae10f3b "bibtex piracy"
+  "piracy.out" 1524091124 908 7e06f3d86518f49d91f6002e849f72d2 ""
+  "piracy.run.xml" 1524091124 2606 b7928cd353ed49e89f34ff490f2d6bca ""
+  "piracy.tex" 1524091119 19125 5edef9fc96c94343855265b4e9ea5a39 ""
   (generated)
+  "piracy.pdf"
+  "piracy.run.xml"
   "piracy-blx.bib"
   "piracy.out"
-  "piracy.run.xml"
   "piracy.aux"
-  "piracy.pdf"
   "piracy.log"
