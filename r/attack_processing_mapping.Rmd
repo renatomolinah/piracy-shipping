@@ -97,6 +97,9 @@ expanded_asam <- expand.grid(date = date_range,
               group_by(date,lon_bin,lat_bin) %>%
               summarize(number_attacks = n()),by=c("date","lon_bin","lat_bin")) %>%
   mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
+         attacks_last_7_days = rollapplyr(number_attacks, width = 7, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_14_days = rollapplyr(number_attacks, width = 14, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_21_days = rollapplyr(number_attacks, width = 21, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_60_days = rollapplyr(number_attacks, width = 60, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_90_days = rollapplyr(number_attacks, width = 90, FUN = sum, na.rm=TRUE, partial = TRUE),
