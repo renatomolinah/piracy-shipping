@@ -80,7 +80,7 @@ In this paper, we unify the sparse theoretical literature with data available fo
 \section{A model of pirates and shippers}
 In this section we propose a model for the interaction between pirates and shippers that derives testable predictions regarding both pirate and shipping behavior. The model builds on the previous efforts by \citeauthor{guha2011pirates} (\citeyear{guha2011pirates}) and  \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}), who championed the theoretical understanding of modern piracy. The core of these ideas, however, can be traced to two branches in the economic literature. One branch relates to crime, and the understanding of how offenders seek and find criminal opportunities and how potential victims try to avoid them \parencite{ becker1968crime,cook1986demand,shavell1990individual,hylton1996optimal,garoupa1997theory}. The other branch relates to conflict as contests, which studies the incentives associated with games where one party arms itself to increase the probability of winning if conflict were to occur \parencite{baik1994effort,grossman1995swords,garfinkel2007economics}.
 
-\subsection{A myopic game with one pirate - one shipper }
+\subsection{A myopic game of piracy}
 
 In essence, piracy can be thought of as a search problem with pirates searching for vessels, and vessels trying to avoid the match; in this case, a match means an encounter. For simplicity, assume there is one pirate and one shipper, with both of them being risk neutral and myopic. For every trip, the probability of an encounter, $\phi(x,y)$, depends on the search effort of the pirate, $x$, the avoiding and defense effort of the shipper, $y$.\footnote{\citeauthor{grossman1995swords} (\citeyear{grossman1995swords}) and \citeauthor{hallwood2013economic} (\citeyear{hallwood2013economic}) assume the functional form $$\phi(x,y)=\frac{x}{x+\theta y},$$ with $\theta$ representing the effectiveness of the avoiding effort. A feasible extension to accommodate for multiple avoidance factors could be of the form $$\phi(x,y)=\frac{x}{x+\pmb{y}'\pmb{\theta}},$$ with $\pmb{y}$ and $\pmb{\theta}$ denoting a vector of efforts and their respective effectiveness.} Suppose further that $\phi_x>0$ and $\phi_{xx}<0$, and that  $\phi_y<0$ and $\phi_{yy}>0$. In other words, the pirate increasing search efforts increases the probability of an encounter at a decreasing rate, while the shipper increasing avoidance and defense effort decreases this probability at a decreasing rate.
 
@@ -119,7 +119,7 @@ z^*\phi_x(x^*,y^*)G(ps)-c_p&=0\\
 \end{align*}
 Equilibrium avoidance and defense effort increases as a response to search effort if $\phi_{xy}<0$, decreases if $\phi_{xy}>0$, and it remains constant if $\phi_{xy}=0$. Equilibrium search effort increases as a response to avoidance and defense effort if $\phi_{xy}>0$, decreases if $\phi_{xy}<0$, and it remains constant if $\phi_{xy}=0$. 
 \end{proposition}
- 
+
 \subsection{A myopic game with N pirates -  and M shippers}
 We now extend the basic model to accommodate for a higher degree of complexity. Namely, circumstances where there are multiple pirates and shippers in a given geographical area. Under these circumstances, there are several incentives associated with the search, as well as avoidance and defense effort, and resembles the literature on race for first possession \parencite{mortensen1982property,lueck1995rule}, as well as the previous efforts to model modern piracy \parencite{hallwood2013economic}.
 
@@ -141,10 +141,34 @@ From the shipper's perspective, his expected return would be now given by:
 R_s=\pi(z)-z\left(\phi(x,y)[1-F(ps)]h+c_sy\right)
 \end{equation}
  
+
+ 
+\subsection{A dynamic game of piracy} 
+
+
+ 
+ 
+
 \section{Data}
 
-We create a global panel dataset of individual shipping voyages from 2012 to 2017 which includes information on nearby and recent anti-shipping attacks along the route of each voyage. Individual shipping vessel tracks come from AIS satellite latitude and longitude data provided by ORBCOMM. AIS transponders are required on all vessels greater than 300 tons while operating on international voyages and by many countries while operating in certain EEZs (McCauley et al. 2016), and our dataset includes over 36,000 unique known cargo or tanker vessels as defined by vessel identification data provided by Global Fishing watch (Kroodsma et al. 2018; GFW - Vessel Identification). We use anchorage data provided by Global Fishing Watch (GFW - Anchorages) to group AIS vessel pings into discrete shipping voyages between anchorages, yielding over 10,000,000 unique voyages. For each shipping voyage, we specify the unique vessel identifier (known as MMSI for vessels using AIS), vessel type (cargo or tanker), departure and arrival dates, departure and arrival anchorages and countries, and calculate total distance traveled (km) and time traveled (hours). Renato - add a note here about any filtering you do to remove unwanted voyages (i.e., remove voyages that have the same departure and arrival anchorage, voyages that appear to have traveled a shorter distance than the haversine great-circle distance between two anchorages, etc.) We overlay the vessel tracks from each voyage with a dataset of over 2,700 anti-shipping attacks from 2011 to 2017 provided by the United States National Geospatial Intelligence Agency which includes dates and locations of hostile acts against ships by pirates, robbers, and other aggressors (NGA). For each voyage, we partition the vessel track into a route of 5 degrees latitude by 5 degrees longitude cells and calculate how many of these cells have experienced an anti-shipping attack since the start of 2011, the distance (km) and time (hours) spent within cells that have experienced attacks, the number of days since the most recent attack along this route, and the total number of attacks that occurred along this route over the proceeding 30, 60, 90, 180, and 365 days. At the equator, a cell of 5 by 5 degrees is roughly equivalent 345 by 345 miles, which is a reasonable spatial area over which shipping vessel operators might make route and speed adjustment decisions in relation to recent anti-shipping attacks. Moving at 10 knots, this is an area that potential attackers could cover in just 30 hours.
+To test for the theoretical predictions of the previous section, we construct a unique data sets for global shipping and piracy that provides both temporal and spatial variation allowing for the identification of the causal effect of piracy. In particular, we construct a unique global panel dataset from 2012 to 2017 that includes individual shipping voyages and recent anti-shipping attacks along the route of each voyage. This section describes the sources of the data and the data construction process
 
+\subsection{Voyages}
+
+Individual shipping vessel tracks come from the Automatic Identification System (AIS) satellite latitude and longitude data provided by ORBCOMM.\footnote{As described by the company itself, ORBCOMM is a global provider of industrial Internet of Things and Machine-to-Machine communication solutions that remotely track, monitor, and control fixed and mobile assets.} AIS transponders are required on all vessels greater than 300 tons while operating on international voyages and by many countries while operating in certain EEZs \parencite{mccauley2016ending}. The dataset includes over 36,000 unique known cargo or tanker vessels as defined by vessel identification data provided by Global Fishing watch \parencite{kroodsma2018tracking}.\footnote{\url{http://globalfishingwatch.io}} To establish the start and end location of each voyage, we use anchorage data provided by Global Fishing Watch to group AIS vessel pings (signals to satellite receiver) into discrete shipping voyages between anchorages. For consistency, we drop voyages that have the same departure and arrival anchorage,  and voyages that appear to have traveled a shorter distance than the haversine great-circle distance between two anchorages. The final panel covers all global valid cargo and tanker voyages between 2011 and 2017, with each entry reporting a unique vessel identifier, vessel type (cargo or tanker), departure and arrival dates, departure and arrival anchorages and countries, total distance traveled (km), time traveled (hours), and speed (km/hour). 
+
+\subsection{Pirate attacks}
+
+We operationalize pirate attacks by using the data provided by the United States National Geospatial Intelligence Agency, which includes dates and locations of hostile acts against ships by pirates, robbers, and other aggressors (NGA).\footnote{\url{http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65.}} We then divide all oceans into a grid of 5 degrees latitude by 5 degrees longitude cells and calculate how many of these cells have experienced an anti-shipping attack since the start of 2011.\footnote{At the equator, a cell of 5 by 5 degrees is roughly equivalent 345 by 345 miles, which is a reasonable spatial area over which shipping vessel operators might make route and speed adjustment decisions in relation to recent anti-shipping attacks. Moving at 10 knots, this is an area that potential attackers could cover in just 30 hours.} For each entry in the voyage panel, we calculate the distance (km) and time (hours) spent within cells that have experienced attacks, the number of days since the most recent attack along this route, and the total number of attacks that occurred along this route over the proceeding 30, 60, 90, 180, and 365 days.
+
+The final overlap between shipping routes and pirate attacks, which is the data used in the empirical analysis, is shown in Figure \ref{globalmap}. Note that there are noticeable clusters 
+
+\begin{figure}[h]
+   \centering
+   \includegraphics[width=\textwidth]{globalmap}    
+   \caption{Global overlap of shipping routes and anti-shipping attacks from 2012 to 2017. Shipping routes are shown in blue 0.5 by 0.5 degree cells, and the brightness of each cell corresponds to the volume of shipping traffic (hours). Anti-shipping attacks are overlaid in red 5 by 5 degree cells, and the transparency of each cell corresponds to the number of attacks.}
+   \label{globalmap}
+\end{figure}
 
 \section{Empirical strategy}
 

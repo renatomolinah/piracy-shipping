@@ -277,6 +277,88 @@
     \field{year}{1996}
   \endentry
 
+  \entry{kroodsma2018tracking}{article}{}
+    \true{moreauthor}
+    \name{author}{10}{}{%
+      {{hash=KDA}{%
+         family={Kroodsma},
+         familyi={K\bibinitperiod},
+         given={David\bibnamedelima A},
+         giveni={D\bibinitperiod\bibinitdelim A\bibinitperiod},
+      }}%
+      {{hash=MJ}{%
+         family={Mayorga},
+         familyi={M\bibinitperiod},
+         given={Juan},
+         giveni={J\bibinitperiod},
+      }}%
+      {{hash=HT}{%
+         family={Hochberg},
+         familyi={H\bibinitperiod},
+         given={Timothy},
+         giveni={T\bibinitperiod},
+      }}%
+      {{hash=MNA}{%
+         family={Miller},
+         familyi={M\bibinitperiod},
+         given={Nathan\bibnamedelima A},
+         giveni={N\bibinitperiod\bibinitdelim A\bibinitperiod},
+      }}%
+      {{hash=BK}{%
+         family={Boerder},
+         familyi={B\bibinitperiod},
+         given={Kristina},
+         giveni={K\bibinitperiod},
+      }}%
+      {{hash=FF}{%
+         family={Ferretti},
+         familyi={F\bibinitperiod},
+         given={Francesco},
+         giveni={F\bibinitperiod},
+      }}%
+      {{hash=WA}{%
+         family={Wilson},
+         familyi={W\bibinitperiod},
+         given={Alex},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=BB}{%
+         family={Bergman},
+         familyi={B\bibinitperiod},
+         given={Bjorn},
+         giveni={B\bibinitperiod},
+      }}%
+      {{hash=WTD}{%
+         family={White},
+         familyi={W\bibinitperiod},
+         given={Timothy\bibnamedelima D},
+         giveni={T\bibinitperiod\bibinitdelim D\bibinitperiod},
+      }}%
+      {{hash=BBA}{%
+         family={Block},
+         familyi={B\bibinitperiod},
+         given={Barbara\bibnamedelima A},
+         giveni={B\bibinitperiod\bibinitdelim A\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {American Association for the Advancement of Science}%
+    }
+    \strng{namehash}{KDA+1}
+    \strng{fullhash}{KDAMJHTMNABKFFWABBWTDBBA+1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2018}
+    \field{sortinit}{K}
+    \field{sortinithash}{K}
+    \field{number}{6378}
+    \field{pages}{904\bibrangedash 908}
+    \field{title}{Tracking the global footprint of fisheries}
+    \field{volume}{359}
+    \field{journaltitle}{Science}
+    \field{year}{2018}
+  \endentry
+
   \entry{lueck1995rule}{article}{}
     \name{author}{1}{}{%
       {{hash=LD}{%
@@ -302,6 +384,81 @@
     \field{volume}{38}
     \field{journaltitle}{The Journal of Law and Economics}
     \field{year}{1995}
+  \endentry
+
+  \entry{mccauley2016ending}{article}{}
+    \name{author}{9}{}{%
+      {{hash=MDJ}{%
+         family={McCauley},
+         familyi={M\bibinitperiod},
+         given={Douglas\bibnamedelima J},
+         giveni={D\bibinitperiod\bibinitdelim J\bibinitperiod},
+      }}%
+      {{hash=WP}{%
+         family={Woods},
+         familyi={W\bibinitperiod},
+         given={Paul},
+         giveni={P\bibinitperiod},
+      }}%
+      {{hash=SB}{%
+         family={Sullivan},
+         familyi={S\bibinitperiod},
+         given={Brian},
+         giveni={B\bibinitperiod},
+      }}%
+      {{hash=BB}{%
+         family={Bergman},
+         familyi={B\bibinitperiod},
+         given={Bjorn},
+         giveni={B\bibinitperiod},
+      }}%
+      {{hash=JC}{%
+         family={Jablonicky},
+         familyi={J\bibinitperiod},
+         given={Caroline},
+         giveni={C\bibinitperiod},
+      }}%
+      {{hash=RA}{%
+         family={Roan},
+         familyi={R\bibinitperiod},
+         given={Aaron},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=HM}{%
+         family={Hirshfield},
+         familyi={H\bibinitperiod},
+         given={Michael},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=BK}{%
+         family={Boerder},
+         familyi={B\bibinitperiod},
+         given={Kristina},
+         giveni={K\bibinitperiod},
+      }}%
+      {{hash=WB}{%
+         family={Worm},
+         familyi={W\bibinitperiod},
+         given={Boris},
+         giveni={B\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {American Association for the Advancement of Science}%
+    }
+    \strng{namehash}{MDJ+1}
+    \strng{fullhash}{MDJWPSBBBJCRAHMBKWB1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2016}
+    \field{sortinit}{M}
+    \field{sortinithash}{M}
+    \field{number}{6278}
+    \field{pages}{1148\bibrangedash 1150}
+    \field{title}{Ending hide and seek at sea}
+    \field{volume}{351}
+    \field{journaltitle}{Science}
+    \field{year}{2016}
   \endentry
 
   \entry{mortensen1982property}{article}{}

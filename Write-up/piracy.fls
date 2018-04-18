@@ -384,6 +384,16 @@ INPUT /usr/local/texlive/2017/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam1
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT /usr/local/texlive/2017/texmf-dist/fonts/tfm/public/cm/cmtt9.tfm
+INPUT globalmap.eps
+INPUT ./globalmap.eps
+INPUT ./globalmap.eps
+INPUT ./globalmap-eps-converted-to.pdf
+INPUT ./globalmap-eps-converted-to.pdf
+INPUT ./globalmap.eps
+INPUT ./globalmap-eps-converted-to.pdf
+INPUT ./globalmap-eps-converted-to.pdf
+INPUT ./globalmap-eps-converted-to.pdf
 INPUT piracy.aux
 INPUT ./piracy.out
 INPUT ./piracy.out
@@ -408,5 +418,6 @@ INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.p
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb
+INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/cm-super/sfrm0600.pfb
 INPUT /usr/local/texlive/2017/texmf-dist/fonts/type1/public/cm-super/sfrm0800.pfb
