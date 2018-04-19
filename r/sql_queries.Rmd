@@ -351,4 +351,37 @@ GROUP BY
   lon_bin"
 ```
 
+```{r}
+#filtered_cargo_voyages
+
+sql <-glue(
+  "SELECT
+mmsi,
+vessel_type,
+from_anchorage,
+from_country,
+departure_date,
+to_anchorage,
+to_country,
+arrival_date,
+total_distance_km,
+total_hours,
+hotspot_distance_km,
+hotspot_hours,
+attacks_last_7_days,
+attacks_last_14_days,
+attacks_last_21_days,
+attacks_last_30_days,
+attacks_last_60_days,
+attacks_last_90_days,
+attacks_last_180_days,
+attacks_last_365_days,
+days_since_attack
+FROM
+[ucsb-gfw:piracy.all_cargo_voyages]
+WHERE
+from_anchorage != to_anchorage
+AND total_distance_km > 0.8 * total_haversine_distance_km"
+)
+```
 

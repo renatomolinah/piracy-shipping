@@ -10,6 +10,7 @@ output:
 library(tidyverse)
 library(glue)
 library(bigrquery)
+library(googleCloudStorageR)
 ```
 
 ```{r setup, eval=FALSE}
