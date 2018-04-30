@@ -23,6 +23,8 @@ library(bigrquery)
 library(viridis)
 library(zoo)
 library(bigrquery)
+library(fpc)
+library(fossil)
 ```
 ## Load anti-shipping activity messages
 Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
@@ -76,6 +78,48 @@ ASAM <- ASAM %>%
               dplyr::select(year,lon_bin,lat_bin,hotspot_id),by = c("year", "lon_bin", "lat_bin")) %>%
   dplyr::select(date,year,lat,lon,lat_bin,lon_bin,hotspot_id,aggressor,victim,attack_eez)
 
+# Figure out cluster for each year
+ASAM <- purrr::map(unique(ASAM$year),function(x){
+  temp_asam <- ASAM %>%
+    filter(year == x)
+  
+  dist_temp<- earth.dist(temp_asam %>%
+                      dplyr::select(lat,lon), dist=T)
+  
+  # calcualte clusters for attacks
+  DBSCAN_temp <- dbscan(dist_temp,
+                   eps = 200, #km
+                   MinPts = 25, # number of attacks per cluster
+                   method = "dist")
+  
+  temp_asam$cluster <-DBSCAN_temp$cluster
+  temp_asam
+  
+}) %>%
+  bind_rows() %>%
+  mutate(cluster = paste0(year,"_",cluster))
+
+# Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
+cluster_boxes <- purrr::map(unique(ASAM$cluster),function(x){
+  temp_df <- ASAM %>%
+    filter(cluster == x)
+  data.frame(year = temp_df$year[1],
+             cluster = x,
+             lon_min = min(temp_df$lon),
+             lat_min = min(temp_df$lat),
+             lon_max = max(temp_df$lon),
+             lat_max = max(temp_df$lat))
+}) %>%
+  bind_rows() %>%
+  filter(!str_detect(cluster,"_0"))
+
+# Create sql filters for each cluter
+sql_cluster_filters <- cluster_boxes %>%
+  mutate(cluster_filter = paste0("(lat < ",lat_max, " AND lat > ",lat_min, " AND lon < ",lon_max," AND lon > ",lon_min,")")) %>%
+  group_by(year) %>%
+  summarize(cluster_filter = paste0(cluster_filter,collapse = " OR ")) %>%
+  # Shift year up, so year corresponds to previous year when attacks occured
+  mutate(year = year + 1)
 
 write_csv(ASAM,"../processed_data/attacks.csv")
 
