@@ -49,7 +49,16 @@ FROM (
         `world-fishing-827.gfw_research.vessel_info_20180327`
       WHERE
         known_geartype = 'cargo'
-        OR known_geartype = 'tanker') ) anchor1
+        OR known_geartype = 'tanker'
+        OR known_geartype = 'supply_vessel'
+        OR known_geartype = `tug`
+        OR known_geartype = `passenger`
+        OR known_geartype = `reefer`
+        OR known_geartype = `specialized_reefer`
+        OR known_geartype = `fish_factory`
+        OR known_geartype = `bunker`
+        OR known_geartype = `bunker_or_tanker`
+        OR on_fishing_list)) anchor1
   JOIN (
     SELECT
       *,
@@ -101,6 +110,7 @@ sql <-
 SELECT
   a.mmsi mmsi,
   vessel_type,
+  measure_new_score,
   start_lat,
   start_lon,
   start_timestamp,
@@ -118,6 +128,7 @@ SELECT
 FROM (
   SELECT
     mmsi,
+    measure_new_score,
     lat start_lat,
     lon start_lon,
     timestamp start_timestamp,
@@ -135,8 +146,17 @@ FROM (
     FROM
       `world-fishing-827.gfw_research.vessel_info_20180327`
     WHERE
-      known_geartype = 'cargo'
-      OR known_geartype = 'tanker')) a
+        known_geartype = 'cargo'
+        OR known_geartype = 'tanker'
+        OR known_geartype = 'supply_vessel'
+        OR known_geartype = `tug`
+        OR known_geartype = `passenger`
+        OR known_geartype = `reefer`
+        OR known_geartype = `specialized_reefer`
+        OR known_geartype = `fish_factory`
+        OR known_geartype = `bunker`
+        OR known_geartype = `bunker_or_tanker`
+        OR on_fishing_list))) a
 JOIN (
   SELECT
     mmsi,
@@ -246,11 +266,11 @@ SELECT
   a.vessel_type vessel_type,
   a.from_anchorage from_anchorage,
   a.from_anchorage_id from_anchorage_id,
-  NTH(2, SPLIT(a.from_anchorage, ",")) from_country,
+  NTH(2, SPLIT(a.from_anchorage, ',')) from_country,
   DATE(a.departure_timestamp) departure_date,
   a.to_anchorage to_anchorage,
   a.to_anchorage_id to_anchorage_id,
-  NTH(2, SPLIT(a.to_anchorage, ",")) to_country,
+  NTH(2, SPLIT(a.to_anchorage, ',')) to_country,
   DATE(a.arrival_timestamp) arrival_date,
   a.total_distance_km total_distance_km,
  6371*ACOS(COS(RADIANS(anchorage_info_to.to_anchorage_lat))*COS(RADIANS(anchorage_info_from.from_anchorage_lat))*COS(RADIANS(anchorage_info_from.from_anchorage_lon)-RADIANS(anchorage_info_to.to_anchorage_lon))+SIN(RADIANS(anchorage_info_to.to_anchorage_lat))*SIN(RADIANS(anchorage_info_from.from_anchorage_lat))) total_haversine_distance_km,
