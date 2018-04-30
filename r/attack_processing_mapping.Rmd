@@ -117,9 +117,7 @@ cluster_boxes <- purrr::map(unique(ASAM$cluster),function(x){
 sql_cluster_filters <- cluster_boxes %>%
   mutate(cluster_filter = paste0("(lat < ",lat_max, " AND lat > ",lat_min, " AND lon < ",lon_max," AND lon > ",lon_min,")")) %>%
   group_by(year) %>%
-  summarize(cluster_filter = paste0(cluster_filter,collapse = " OR ")) %>%
-  # Shift year up, so year corresponds to previous year when attacks occured
-  mutate(year = year + 1)
+  summarize(cluster_filter = paste0(cluster_filter,collapse = " OR "))
 
 write_csv(ASAM,"../processed_data/attacks.csv")
 
