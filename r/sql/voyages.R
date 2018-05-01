@@ -109,7 +109,7 @@ bq_table(project = project,table = "all_cargo_voyages",dataset = "piracy") %>%
 bq_table(project = project,table = "filtered_cargo_voyages",dataset = "piracy") %>% 
   bq_table_delete()
 
-bq_dataset_query(project,query = sql, destination_table = "voyages")
+bq_dataset_query(project,query = sql, destination_table = "voyages", allowLargeResults = TRUE)
 
 bq_table(project = project,table = "voyages",dataset = "piracy") %>%
   bq_table_save(destination_uris = "gs:://ucsb-gfw/piracy/voyages.csv")

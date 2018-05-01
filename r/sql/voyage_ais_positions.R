@@ -105,4 +105,4 @@ ais_info.year = cluster_info.year"
 
 bq_table(project = project,table = "all_cargo_AIS_positions_with_ports",dataset = "piracy") %>% 
   bq_table_delete()
-bq_dataset_query(project,query = sql, destination_table = "voyage_ais_positions")
+bq_dataset_query(project,query = sql, destination_table = "voyage_ais_positions", use_legacy_sql = FALSE, allowLargeResults = TRUE)

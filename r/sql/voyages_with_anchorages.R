@@ -45,12 +45,12 @@ WHERE
 known_geartype = 'cargo'
 OR known_geartype = 'tanker'
 OR known_geartype = 'supply_vessel'
-OR known_geartype = `tug`
-OR known_geartype = `passenger`
-OR known_geartype = `reefer`
-OR known_geartype = `specialized_reefer`
-OR known_geartype = `fish_factory`
-OR known_geartype = `bunker`
+OR known_geartype = 'tug'
+OR known_geartype = 'passenger'
+OR known_geartype = 'reefer'
+OR known_geartype = 'specialized_reefer'
+OR known_geartype = 'fish_factory'
+OR known_geartype = 'bunker'
 OR on_fishing_list)) anchor1
 JOIN (
 SELECT
@@ -72,9 +72,9 @@ LEFT JOIN(
 SELECT
 mmsi mmsi_info,
 (CASE WHEN on_fishing_list
-THEN `fishing`
+THEN 'fishing'
 ELSE known_geartype
-END) known_geartype,
+END) known_geartype
 FROM
 `world-fishing-827.gfw_research.vessel_info_20180327`) ves_info
 ON voy_info.mmsi = ves_info.mmsi_info)) anchor2
@@ -100,4 +100,4 @@ anchorages.to_anchorage_id = c.s2id"
 
 bq_table(project = project,table = "cargo_trips_with_port_labels",dataset = "piracy") %>% 
   bq_table_delete()
-bq_dataset_query(project,query = sql, destination_table = "voyages_with_anchorages")
+bq_dataset_query(project,query = sql, destination_table = "voyages_with_anchorages", use_legacy_sql = FALSE, allowLargeResults = TRUE)
