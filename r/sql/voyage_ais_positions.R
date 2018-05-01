@@ -24,7 +24,7 @@ ais_info.departure_timestamp departure_timestamp,
 ais_info.to_anchorage to_anchorage,
 ais_info.to_anchorage_id to_anchorage_id,
 ais_info.arrival_timestamp arrival_timestamp,
-(CASE WHEN ais_info.measure_new_score > 0.5 AND NOT (ais_info.distance_from_shore < 1000 AND ais_info.implied_speed < 1) AND ais_info.vessel_type = `fishing`
+(CASE WHEN ais_info.measure_new_score > 0.5 AND NOT (ais_info.distance_from_shore < 1000 AND ais_info.implied_speed < 1) AND ais_info.vessel_type = 'fishing'
 THEN 1
 ELSE 0
 END) fishing,
@@ -70,12 +70,12 @@ WHERE
 known_geartype = 'cargo'
 OR known_geartype = 'tanker'
 OR known_geartype = 'supply_vessel'
-OR known_geartype = `tug`
-OR known_geartype = `passenger`
-OR known_geartype = `reefer`
-OR known_geartype = `specialized_reefer`
-OR known_geartype = `fish_factory`
-OR known_geartype = `bunker`
+OR known_geartype = 'tug'
+OR known_geartype = 'passenger'
+OR known_geartype = 'reefer'
+OR known_geartype = 'specialized_reefer'
+OR known_geartype = 'fish_factory'
+OR known_geartype = 'bunker`
 OR on_fishing_list))) a
 JOIN (
 SELECT
