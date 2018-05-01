@@ -51,7 +51,6 @@ OR known_geartype = `reefer`
 OR known_geartype = `specialized_reefer`
 OR known_geartype = `fish_factory`
 OR known_geartype = `bunker`
-OR known_geartype = `bunker_or_tanker`
 OR on_fishing_list)) anchor1
 JOIN (
 SELECT
@@ -72,7 +71,10 @@ event_type = 'anchorage') voy_info
 LEFT JOIN(
 SELECT
 mmsi mmsi_info,
-known_geartype
+(CASE WHEN on_fishing_list
+THEN `fishing`
+ELSE known_geartype
+END) known_geartype,
 FROM
 `world-fishing-827.gfw_research.vessel_info_20180327`) ves_info
 ON voy_info.mmsi = ves_info.mmsi_info)) anchor2
