@@ -172,8 +172,8 @@ cluster_boxes_map <- read_csv("../processed_data/cluster_boxes.csv") %>%
   st_as_sf(sf_column_name = "geometry") %>%
   `st_crs<-`(st_crs(world.land))
 
-cluster_lat_limits <- c(min(cluster_boxes_map$lat_min) - 5, max(cluster_boxes_map$lat_max) + 5)
-cluster_lon_limits <- c(min(cluster_boxes_map$lon_min) - 5, max(cluster_boxes_map$lon_max) + 5)
+cluster_lat_limits <- c(min(cluster_boxes_map$lat_min) - 10, max(cluster_boxes_map$lat_max) + 10)
+cluster_lon_limits <- c(min(cluster_boxes_map$lon_min) - 2, max(cluster_boxes_map$lon_max) + 2)
 
 cluster_plot <-   ggplot() +
     geom_sf(data = cluster_boxes_map, fill="firebrick1",color="red") +
@@ -199,7 +199,7 @@ cluster_plot <-   ggplot() +
         xlim(cluster_lon_limits)
   #viridis::scale_fill_viridis(discrete = TRUE,option="B",begin=0.25)
 
-ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot, device = cairo_ps, width = 8.5, height = 8.5/2.45)
+ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot, device = cairo_ps, width = 8.5, height = 8.5/2)
 ```
 
 
