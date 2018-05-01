@@ -19,12 +19,7 @@ library(leaflet)
 library(sf)
 library(lubridate)
 library(tidyverse)
-library(bigrquery)
 library(viridis)
-library(zoo)
-library(bigrquery)
-library(fpc)
-library(fossil)
 ```
 
 
@@ -166,6 +161,45 @@ shipping_piracy_overlay <-   ggplot() +
         panel.background = element_rect(fill = 'black'),
         plot.margin=grid::unit(c(0,0,0,0), "mm"))
 
-ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = shipping_piracy_overlay, device = cairo_ps, width = 8.5, heigh = 8.5/2.45)
+ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = shipping_piracy_overlay, device = cairo_ps, width = 8.5, height = 8.5/2.45)
 ```
+
+```{r cluster_map}
+cluster_boxes_map <- read_csv("../processed_data/cluster_boxes.csv") %>%
+  filter(year > 2011 & year < 2018) %>%
+  rowwise() %>%
+  mutate(geometry = st_geometry(st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
+  st_as_sf(sf_column_name = "geometry") %>%
+  `st_crs<-`(st_crs(world.land))
+
+cluster_lat_limits <- c(min(cluster_boxes_map$lat_min) - 5, max(cluster_boxes_map$lat_max) + 5)
+cluster_lon_limits <- c(min(cluster_boxes_map$lon_min) - 5, max(cluster_boxes_map$lon_max) + 5)
+
+cluster_plot <-   ggplot() +
+    geom_sf(data = cluster_boxes_map, fill="firebrick1",color="red") +
+    geom_sf(data = world.land,
+          fill = "lightgrey",
+          lwd = 0) +
+  theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.grid.major = element_line(colour = "black"),
+        panel.grid.minor = element_line(color = "black"),
+        strip.background =element_rect(fill="white"),
+        panel.background = element_rect(fill = 'black'),
+        plot.margin=grid::unit(c(0,0,0,0), "mm")) +
+  #geom_point(data = ASAM %>% filter(!str_detect(cluster,"_0") & year > 2011), aes(x=lon,y=lat,color=cluster)) +
+  facet_wrap(~year,ncol=2) +
+  guides(fill=FALSE) +
+        ylim(cluster_lat_limits) +
+        xlim(cluster_lon_limits)
+  #viridis::scale_fill_viridis(discrete = TRUE,option="B",begin=0.25)
+
+ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot, device = cairo_ps, width = 8.5, height = 8.5/2.45)
+```
+
 
