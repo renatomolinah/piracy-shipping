@@ -80,6 +80,7 @@ OR on_fishing_list))) a
 JOIN (
 SELECT
 mmsi,
+YEAR(departure_timestamp) year,
 vessel_type,
 from_anchorage_name from_anchorage,
 from_anchorage_id,
@@ -95,7 +96,8 @@ AND a.start_timestamp > anchorages.departure_timestamp
 AND a.start_timestamp < anchorages.arrival_timestamp) ais_info
 LEFT JOIN (
 SELECT
-*
+YEAR(year) year,
+cluster_filter
 FROM
 [piracy.cluster_filters]) cluster_info
 ON
