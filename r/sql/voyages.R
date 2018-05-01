@@ -101,5 +101,5 @@ a.to_anchorage_id = anchorage_info_to.s2id
 AND total_distance_km > 0.8 * total_haversine_distance_km"
 
 delete_table(project, "piracy", "all_cargo_voyages")
-job <- insert_query_job(query = sql, project = project, destination_table = "all_voyages")
+job <- insert_query_job(query = sql, project = project, destination_table = "voyages")
 wait_for(job)
