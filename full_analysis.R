@@ -101,23 +101,20 @@ cluster_boxes <- purrr::map(unique(ASAM$cluster),function(x){
   bind_rows() %>%
   filter(!str_detect(cluster,"_0"))
 
+write_csv(cluster_boxes,"processed_data/cluster_boxes.csv")
+
 # Create sql filters for each cluter
 cluster_filters <- cluster_boxes %>%
   mutate(cluster_filter = paste0("(lat < ",lat_max, " AND lat > ",lat_min, " AND lon < ",lon_max," AND lon > ",lon_min,")")) %>%
   group_by(year) %>%
   summarize(cluster_filter = paste0(cluster_filter,collapse = " OR "))
 
-delete_table(project, "piracy", "cluster_filters")
-job <- insert_upload_job(project, "piracy", "cluster_filters", cluster_filters)
-wait_for(job)
-
 # Cache attack data for later
 write_csv(ASAM,"processed_data/attacks.csv")
 
-
 # Create expanded attack dataframe for every grid and date combination
 # To create summary stats for each combination
-
+# Will then join this to vessel track info in big query
 date_range <- seq(ymd('2011-01-01'),ymd('2017-12-31'), by = '1 day')
 
 expanded_asam <- expand.grid(date = date_range,
@@ -150,9 +147,12 @@ expanded_asam <- expand.grid(date = date_range,
   ungroup() %>%
   select(-c(tmp_a, tmpG, number_attacks))
 
-# Push expanded table to big query
-# Only run if necessary
-delete_table(project, "piracy", "piracy_attacks")
-job <- insert_upload_job(project, "piracy", "piracy_attacks", expanded_asam)
-wait_for(job)
-# Will then join this to vessel track info in big query
+##########################################################################################
+# Run SQL queries
+# Only run if necessary!! Some of these are very large and expensive
+##########################################################################################
+source("sql/piracy_attacks.R")
+source("sql/voyages_with_anchorages.R")
+source("sql/voyage_ais_positions.R")
+source("sql/voyages_gridded.R")
+source("sql/gridded_shipping_hours.R")
