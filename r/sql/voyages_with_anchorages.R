@@ -98,6 +98,6 @@ FROM
 ON
 anchorages.to_anchorage_id = c.s2id"
 
-delete_table(project, "piracy", "cargo_trips_with_port_labels")
-job <- insert_query_job(query = sql, project = project, destination_table = "voyages_with_anchorages")
-wait_for(job)
+bq_table(project = project,table = "cargo_trips_with_port_labels",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_dataset_query(project,query = sql, destination_table = "voyages_with_anchorages")

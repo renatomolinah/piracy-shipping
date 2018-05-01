@@ -147,6 +147,7 @@ expanded_asam <- expand.grid(date = date_range,
   ungroup() %>%
   select(-c(tmp_a, tmpG, number_attacks))
 
+
 ##########################################################################################
 # Run SQL queries
 # Only run if necessary!! Some of these are very large and expensive

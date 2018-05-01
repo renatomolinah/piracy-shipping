@@ -1,3 +1,4 @@
-delete_table(project, "piracy", "piracy_attacks")
-job <- insert_upload_job(project, "piracy", "piracy_attacks", expanded_asam)
-wait_for(job)
+bq_table(project = project,table = "piracy_attacks",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_table(project = project,table = "piracy_attacks",dataset = "piracy") %>% 
+  bq_table_upload(values = expanded_asam)

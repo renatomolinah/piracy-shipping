@@ -104,7 +104,12 @@ a.to_anchorage_id = anchorage_info_to.s2id)
 WHERE
 total_distance_km > 0.8 * total_haversine_distance_km"
 
-delete_table(project, "piracy", "all_cargo_voyages")
-delete_table(project, "piracy", "filtered_cargo_voyages")
-job <- insert_query_job(query = sql, project = project, destination_table = "voyages")
-wait_for(job)
+bq_table(project = project,table = "all_cargo_voyages",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_table(project = project,table = "filtered_cargo_voyages",dataset = "piracy") %>% 
+  bq_table_delete()
+
+bq_dataset_query(project,query = sql, destination_table = "voyages")
+
+bq_table(project = project,table = "voyages",dataset = "piracy") %>%
+  bq_table_save(destination_uris = "gs:://ucsb-gfw/piracy/voyages.csv")

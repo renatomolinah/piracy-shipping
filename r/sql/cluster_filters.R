@@ -1,3 +1,4 @@
-delete_table(project, "piracy", "cluster_filters")
-job <- insert_upload_job(project, "piracy", "cluster_filters", cluster_filters)
-wait_for(job)
+bq_table(project = project,table = "cluster_filters",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_table(project = project,table = "cluster_filters",dataset = "piracy") %>% 
+  bq_table_upload(values = cluster_filters)

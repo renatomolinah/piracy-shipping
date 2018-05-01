@@ -85,6 +85,6 @@ ais_info.lat_bin = attack_info.lat_bin
 AND ais_info.lon_bin = attack_info.lon_bin
 AND ais_info.departure_date = attack_info.date"
 
-delete_table(project, "piracy", "all_cargo_voyages_gridded")
-job <- insert_query_job(query = sql, project = project, destination_table = "voyages_gridded")
-wait_for(job)
+bq_table(project = project,table = "all_cargo_voyages_gridded",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_dataset_query(project,query = sql, destination_table = "voyages_gridded")

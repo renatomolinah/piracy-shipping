@@ -103,6 +103,6 @@ FROM
 ON
 ais_info.year = cluster_info.year"
 
-delete_table(project, "piracy", "all_cargo_AIS_positions_with_ports")
-job <- insert_query_job(query = sql, project = project, destination_table = "voyage_ais_positions")
-wait_for(job)
+bq_table(project = project,table = "all_cargo_AIS_positions_with_ports",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_dataset_query(project,query = sql, destination_table = "voyage_ais_positions")
