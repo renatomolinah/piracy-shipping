@@ -1,6 +1,9 @@
 # Summarize gridded data into a single row for each voyage
 "
 SELECT
+*
+FROM(
+SELECT
 a.mmsi mmsi,
 a.vessel_type vessel_type,
 a.from_anchorage from_anchorage,
@@ -97,9 +100,11 @@ lon to_anchorage_lon
 FROM
 [world-fishing-827:gfw_research.named_anchorages_20171120] ) anchorage_info_to
 ON
-a.to_anchorage_id = anchorage_info_to.s2id
-AND total_distance_km > 0.8 * total_haversine_distance_km"
+a.to_anchorage_id = anchorage_info_to.s2id)
+WHERE
+total_distance_km > 0.8 * total_haversine_distance_km"
 
 delete_table(project, "piracy", "all_cargo_voyages")
+delete_table(project, "piracy", "filtered_cargo_voyages")
 job <- insert_query_job(query = sql, project = project, destination_table = "voyages")
 wait_for(job)
