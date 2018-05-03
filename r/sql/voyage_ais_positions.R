@@ -65,18 +65,7 @@ mmsi IN (
 SELECT
 mmsi
 FROM
-`world-fishing-827.gfw_research.vessel_info_20180327`
-WHERE
-known_geartype = 'cargo'
-OR known_geartype = 'tanker'
-OR known_geartype = 'supply_vessel'
-OR known_geartype = 'tug'
-OR known_geartype = 'passenger'
-OR known_geartype = 'reefer'
-OR known_geartype = 'specialized_reefer'
-OR known_geartype = 'fish_factory'
-OR known_geartype = 'bunker`
-OR on_fishing_list))) a
+`piracy.vessel_info`))) a
 JOIN (
 SELECT
 mmsi,
@@ -103,6 +92,11 @@ FROM
 ON
 ais_info.year = cluster_info.year"
 
+# source for bunker fuel data? http://www.bunkerindex.com/prices/indices.php
+# probably want IFO380, IFO180, or composite index
+# Fuel description https://www.transport.govt.nz/resources/tmif/transportpriceindices/ti008/
+
 bq_table(project = project,table = "all_cargo_AIS_positions_with_ports",dataset = "piracy") %>% 
   bq_table_delete()
-bq_dataset_query(project,query = sql, destination_table = "voyage_ais_positions", use_legacy_sql = FALSE, allowLargeResults = TRUE)
+bq_perform_query(project,query = sql, destination_table = "voyage_ais_positions", use_legacy_sql = FALSE, allowLargeResults = TRUE) %>%
+  bq_job_wait()

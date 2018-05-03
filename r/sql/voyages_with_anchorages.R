@@ -33,25 +33,14 @@ anchorage_id,
 anchorage_name,
 ROW_NUMBER() OVER (PARTITION BY vessel_1_id ORDER BY event_start) rn
 FROM
-`world-fishing-827.gfw_research.voyage_events_all_vessels_20180307`
+`piracy.voyage_events_all_vessels_20180307`
 WHERE
 event_type = 'anchorage'
 AND vessel_1_id IN (
 SELECT
 mmsi
 FROM
-`world-fishing-827.gfw_research.vessel_info_20180327`
-WHERE
-known_geartype = 'cargo'
-OR known_geartype = 'tanker'
-OR known_geartype = 'supply_vessel'
-OR known_geartype = 'tug'
-OR known_geartype = 'passenger'
-OR known_geartype = 'reefer'
-OR known_geartype = 'specialized_reefer'
-OR known_geartype = 'fish_factory'
-OR known_geartype = 'bunker'
-OR on_fishing_list)) anchor1
+`world-fishing-827.gfw_research.vessel_info`) anchor1
 JOIN (
 SELECT
 *,

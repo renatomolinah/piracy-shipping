@@ -16,10 +16,10 @@ vessel_type,
 lat_bin,
 lon_bin"
 
-delete_table(project, "piracy", "gridded_shipping_hours")
-
-## Run the query    
-gridded_shipping_hours <- query_exec(sql, project, max_pages = Inf, destination_table = "gridded_shipping_hours")
+bq_table(project = project,table = "gridded_shipping_hours",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_table(project = project,table = "gridded_shipping_hours",dataset = "piracy") %>% 
+  bq_table_upload(values = gridded_shipping_hours)
 
 # Arrange and cache data for later
 # Make smaller, to 1 degree cells
