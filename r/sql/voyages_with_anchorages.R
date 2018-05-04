@@ -5,7 +5,7 @@ sql <-
   "
 SELECT
 anchorages.mmsi mmsi,
-anchorages.known_geartype vessel_type,
+anchorages.vessel_type vessel_type,
 b.label from_port,
 anchorages.from_anchorage_id from_anchorage_id,
 anchorages.from_anchorage_name from_anchorage_name,
@@ -17,7 +17,7 @@ anchorages.arrival_timestamp arrival_timestamp
 FROM (
 SELECT
 anchor1.mmsi mmsi,
-anchor2.known_geartype known_geartype,
+anchor2.vessel_type vessel_type,
 anchor2.anchorage_id from_anchorage_id,
 anchor2.anchorage_name from_anchorage_name,
 anchor2.event_end departure_timestamp,
@@ -33,14 +33,14 @@ anchorage_id,
 anchorage_name,
 ROW_NUMBER() OVER (PARTITION BY vessel_1_id ORDER BY event_start) rn
 FROM
-`piracy.voyage_events_all_vessels_20180307`
+`world-fishing-827.gfw_research.voyage_events_all_vessels_20180307`
 WHERE
 event_type = 'anchorage'
 AND vessel_1_id IN (
 SELECT
 mmsi
 FROM
-`world-fishing-827.gfw_research.vessel_info`) anchor1
+`piracy.vessel_info`)) anchor1
 JOIN (
 SELECT
 *,
@@ -60,12 +60,9 @@ event_type = 'anchorage') voy_info
 LEFT JOIN(
 SELECT
 mmsi mmsi_info,
-(CASE WHEN on_fishing_list
-THEN 'fishing'
-ELSE known_geartype
-END) known_geartype
+vessel_type
 FROM
-`world-fishing-827.gfw_research.vessel_info_20180327`) ves_info
+`piracy.vessel_info`) ves_info
 ON voy_info.mmsi = ves_info.mmsi_info)) anchor2
 ON
 anchor1.mmsi = anchor2.mmsi
@@ -89,4 +86,6 @@ anchorages.to_anchorage_id = c.s2id"
 
 bq_table(project = project,table = "cargo_trips_with_port_labels",dataset = "piracy") %>% 
   bq_table_delete()
-bq_project_query(project,query = sql, destination_table = "voyages_with_anchorages", use_legacy_sql = FALSE, allowLargeResults = TRUE)
+
+bq_project_query(project,sql, destination_table = bq_table(project = project,table = "voyages_with_anchorages",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
