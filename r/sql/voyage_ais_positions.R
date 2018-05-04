@@ -96,6 +96,7 @@ ais_info.year = cluster_info.year"
 # probably want IFO380, IFO180, or composite index
 # Fuel description https://www.transport.govt.nz/resources/tmif/transportpriceindices/ti008/
 
-bq_table(project = project,table = "all_cargo_AIS_positions_with_ports",dataset = "piracy") %>% 
+bq_table(project = project,table = "voyage_ais_positions",dataset = "piracy") %>% 
   bq_table_delete()
-bq_project_query(project,query = sql, destination_table = "voyage_ais_positions", use_legacy_sql = FALSE, allowLargeResults = TRUE)
+bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "voyage_ais_positions",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)

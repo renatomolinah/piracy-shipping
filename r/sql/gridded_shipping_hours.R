@@ -9,7 +9,7 @@ FLOOR(start_lat / 0.5) * 0.5 lat_bin,
 FLOOR(start_lon / 0.5) * 0.5 lon_bin,
 SUM(hours) hours
 FROM
-[ucsb-gfw:piracy.all_cargo_AIS_positions_with_ports]
+[ucsb-gfw:piracy.voyage_ais_positions]
 GROUP BY
 year,
 vessel_type,
