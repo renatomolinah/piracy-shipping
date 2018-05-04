@@ -152,9 +152,10 @@ expanded_asam <- expand.grid(date = date_range,
 # Run SQL queries
 # Only run if necessary!! Some of these are very large and expensive
 ##########################################################################################
-#source("sql/piracy_attacks.R")
-#source("sql/vessel_info.R")
-#source("sql/voyages_with_anchorages.R")
+#source("sql/piracy_attacks.R") # Check - already run!
+#source("sql/cluster_filters.R") # Check - already run!
+#source("sql/vessel_info.R") # Check - already run!
+#source("sql/voyages_with_anchorages.R") # Check - already run!
 #source("sql/voyage_ais_positions.R")
 #source("sql/voyages_gridded.R")
 #source("sql/voyages.R")
