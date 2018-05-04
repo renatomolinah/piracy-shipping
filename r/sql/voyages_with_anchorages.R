@@ -89,4 +89,4 @@ anchorages.to_anchorage_id = c.s2id"
 
 bq_table(project = project,table = "cargo_trips_with_port_labels",dataset = "piracy") %>% 
   bq_table_delete()
-bq_dataset_query(project,query = sql, destination_table = "voyages_with_anchorages", use_legacy_sql = FALSE, allowLargeResults = TRUE)
+bq_project_query(project,query = sql, destination_table = "voyages_with_anchorages", use_legacy_sql = FALSE, allowLargeResults = TRUE)

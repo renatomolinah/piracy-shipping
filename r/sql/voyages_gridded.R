@@ -87,4 +87,4 @@ AND ais_info.departure_date = attack_info.date"
 
 bq_table(project = project,table = "all_cargo_voyages_gridded",dataset = "piracy") %>% 
   bq_table_delete()
-bq_dataset_query(project,query = sql, destination_table = "voyages_gridded", allowLargeResults = TRUE)
+bq_project_query(project,query = sql, destination_table = "voyages_gridded", allowLargeResults = TRUE)
