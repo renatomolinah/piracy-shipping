@@ -20,7 +20,7 @@ inferred_engine_power_allyears,
 inferred_crew_size_allyears,
 inferred_tonnage_allyears
 FROM
-[world-fishing-827.gfw_research.vessel_info_20180418]
+`world-fishing-827.gfw_research.vessel_info_20180418`
 WHERE
 known_geartype = 'cargo'
 OR known_geartype = 'cargo,cargo'
@@ -37,10 +37,12 @@ OR known_geartype = 'fish_factory'
 OR known_geartype = 'bunker'
 OR known_geartype = 'bunker_or_tanker'
 OR on_fishing_list"
-
+# Delete old table
 bq_table(project = project,table = "vessel_info",dataset = "piracy") %>% 
   bq_table_delete()
-vessel_info <- bq_dataset_query(project,query = sql, destination_table = NULL, use_legacy_sql = TRUE, allowLargeResults = TRUE)
+# Run new query. Just save results in temp spot, then download locally
+vessel_info <- bq_project_query(project, sql) %>%
+  bq_table_download(max_results = Inf)
 
 # To fill in gaps in vessel info, figure out mean length, power, crew, and tonnage by flag, year, and vessel type using inferred data
 vessel_gaps <- vessel_info %>%
@@ -49,9 +51,10 @@ vessel_gaps <- vessel_info %>%
   summarize(mean_inferred_length_allyears = mean(inferred_length_allyears,na.rm = TRUE),
             mean_inferred_engine_power_allyears = mean(inferred_engine_power_allyears,na.rm = TRUE),
             mean_inferred_crew_size_allyears = mean(inferred_crew_size_allyears,na.rm = TRUE),
-            mean_inferred_tonnage_allyears = mean(inferred_tonnage_allyear,na.rm = TRUE))
+            mean_inferred_tonnage_allyears = mean(inferred_tonnage_allyears,na.rm = TRUE))
 
-vessel_info <- vessel_info %>%
+# Process vessel info. Partially based on Juan's high seas work
+vessel_info_processed <- vessel_info %>%
   replace_na(list(flag = "unknown")) %>% 
   # Add gaps. Use known or non-gap data if available, gap data if necessary
   left_join(vessel_gaps, by = c("flag","year","vessel_type")) %>%
@@ -85,9 +88,22 @@ vessel_info <- vessel_info %>%
       TRUE ~ 203),
     main_sfc_low = 203,
     aux_sfc = 217
-  )
+  ) %>%
+  #remove unnecessary columns
+  dplyr::select(-known_length,
+                -known_engine_power,
+                -known_crew,
+                -inferred_length_allyears,
+                -inferred_engine_power_allyears,
+                -inferred_crew_size_allyears,
+                -inferred_tonnage_allyears,
+                -mean_inferred_length_allyears,
+                -mean_inferred_engine_power_allyears,
+                -mean_inferred_crew_size_allyears,
+                -mean_inferred_tonnage_allyears) %>%
+  # Remove vessels that don't have all info
+  filter(!is.na(length) & !is.na(engine_power) & !is.na(crew) & !is.na(tonnage))
 
+# Upload to big query
 bq_table(project = project,table = "vessel_info",dataset = "piracy") %>% 
-  bq_table_delete()
-bq_perform_query(project,query = sql, destination_table = "vessel_info", use_legacy_sql = FALSE, allowLargeResults = TRUE) %>%
-  bq_job_wait()
+  bq_table_upload(values = vessel_info_processed)
