@@ -48,6 +48,7 @@ rn+1 rn_plus
 FROM (
 (SELECT
 vessel_1_id mmsi,
+YEAR(event_start) year,
 event_start,
 event_end,
 anchorage_id,
@@ -60,10 +61,12 @@ event_type = 'anchorage') voy_info
 LEFT JOIN(
 SELECT
 mmsi mmsi_info,
+year year_info
 vessel_type
 FROM
 `piracy.vessel_info`) ves_info
-ON voy_info.mmsi = ves_info.mmsi_info)) anchor2
+ON voy_info.mmsi = ves_info.mmsi_info
+AND voy_info.year = ves_info.year)) anchor2
 ON
 anchor1.mmsi = anchor2.mmsi
 AND anchor1.rn = anchor2.rn_plus) anchorages
