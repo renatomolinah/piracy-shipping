@@ -110,7 +110,11 @@ avg_distance_km
 FROM
 `world-fishing-827.gfw_research.pipeline_p_p550_daily`
 WHERE
-mmsi IN (
+lat < 90
+AND lat > -90
+AND lon < 180
+AND lon >-180
+AND mmsi IN (
 SELECT
 mmsi
 FROM
