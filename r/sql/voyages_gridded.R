@@ -1,5 +1,6 @@
 # Take AIS position data for each voyage, and group by grid
 # Add attack data for each grid
+# Add wind data for each grid
 # Save as voyages_gridded
 sql <- 
   "
@@ -33,6 +34,9 @@ attack_info.attacks_last_180_days attacks_last_180_days,
 attack_info.attacks_last_365_days attacks_last_365_days, 
 attack_info.days_since_attack days_since_attack
 FROM (
+SELECT
+*
+FROM(
 SELECT
 mmsi,
 vessel_type,
@@ -87,7 +91,16 @@ FROM
 ON
 ais_info.lat_bin = attack_info.lat_bin
 AND ais_info.lon_bin = attack_info.lon_bin
-AND ais_info.departure_date = attack_info.date"
+AND ais_info.departure_date = attack_info.date) most_info
+LEFT JOIN(
+SELECT
+*
+FROM
+[piracy.wind]) wind_info
+ON
+most_info.date = wind_info.date
+AND most_info.lat_bin = wind_info.lat_bin
+AND most_info.lon_bin = wind_info.lon_bin"
 
 bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
   bq_table_delete()

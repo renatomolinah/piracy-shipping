@@ -31,7 +31,9 @@ a.attacks_last_60_days attacks_last_60_days,
 a.attacks_last_90_days attacks_last_90_days,
 a.attacks_last_180_days attacks_last_180_days,
 a.attacks_last_365_days attacks_last_365_days,
-a.days_since_attack days_since_attack
+a.days_since_attack days_since_attack,
+a.speed_m_s wind_speed_m_s,
+a.direction_degrees wind_direction_degrees,
 FROM (
 SELECT
 mmsi,
@@ -68,6 +70,8 @@ SUM(attacks_last_90_days) attacks_last_90_days,
 SUM(attacks_last_180_days) attacks_last_180_days,
 SUM(attacks_last_365_days) attacks_last_365_days,
 MIN(days_since_attack) days_since_attack
+(SUM(speed_m_s * hours) / SUM(hours)) speed_m_s,
+(SUM(direction_degrees * hours) / SUM(hours)) direction_degrees
 FROM
 [ucsb-gfw:piracy.voyages_gridded]
 GROUP BY
