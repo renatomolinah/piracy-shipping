@@ -5,19 +5,35 @@ sql <-
   "
 SELECT
 anchorages.mmsi mmsi,
-anchorages.vessel_type vessel_type,
-b.label from_port,
 anchorages.from_anchorage_id from_anchorage_id,
 anchorages.from_anchorage_name from_anchorage_name,
 anchorages.departure_timestamp departure_timestamp,
-c.label to_port,
 anchorages.to_anchorage_id to_anchorage_id,
 anchorages.to_anchorage_name to_anchorage_name,
-anchorages.arrival_timestamp arrival_timestamp
+anchorages.arrival_timestamp arrival_timestamp,
+anchorages.vessel_type vessel_type,
+anchorages.length length, 
+anchorages.engine_power engine_power, 
+anchorages.crew crew, 
+anchorages.tonnage tonnage, 
+anchorages.aux_engine_power aux_engine_power, 
+anchorages.design_speed_ihs design_speed_ihs, 
+anchorages.main_sfc main_sfc, 
+anchorages.main_sfc_low main_sfc_low, 
+anchorages.aux_sfc aux_sfc,
 FROM (
 SELECT
 anchor1.mmsi mmsi,
 anchor2.vessel_type vessel_type,
+anchor2.length length, 
+anchor2.engine_power engine_power, 
+anchor2.crew crew, 
+anchor2.tonnage tonnage, 
+anchor2.aux_engine_power aux_engine_power, 
+anchor2.design_speed_ihs design_speed_ihs, 
+anchor2.main_sfc main_sfc, 
+anchor2.main_sfc_low main_sfc_low, 
+anchor2.aux_sfc aux_sfc,
 anchor2.anchorage_id from_anchorage_id,
 anchor2.anchorage_name from_anchorage_name,
 anchor2.event_end departure_timestamp,
@@ -62,7 +78,16 @@ LEFT JOIN(
 SELECT
 mmsi mmsi_info,
 year year_info
-vessel_type
+vessel_type,
+length, 
+engine_power, 
+crew, 
+tonnage, 
+aux_engine_power, 
+design_speed_ihs, 
+main_sfc, 
+main_sfc_low, 
+aux_sfc
 FROM
 `piracy.vessel_info`) ves_info
 ON voy_info.mmsi = ves_info.mmsi_info
