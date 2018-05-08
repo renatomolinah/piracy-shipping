@@ -23,7 +23,6 @@ departure_timestamp,
 to_anchorage,
 to_anchorage_id,
 arrival_timestamp,
-fishing,
 (hours*main_load_factor*main_sfc_low*engine_power/1000000 + hours*aux_load_factor*aux_sfc*aux_engine_power/1000000) total_fuel_consumption__low_bound,
 (hours*main_load_factor*main_sfc*engine_power/1000000 + hours*aux_load_factor*aux_sfc*aux_engine_power/1000000) total_fuel_consumption__high_bound,
 FROM(
