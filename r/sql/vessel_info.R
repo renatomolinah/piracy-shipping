@@ -40,7 +40,7 @@ OR on_fishing_list"
 # Delete old table
 bq_table(project = project,table = "vessel_info",dataset = "piracy") %>% 
   bq_table_delete()
-# Run new query. Just save results in temp spot, then download locally
+# Run new query. Just save results in temp spot on big query, then download locally
 vessel_info <- bq_project_query(project, sql) %>%
   bq_table_download(max_results = Inf)
 
@@ -101,7 +101,7 @@ vessel_info_processed <- vessel_info %>%
                 -mean_inferred_engine_power_allyears,
                 -mean_inferred_crew_size_allyears,
                 -mean_inferred_tonnage_allyears) %>%
-  # Remove vessels that don't have all info
+  # Remove vessels that don't have all info. Won't be able to use them in fuel consumption model, and there aren't that many anyway
   filter(!is.na(length) & !is.na(engine_power) & !is.na(crew) & !is.na(tonnage))
 
 # Upload to big query

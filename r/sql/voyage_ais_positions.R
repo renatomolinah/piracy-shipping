@@ -1,5 +1,6 @@
 # For every voyage, get all AIS positions along the way 
 # save as cargo_AIS_positions_with_ports
+# Fuel consumption based on Juan's high seas work
 sql <- 
   "
 SELECT

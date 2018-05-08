@@ -4,7 +4,6 @@ sql <-
   "
 SELECT
 YEAR(start_timestamp) year,
-vessel_type,
 FLOOR(start_lat / 0.5) * 0.5 lat_bin,
 FLOOR(start_lon / 0.5) * 0.5 lon_bin,
 SUM(hours) hours
@@ -12,9 +11,10 @@ FROM
 [ucsb-gfw:piracy.voyage_ais_positions]
 GROUP BY
 year,
-vessel_type,
 lat_bin,
-lon_bin"
+lon_bin
+WHERE
+vessel_type IN (cargo, tanker, reefer)"
 
 bq_table(project = project,table = "gridded_shipping_hours",dataset = "piracy") %>% 
   bq_table_delete()

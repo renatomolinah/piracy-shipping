@@ -1,6 +1,7 @@
 # First, get all trips for vessels of interest
 # Trip defined by beginning and ending anchorage and timestamps
 # Save as trips_with_port_labels
+
 sql <-
   "
 SELECT

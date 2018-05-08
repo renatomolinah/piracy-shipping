@@ -18,10 +18,10 @@ a.total_distance_km total_distance_km,
 6371*ACOS(COS(RADIANS(anchorage_info_to.to_anchorage_lat))*COS(RADIANS(anchorage_info_from.from_anchorage_lat))*COS(RADIANS(anchorage_info_from.from_anchorage_lon)-RADIANS(anchorage_info_to.to_anchorage_lon))+SIN(RADIANS(anchorage_info_to.to_anchorage_lat))*SIN(RADIANS(anchorage_info_from.from_anchorage_lat))) total_haversine_distance_km,
 a.total_hours total_hours,
 a.through_hotspot through_hotspot,
-a.total_ais_pings total_ais_pings,
+a.total_fuel_consumption__low_bound total_fuel_consumption__low_bound,
+a.total_fuel_consumption__high_bound total_fuel_consumption__high_bound,
 a.attack_grid_distance_km attack_grid_distance_km,
 a.attack_grid_hours attack_grid_hours,
-a.attack_grid_ais_pings attack_grid_ais_pings,
 a.number_attack_grids number_attack_grids,
 a.attacks_last_7_days attacks_last_7_days,
 a.attacks_last_14_days attacks_last_14_days,
@@ -49,7 +49,8 @@ ELSE 0
 END) through_hotspot,
 SUM(hours) total_hours,
 SUM(fishing) total_fishing,
-SUM(ais_pings) total_ais_pings,
+SUM(total_fuel_consumption__low_bound) total_fuel_consumption__low_bound,
+SUM(total_fuel_consumption__high_bound) total_fuel_consumption__high_bound,
 SUM(CASE
 WHEN NOT(grid_has_previous_attacks IS NULL) THEN distance_km
 ELSE NULL END) attack_grid_distance_km,
@@ -57,8 +58,6 @@ SUM(CASE
 WHEN NOT(grid_has_previous_attacks IS NULL) THEN hours
 ELSE NULL END) attack_grid_hours,
 SUM(CASE
-WHEN NOT(grid_has_previous_attacks IS NULL) THEN ais_pings
-ELSE NULL END) attack_grid_ais_pings,
 SUM(grid_has_previous_attacks) number_attack_grids,
 SUM(attacks_last_7_days) attacks_last_7_days,
 SUM(attacks_last_14_days) attacks_last_14_days,

@@ -16,6 +16,8 @@ ais_info.to_anchorage_id to_anchorage_id,
 ais_info.arrival_timestamp arrival_timestamp,
 ais_info.distance_km distance_km,
 ais_info.through_hotspot through_hotspot,
+ais_info.total_fuel_consumption__low_bound,
+ais_info.total_fuel_consumption__high_bound,
 ais_info.hours hours,
 ais_info.fishing fishing,
 ais_info.ais_pings ais_pings,
@@ -47,6 +49,8 @@ SUM(avg_distance_km) distance_km,
 SUM(fishing) fishing,
 SUM(hours) hours,
 SUM(through_hotspot) through_hotspot,
+SUM(total_fuel_consumption__low_bound) total_fuel_consumption__low_bound,
+SUM(total_fuel_consumption__high_bound) total_fuel_consumption__high_bound,
 COUNT(*) ais_pings
 FROM
 [piracy.voyage_ais_positions]
