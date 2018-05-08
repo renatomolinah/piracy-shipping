@@ -147,6 +147,11 @@ expanded_asam <- expand.grid(date = date_range,
   ungroup() %>%
   select(-c(tmp_a, tmpG, number_attacks))
 
+##########################################################################################
+# Run wind analysis to prep wind data for big query
+# Takes a super long time - need to run one year at a time, then stich them all together
+##########################################################################################
+# source("r/wind_analysis.R")
 
 ##########################################################################################
 # Run SQL queries
@@ -155,8 +160,9 @@ expanded_asam <- expand.grid(date = date_range,
 #source("sql/piracy_attacks.R") # Check - already run!
 #source("sql/cluster_filters.R") # Check - already run!
 #source("sql/vessel_info.R") # Check - already run!
-#source("sql/voyages_with_anchorages.R") # Check - already run!
-#source("sql/voyage_ais_positions.R")
-#source("sql/voyages_gridded.R")
-#source("sql/voyages.R")
-#source("sql/gridded_shipping_hours.R")
+#source("sql/voyages_with_anchorages.R") # Check - already run! - although may need to go back and add
+#flag,length,tonnage,engine_power,aux_engine_power,design_speed_ihs,main_sfc,main_sfc_low,aux_sfc,crew
+#source("sql/voyage_ais_positions.R") # Need to add fuel consumption data
+#source("sql/voyages_gridded.R") # Need to add wind data
+#source("sql/voyages.R") # Need to add average wind data, total fuel consumption, total fuel cost (need price data), total emissions
+#source("sql/gridded_shipping_hours.R") # Need to re-run once we have new voyages table

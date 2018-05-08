@@ -6,7 +6,8 @@ library(lubridate)
 cell_size <- 5 #degrees
 one_over_cellsize = 1/cell_size
 
-years <- seq(2012,2017)
+#years <- seq(2013,2017)
+years <- 2015
 purrr::map(unique(years),function(x){
   
   
@@ -61,5 +62,16 @@ purrr::map(unique(years),function(x){
   
   
   write_csv(wind_data,paste0("../processed_data/wind_data-",x,".csv"))
+  rm(wind_data)
+  closeAllConnections()
 })
 
+years <- seq(2012,2017)
+
+all_wind_data <- purrr::map(unique(years),function(x){
+  read_csv(paste0("../processed_data/wind_data-",x,".csv"))
+}) %>%
+  bind_rows()
+  
+bq_table(project = project,table = "wind_data",dataset = "piracy") %>% 
+  bq_table_upload(values = all_wind_data)
