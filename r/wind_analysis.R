@@ -1,7 +1,8 @@
 library(rWind)
 library(tidyverse)
 library(lubridate)
-
+library(bigrquery)
+project <-  "ucsb-gfw"
 # Define cell size for grid map
 cell_size <- 5 #degrees
 one_over_cellsize = 1/cell_size
@@ -26,7 +27,7 @@ purrr::map(unique(years),function(x){
       # Check for nulls - important since not all dates have data. Skip dates that don't
       if(is.null(tmp2)) return()
       print(time_step)
-      tmp2 %>%
+      tmp2 <- tmp2 %>%
         wind.fit() %>%
         # Group into bins, take mean
         mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
@@ -36,6 +37,8 @@ purrr::map(unique(years),function(x){
                   speed = mean(speed))%>%
         bind_rows() %>%
         ungroup()
+      closeAllConnections()
+      tmp2
     }
     ) 
     # Remove nulls
@@ -46,7 +49,7 @@ purrr::map(unique(years),function(x){
     if(length(tmp1) > 1) tmp1 <- do.call("rbind", tmp1) else tmp1 <- tmp1[[1]]
     
     # For all time steps, take mean for each bin
-    tmp1 %>% bind_rows %>%
+    tmp1 <- tmp1 %>% bind_rows %>%
       group_by(lon_bin,lat_bin)  %>%
       summarize(dir = mean(dir),
                 speed = mean(speed))  %>%
@@ -54,24 +57,22 @@ purrr::map(unique(years),function(x){
              speed_m_s = speed) %>%
       ungroup()  %>%
       mutate(date = current_date) 
-    
   }
   ) 
   # Bind together dataframe
   if(length(wind_data) > 1) wind_data <- do.call("rbind", wind_data) else wind_data <- wind_data[[1]]
   
   
-  write_csv(wind_data,paste0("../processed_data/wind_data-",x,".csv"))
+  write_csv(wind_data,paste0("piracy-shipping/processed_data/wind_data-",x,".csv"))
   rm(wind_data)
-  closeAllConnections()
 })
 
 years <- seq(2012,2017)
 
 all_wind_data <- purrr::map(unique(years),function(x){
-  read_csv(paste0("../processed_data/wind_data-",x,".csv"))
+  read_csv(paste0("processed_data/wind_data-",x,".csv"))
 }) %>%
   bind_rows()
   
-bq_table(project = project,table = "wind_data",dataset = "piracy") %>% 
+bq_table(project = project,table = "wind",dataset = "piracy") %>% 
   bq_table_upload(values = all_wind_data)
