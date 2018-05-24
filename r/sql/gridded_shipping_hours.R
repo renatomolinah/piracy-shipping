@@ -24,8 +24,6 @@ bq_table(project = project,table = "gridded_shipping_hours",dataset = "piracy") 
 # Arrange and cache data for later
 # Make smaller, to 1 degree cells
 gridded_shipping_hours_processed <- gridded_shipping_hours %>%
-  #  mutate(lat_bin = floor(lat_bin),
-  #         lon_bin = floor(lon_bin)) %>%
   filter(lat_bin < 90 &
            lat_bin > -90 &
            lon_bin < 180 &
