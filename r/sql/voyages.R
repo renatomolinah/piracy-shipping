@@ -10,6 +10,7 @@ a.from_anchorage from_anchorage,
 a.from_anchorage_id from_anchorage_id,
 NTH(2, SPLIT(a.from_anchorage, ',')) from_country,
 DATE(a.departure_timestamp) departure_date,
+a.departure_date departure_date,
 a.to_anchorage to_anchorage,
 a.to_anchorage_id to_anchorage_id,
 NTH(2, SPLIT(a.to_anchorage, ',')) to_country,
@@ -20,6 +21,8 @@ a.total_hours total_hours,
 a.through_hotspot through_hotspot,
 a.total_fuel_consumption__low_bound total_fuel_consumption__low_bound,
 a.total_fuel_consumption__high_bound total_fuel_consumption__high_bound,
+a.total_fuel_consumption__low_bound * fuel_price total_fuel_cost__low_bound,
+a.total_fuel_consumption__high_bound * fuel_price total_fuel_consumption__high_bound,
 a.attack_grid_distance_km attack_grid_distance_km,
 a.attack_grid_hours attack_grid_hours,
 a.number_attack_grids number_attack_grids,
@@ -33,7 +36,7 @@ a.attacks_last_180_days attacks_last_180_days,
 a.attacks_last_365_days attacks_last_365_days,
 a.days_since_attack days_since_attack,
 a.speed_m_s wind_speed_m_s,
-a.direction_degrees wind_direction_degrees,
+a.direction_degrees wind_direction_degrees
 FROM (
 SELECT
 mmsi,
@@ -41,6 +44,7 @@ vessel_type,
 from_anchorage,
 from_anchorage_id,
 departure_timestamp,
+DATE(departure_timestamp) departure_date,
 to_anchorage,
 to_anchorage_id,
 arrival_timestamp,
@@ -103,7 +107,13 @@ lon to_anchorage_lon
 FROM
 [world-fishing-827:gfw_research.named_anchorages_20171120] ) anchorage_info_to
 ON
-a.to_anchorage_id = anchorage_info_to.s2id)
+a.to_anchorage_id = anchorage_info_to.s2id
+LEFT JOIN(
+SELECT
+*
+FROM
+[ucsb-gfw:fuel_analysis.daily_fuel_price]) fuel_prices
+ON fuel_prices.date = a.departure_date)
 WHERE
 total_distance_km > 0.8 * total_haversine_distance_km"
 
