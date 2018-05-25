@@ -100,8 +100,8 @@ vessel_info <- bq_project_query(project, sql) %>%
   bq_table_download(max_results = Inf)
 
 # Cache for later
-write_csv(vessel_info,"processed_data/vessel_info.csv")
-vessel_info <- read.csv("processed_data/vessel_info.csv",stringsAsFactors = F)
+#write_csv(vessel_info,"processed_data/vessel_info.csv")
+#vessel_info <- read.csv("processed_data/vessel_info.csv",stringsAsFactors = F)
 
 # Process vessel info. Partially based on Juan's high seas work
 vessel_info_processed <- vessel_info %>%
