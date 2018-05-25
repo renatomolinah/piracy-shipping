@@ -31,6 +31,14 @@ daily_fuel_prices_380 <- purrr::map_df(year_month_indexes, get_daily_prices,2)  
 daily_fuel_prices_180 <- purrr::map_df(year_month_indexes, get_daily_prices,3)  %>%
   mutate(fuel_index = "BIX 180 CST")
 
-bind_rows(daily_fuel_prices_380,
+daily_fuel_prices <- bind_rows(daily_fuel_prices_380,
           daily_fuel_prices_180) %>%
-  write_csv( path = "processed_data/daily_fuel_prices.csv")
+  rename(price_usd_mt = price)
+
+write_csv(daily_fuel_prices,path = "processed_data/daily_fuel_prices.csv")
+
+bq_table(project = project,table = "daily_fuel_prices",dataset = "piracy") %>% 
+  bq_table_delete()
+
+bq_table(project = project,table = "daily_fuel_prices",dataset = "piracy") %>% 
+  bq_table_upload(values = daily_fuel_prices)

@@ -1,4 +1,4 @@
-date,price,fuel_index
+date,price_usd_mt,fuel_index
 2012-01-31,714.75,BIX 380 CST
 2012-01-30,714.16,BIX 380 CST
 2012-01-26,714.98,BIX 380 CST
