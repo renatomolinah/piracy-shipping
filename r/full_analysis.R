@@ -154,6 +154,12 @@ expanded_asam <- expand.grid(date = date_range,
 # source("r/wind_analysis.R")# Check - already run!
 
 ##########################################################################################
+# Scrape fuel data from bunkerindex.com
+# Thanks Juan!!
+##########################################################################################
+# source("r/fuel_scraping.R")# Check - already run!
+
+##########################################################################################
 # Run SQL queries
 # Only run if necessary!! Some of these are very large and expensive
 ##########################################################################################
