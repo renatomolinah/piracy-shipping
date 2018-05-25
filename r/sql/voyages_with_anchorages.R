@@ -5,8 +5,10 @@
 sql <-
   "
 #standardSQL
-SELECT
+WITH
+master AS(SELECT
 anchorages.mmsi mmsi,
+anchorages.flag flag,
 anchorages.from_anchorage_id from_anchorage_id,
 CONCAT(b.label,
 '-',
@@ -32,6 +34,7 @@ FROM (
 SELECT
 anchor1.mmsi mmsi,
 anchor2.vessel_type vessel_type,
+anchor2.flag flag,
 anchor2.length length,
 anchor2.engine_power engine_power,
 anchor2.crew crew,
@@ -80,6 +83,7 @@ LEFT JOIN (
 SELECT
 mmsi mmsi_info,
 year year_info,
+flag,
 vessel_type,
 length,
 engine_power,
@@ -114,7 +118,16 @@ anchor_group
 FROM
 `world-fishing-827.gfw_research.named_anchorages_20171120`) c
 ON
-anchorages.to_anchorage_id = c.s2id"
+anchorages.to_anchorage_id = c.s2id
+)
+
+SELECT
+*
+FROM
+master
+WHERE
+NOT vessel_type IS NULL
+"
 
 bq_table(project = project,table = "voyages_with_anchorages",dataset = "piracy") %>% 
   bq_table_delete()
