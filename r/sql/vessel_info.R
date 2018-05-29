@@ -101,7 +101,19 @@ vessel_info_processed <- vessel_info %>%
   filter(!is.na(length) &
            !is.na(engine_power) &
            !is.na(crew) &
-           !is.na(tonnage)) %>%
+           !is.na(tonnage))%>%
+  filter(year < 2018) %>%
+  # Now, for expand data frame to include all missing years
+  # For missing years, just take mean value for numeric and most common value for factor
+  complete(year,nesting(mmsi)) %>%
+  group_by(mmsi) %>%
+  mutate(flag = replace_na(names(which.max(table(flag)))),
+         vessel_type = replace_na(names(which.max(table(vessel_type)))),
+         length = replace_na(length,mean(length,na.rm=TRUE)),
+         engine_power = replace_na(engine_power,mean(engine_power,na.rm=TRUE)),
+         crew = replace_na(crew,mean(crew,na.rm=TRUE)),
+         tonnage = replace_na(tonnage,mean(tonnage,na.rm=TRUE))) %>%
+  ungroup() %>%
   # Now add engine info
   # Add aux power
   # From Bren GP, page 130
@@ -117,7 +129,7 @@ vessel_info_processed <- vessel_info %>%
   mutate(
     main_sfc = 206,
     aux_sfc = 221
-  )
+  ) 
 
 # Upload to big query
 bq_table(project = project,table = "vessel_info",dataset = "piracy") %>% 
