@@ -143,9 +143,14 @@ vessel_info_processed <- vessel_info %>%
   # From Bren GP, page 65
   # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
   # Assume use of IFO 380
+  # mutate(
+  #   main_sfc = 195,
+  #   aux_sfc = 227
+  # )
+  # Actually, should use SFC from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
   mutate(
-    main_sfc = 195,
-    aux_sfc = 227
+    main_sfc = 206,
+    aux_sfc = 221
   )
 
 # Upload to big query
