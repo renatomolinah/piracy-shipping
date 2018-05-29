@@ -137,7 +137,14 @@ expanded_asam <- expand.grid(date = date_range,
          attacks_last_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_60_days = rollapplyr(number_attacks, width = 60, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_90_days = rollapplyr(number_attacks, width = 90, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_120_days = rollapplyr(number_attacks, width = 120, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_150_days = rollapplyr(number_attacks, width = 150, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_180_days = rollapplyr(number_attacks, width = 180, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_210_days = rollapplyr(number_attacks, width = 210, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_240_days = rollapplyr(number_attacks, width = 240, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_270_days = rollapplyr(number_attacks, width = 270, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_300_days = rollapplyr(number_attacks, width = 300, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_330_days = rollapplyr(number_attacks, width = 330, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_365_days = rollapplyr(number_attacks, width = 365, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
   # Calculate elapsed time since last attack
   # See https://stackoverflow.com/questions/26553638/calculate-elapsed-time-since-last-event/26554441
