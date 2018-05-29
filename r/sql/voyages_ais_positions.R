@@ -4,9 +4,8 @@
 # The following engine parameters from https://www.sciencedirect.com/science/article/pii/S1361920911001337
 # Use main load factor of 0.8
 # Aux load factor of 0.5
-# Main SFC of 206 g/kWh
-# Aux SFC of 221 g/kWh
-glue::glue("
+# Fuel consumption equation from that paper
+sql<-glue::glue("
 #standardSQL
   WITH ping_info AS (
 SELECT
@@ -27,6 +26,8 @@ lat < 90
 AND lat > -90
 AND lon < 180
 AND lon >-180
+AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
+    AND TIMESTAMP('2017-12-31')
 AND mmsi IN (
 SELECT
 mmsi
@@ -59,20 +60,18 @@ FROM
 `ucsb-gfw.piracy.voyages_with_anchorages`),
 ais_info AS(
 SELECT
-*,
-0.8 * POW(ais_speed/design_speed, 3) main_load_factor,
-0.5 aux_load_factor
+*
 FROM
-voyage_info
-LEFT JOIN
 ping_info
+LEFT JOIN
+voyage_info
 ON
-voyage_info.voy_mmsi = ping_info.mmsi
+ping_info.mmsi = voyage_info.voy_mmsi
 AND ping_info.start_timestamp > voyage_info.departure_timestamp
 AND ping_info.start_timestamp < voyage_info.arrival_timestamp)
 SELECT
 *,
-(hours*main_load_factor*main_sfc*engine_power/1000000 + hours*aux_load_factor*aux_sfc*aux_engine_power/1000000) total_fuel_consumption,
+(hours*(0.8 * POW(ais_speed/design_speed, 3))*main_sfc*engine_power/1000000 + hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
 (CASE
 WHEN {cluster_filters2} THEN 1
 ELSE 0 END) through_hotspot
