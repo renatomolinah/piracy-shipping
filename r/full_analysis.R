@@ -105,9 +105,12 @@ write_csv(cluster_boxes,"processed_data/cluster_boxes.csv")
 
 # Create sql filters for each cluter
 cluster_filters <- cluster_boxes %>%
-  mutate(cluster_filter = paste0("(lat < ",lat_max, " AND lat > ",lat_min, " AND lon < ",lon_max," AND lon > ",lon_min,")")) %>%
+  mutate(cluster_filter = paste0("(start_lat < ",lat_max, " AND start_lat > ",lat_min, " AND start_lon < ",lon_max," AND start_lon > ",lon_min,")")) %>%
   group_by(year) %>%
   summarize(cluster_filter = paste0(cluster_filter,collapse = " OR "))
+
+cluster_filters2 <- paste0("(year = ",cluster_filters$year," AND (",cluster_filters$cluster_filter,"))") %>%
+  paste0(collapse = " OR ")
 
 # Cache attack data for later
 write_csv(ASAM,"processed_data/attacks.csv")
