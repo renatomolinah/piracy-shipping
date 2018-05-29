@@ -141,6 +141,7 @@ vessel_info_processed <- vessel_info %>%
   mutate(design_speed = 3.39*10^(-4)*engine_power+2.151*10^(-5)*tonnage-2.742*10^(-9)*engine_power*tonnage+12.93) %>%
   # Add SFC
   # From Bren GP, page 65
+  # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
   # Assume use of IFO 380
   mutate(
     main_sfc = 195,
