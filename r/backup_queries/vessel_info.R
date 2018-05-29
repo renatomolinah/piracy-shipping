@@ -1,22 +1,32 @@
+library(mice)
 # First, get all relevant vessel info
-# Get all unique vessels that self-identify as cargo, tanker, or reefer
-# Limit options to those that have at least 50 vessels in the data set
+# Get all unique vessels that self-identify as cargo, tanker, reefer, passenger, tug, 
+# bunker, specialized_reefer, fish_factory, supply_vessel
+# For cargo, tanker, and reefer (main vessels of interest) also take combinations that have
+# at least 50 vessels in the data set
 sql <- "#standardSQL
 SELECT
 mmsi,
 year,
 mmsi_iso3 flag,
 (CASE 
+WHEN on_fishing_list_best THEN 'fishing'
 WHEN known_geartype =  'cargo,cargo' THEN 'cargo'
 WHEN known_geartype = 'cargo,non_fishing' THEN 'cargo'
 WHEN known_geartype = 'non_fishing,cargo' THEN 'cargo'
 WHEN known_geartype =  'cargo|other_not_fishing' THEN 'cargo'
 WHEN known_geartype =  'cargo,other_not_fishing' THEN 'cargo'
+WHEN known_geartype =  'non_fishing,tug' THEN 'tug'
+WHEN known_geartype =  'tug,non_fishing' THEN 'tug'
+WHEN known_geartype =  'tug,tug' THEN 'tug'
+WHEN known_geartype =  'passenger,passenger' THEN 'passenger'
+WHEN known_geartype =  'passenger,non_fishing' THEN 'passenger'
+WHEN known_geartype =  'non_fishing,passenger' THEN 'passenger'
 WHEN known_geartype =  'cargo,cargo' THEN 'cargo'
 WHEN known_geartype =  'tanker,tanker' THEN 'tanker'
-WHEN known_geartype =  'specialized_reefer' THEN 'reefer'
 WHEN known_geartype =  'non_fishing,tanker' THEN 'tanker'
 WHEN known_geartype =  'tanker,non_fishing' THEN 'tanker'
+WHEN known_geartype = 'other_not_fishing|supply_vessel' THEN 'supply_vessel'
 WHEN known_geartype = 'tanker,cargo' THEN 'cargo_or_tanker'
 WHEN known_geartype = 'cargo,tanker' THEN 'cargo_or_tanker'
 WHEN known_geartype = 'cargo_or_tanker,cargo' THEN 'cargo_or_tanker'
@@ -45,17 +55,29 @@ FROM
 WHERE
 known_geartype = 'cargo'
 OR known_geartype = 'tanker'
+OR known_geartype = 'supply_vessel'
+OR known_geartype = 'tug'
+OR known_geartype = 'passenger'
 OR known_geartype = 'reefer'
+OR known_geartype = 'specialized_reefer'
+OR known_geartype = 'fish_factory'
+OR known_geartype = 'bunker'
 OR known_geartype =  'cargo,cargo'
 OR known_geartype = 'cargo,non_fishing'
 OR known_geartype = 'non_fishing,cargo'
 OR known_geartype =  'cargo|other_not_fishing'
 OR known_geartype =  'cargo,other_not_fishing'
+OR known_geartype =  'non_fishing,tug'
+OR known_geartype =  'tug,non_fishing'
+OR known_geartype =  'tug,tug'
+OR known_geartype =  'passenger,passenger'
+OR known_geartype =  'passenger,non_fishing'
+OR known_geartype =  'non_fishing,passenger'
 OR known_geartype =  'cargo,cargo'
 OR known_geartype =  'tanker,tanker'
-OR known_geartype = 'specialized_reefer'
 OR known_geartype =  'non_fishing,tanker'
 OR known_geartype =  'tanker,non_fishing'
+OR known_geartype = 'other_not_fishing|supply_vessel'
 OR known_geartype = 'tanker,cargo'
 OR known_geartype = 'cargo,tanker'
 OR known_geartype = 'cargo_or_tanker,cargo'
@@ -68,7 +90,11 @@ OR known_geartype = 'cargo,cargo|tanker'
 OR known_geartype = 'cargo|reefer'
 OR known_geartype = 'cargo,cargo|reefer'
 OR known_geartype = 'cargo|reefer,cargo'
-OR known_geartype = 'cargo|reefer,reefer'"
+OR known_geartype = 'cargo|reefer,reefer'
+OR on_fishing_list_best"
+# Delete old table
+bq_table(project = project,table = "vessel_info",dataset = "piracy") %>% 
+  bq_table_delete()
 # Run new query. Just save results in temp spot on big query, then download locally
 vessel_info <- bq_project_query(project, sql) %>%
   bq_table_download(max_results = Inf)
@@ -114,6 +140,13 @@ vessel_info_processed <- vessel_info %>%
   # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
   mutate(design_speed = 3.39*10^(-4)*engine_power+2.151*10^(-5)*tonnage-2.742*10^(-9)*engine_power*tonnage+12.93) %>%
   # Add SFC
+  # From Bren GP, page 65
+  # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
+  # Assume use of IFO 380
+  # mutate(
+  #   main_sfc = 195,
+  #   aux_sfc = 227
+  # )
   # Actually, should use SFC from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
   mutate(
     main_sfc = 206,

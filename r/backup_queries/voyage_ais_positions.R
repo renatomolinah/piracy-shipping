@@ -3,8 +3,10 @@
 # Fuel consumption based on Juan's high seas work
 sql <- 
   "
+#standardSQL
 SELECT
 mmsi,
+flag,
 vessel_type,
 fishing,
 through_hotspot,
