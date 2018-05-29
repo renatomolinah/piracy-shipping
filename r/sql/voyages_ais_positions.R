@@ -1,7 +1,7 @@
 # For every voyage, get all AIS positions along the way 
 # save as cargo_AIS_positions_with_ports
 # Fuel consumption based on Juan's high seas work
-# Lots of engine parameters from https://www.bren.ucsb.edu/research/documents/whales_report.pdf
+# The following engine parameters from https://www.sciencedirect.com/science/article/pii/S1361920911001337
 # Use main load factor of 0.8
 # Aux load factor of 0.5
 # Main SFC of 206 g/kWh
@@ -11,9 +11,6 @@ glue::glue("
   WITH ping_info AS (
 SELECT
 mmsi,
-measure_new_score,
-distance_from_shore,
-implied_speed,
 lat start_lat,
 lon start_lon,
 timestamp start_timestamp,
@@ -75,10 +72,7 @@ AND ping_info.start_timestamp > voyage_info.departure_timestamp
 AND ping_info.start_timestamp < voyage_info.arrival_timestamp)
 SELECT
 *,
-(CASE
-WHEN measure_new_score > 0.5 AND NOT (distance_from_shore < 1000 AND implied_speed < 1) AND vessel_type = 'fishing' THEN 1
-ELSE 0 END) fishing,
-(hours*main_load_factor*206*engine_power/1000000 + hours*aux_load_factor*221*aux_engine_power/1000000) total_fuel_consumption,
+(hours*main_load_factor*main_sfc*engine_power/1000000 + hours*aux_load_factor*aux_sfc*aux_engine_power/1000000) total_fuel_consumption,
 (CASE
 WHEN {cluster_filters2} THEN 1
 ELSE 0 END) through_hotspot

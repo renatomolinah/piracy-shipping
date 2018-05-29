@@ -113,8 +113,7 @@ vessel_info_processed <- vessel_info %>%
   # Based on linear regression of known vessels
   # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
   mutate(design_speed = 3.39*10^(-4)*engine_power+2.151*10^(-5)*tonnage-2.742*10^(-9)*engine_power*tonnage+12.93) %>%
-  # Add SFC
-  # Actually, should use SFC from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
+  # Add SFC from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
   mutate(
     main_sfc = 206,
     aux_sfc = 221
