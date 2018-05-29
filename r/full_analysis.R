@@ -175,8 +175,8 @@ expanded_asam <- expand.grid(date = date_range,
 ##########################################################################################
 #source("sql/piracy_attacks.R") # Check - already run!
 #source("sql/cluster_filters.R") # Check - already run!
-#source("sql/vessel_info.R") # Check - already run! Need to verify fuel stuff with Juan though
-#source("sql/voyages_with_anchorages.R") # Need to re-run, made some changes to add fuel stuff
+#source("sql/vessel_info.R") # Check - already run!
+#source("sql/voyages_with_anchorages.R") # Check - already run!
 #source("sql/voyage_ais_positions.R")
 #source("sql/voyages_gridded.R")
 #source("sql/voyages.R") # Need to add total fuel cost (need price data), total emissions (need consumption to cO2 conversion)
