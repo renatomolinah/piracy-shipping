@@ -3,6 +3,20 @@
 # Price info scraped from bunkerindex.com
 sql <-
   "
+#standardSQL
+CREATE TEMP FUNCTION RADIANS(x FLOAT64) AS (
+ACOS(-1) * x / 180
+);
+CREATE TEMP FUNCTION RADIANS_TO_KM(x FLOAT64) AS (
+111.045 * 180 * x / ACOS(-1)
+);
+CREATE TEMP FUNCTION HAVERSINE(lat1 FLOAT64, long1 FLOAT64,
+lat2 FLOAT64, long2 FLOAT64) AS (
+RADIANS_TO_KM(
+ACOS(COS(RADIANS(lat1)) * COS(RADIANS(lat2)) *
+COS(RADIANS(long1) - RADIANS(long2)) +
+SIN(RADIANS(lat1)) * SIN(RADIANS(lat2))))
+);
 WITH
 gridded_info AS(
 SELECT
@@ -18,7 +32,8 @@ design_speed,
 main_sfc,
 aux_sfc,
 departure_timestamp,
-DATE(departure_timestamp) departure_date,
+departure_date,
+EXTRACT(year FROM departure_date) year,
 from_anchorage_id,
 from_anchorage_name,
 from_port_name,
@@ -27,8 +42,7 @@ to_anchorage_id,
 to_anchorage_name,
 to_port_name,
 SUM(distance_km) total_distance_km,
-(CASE through_hotspot > 0
-THEN 1
+(CASE WHEN SUM(through_hotspot) > 0 THEN 1
 ELSE 0
 END) through_hotspot,
 SUM(hours) total_hours,
@@ -41,7 +55,9 @@ ELSE 0 END) attack_grid_distance_km,
 SUM(CASE
 WHEN NOT(grid_has_previous_attacks IS NULL) THEN hours
 ELSE 0 END) attack_grid_hours,
-SUM(grid_has_previous_attacks) number_attack_grids,
+(CASE WHEN SUM(grid_has_previous_attacks) IS NULL THEN 0
+ELSE SUM(grid_has_previous_attacks)
+END) number_attack_grids,
 SUM(attacks_last_7_days) attacks_last_7_days,
 SUM(attacks_last_14_days) attacks_last_14_days,
 SUM(attacks_last_21_days) attacks_last_21_days,
@@ -57,14 +73,21 @@ SUM(attacks_last_270_days) attacks_last_270_days,
 SUM(attacks_last_300_days) attacks_last_300_days,
 SUM(attacks_last_330_days) attacks_last_330_days,
 SUM(attacks_last_365_days) attacks_last_365_days,
-MIN(days_since_attack) days_since_attack
-(SUM(speed_m_s * hours) / SUM(hours)) speed_m_s,
-(SUM(direction_degrees * hours) / SUM(hours)) direction_degrees
+MIN(days_since_attack) days_since_attack,
+(CASE WHEN SUM(hours) = 0 THEN AVG(speed_m_s)
+ELSE (SUM(speed_m_s * hours) / SUM(hours))
+END) speed_m_s,
+(CASE WHEN SUM(hours) = 0 THEN AVG(direction_degrees)
+ELSE (SUM(direction_degrees * hours) / SUM(hours))
+END) direction_degrees
 FROM
-[ucsb-gfw:piracy.voyages_gridded]
+`piracy.voyages_gridded`
+WHERE
+from_anchorage_id != to_anchorage_id
 GROUP BY
 mmsi,
 vessel_type,
+flag,
 length,
 engine_power,
 crew,
@@ -77,17 +100,17 @@ from_anchorage_id,
 from_anchorage_name,
 from_port_name,
 departure_timestamp,
+departure_date,
+year,
 to_anchorage_id,
 to_anchorage_name,
 to_port_name,
-arrival_timestamp
-WHERE
-AND from_anchorage != to_anchorage),
+arrival_timestamp),
 fuel_prices AS(
 SELECT
 *
 FROM
-[ucsb-gfw:fuel_analysis.daily_fuel_price]
+`piracy.daily_fuel_prices`
 WHERE
 fuel_index = 'BIX 380 CST'
 ),
@@ -97,14 +120,14 @@ s2id,
 lat to_anchorage_lat,
 lon to_anchorage_lon
 FROM
-[world-fishing-827:gfw_research.named_anchorages_20171120]),
+`world-fishing-827.gfw_research.named_anchorages_20171120`),
 from_anchorage_info AS(
 SELECT
 s2id,
 lat from_anchorage_lat,
 lon from_anchorage_lon
 FROM
-[world-fishing-827:gfw_research.named_anchorages_20171120]),
+`world-fishing-827.gfw_research.named_anchorages_20171120`),
 master AS(
 SELECT
 *
@@ -122,32 +145,33 @@ LEFT JOIN
 to_anchorage_info
 ON
 gridded_info.to_anchorage_id = to_anchorage_info.s2id
-)
+),
+master_2 AS(
 SELECT
 mmsi,
 vessel_type,
 flag,
 year,
-length,
-engine_power,
+length length_m,
 crew,
-tonnage,
-aux_engine_power,
-design_speed,
-main_sfc,
-aux_sfc,
+tonnage tonnage_gt,
+engine_power engine_power_kW,
+aux_engine_power aux_engine_power_kW,
+design_speed design_speed_knots,
+main_sfc main_sfc_g_per_kWH,
+aux_sfc aux_sfc_g_per_kWH,
 from_anchorage_id from_anchorage,
-from_anchorage_name from_anchorage_group
+from_anchorage_name from_anchorage_group,
 from_port_name from_port,
-NTH(2, SPLIT(from_anchorage_name, ',')) from_country,
+SPLIT(from_anchorage_name, ',')[SAFE_ORDINAL(2)] from_country,
 to_anchorage_id to_anchorage,
-to_anchorage_name to_anchorage_group
+to_anchorage_name to_anchorage_group,
 to_port_name to_port,
-NTH(2, SPLIT(to_anchorage_name, ',')) to_country,
+SPLIT(to_anchorage_name, ',')[SAFE_ORDINAL(2)] to_country,
 DATE(departure_timestamp) departure_date,
 DATE(arrival_timestamp) arrival_date,
 total_distance_km,
-6371*ACOS(COS(RADIANS(to_anchorage_lat))*COS(RADIANS(from_anchorage_lat))*COS(RADIANS(from_anchorage_lon)-RADIANS(to_anchorage_lon))+SIN(RADIANS(to_anchorage_lat))*SIN(RADIANS(from_anchorage_lat))) total_haversine_distance_km,
+HAVERSINE(from_anchorage_lat,from_anchorage_lon,to_anchorage_lat,to_anchorage_lon) total_haversine_distance_km,
 total_hours,
 attack_grid_distance_km,
 attack_grid_hours,
@@ -169,17 +193,21 @@ attacks_last_270_days,
 attacks_last_300_days,
 attacks_last_330_days,
 attacks_last_365_days,
-speed_m_s wind_speed_m_s,
+speed_m_s wind_speed_m_per_s,
 direction_degrees wind_direction_degrees,
 main_fuel_consumption_mt,
 aux_fuel_consumption_mt,
 total_fuel_consumption_mt,
-price_usd_mt * total_fuel_consumption_mt total_fuel_cost_usd
-3.17 * total_fuel_consumption_mt emissions_co2_kg
-87 * main_fuel_consumption_mt + 57 * aux_fuel_consumption_mt emissions_nox_kg
+price_usd_mt * total_fuel_consumption_mt total_fuel_cost_usd,
+3.17 * total_fuel_consumption_mt emissions_co2_kg,
+87 * main_fuel_consumption_mt + 57 * aux_fuel_consumption_mt emissions_nox_kg,
 20 * 3.3 * total_fuel_consumption_mt emissions_sox_kg
 FROM
-master
+master)
+SELECT
+*
+FROM
+master_2
 WHERE
 total_distance_km > 0.8 * total_haversine_distance_km
 "
@@ -187,8 +215,5 @@ total_distance_km > 0.8 * total_haversine_distance_km
 bq_table(project = project,table = "voyages",dataset = "piracy") %>% 
   bq_table_delete()
 
-bq_project_query(project = project,query = sql,destination_table = bq_table(project = project,table = "voyages",dataset = "piracy"),
+bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages",dataset = "piracy"),
                  allowLargeResults = TRUE)
-
-bq_table(bq_perform_query(project = project,table = "voyages",dataset = "piracy")) %>%
-  bq_table_save(destination_uris = "gs:://ucsb-gfw/piracy/voyages.csv")
