@@ -3,87 +3,139 @@
 # Add wind data for each grid
 # Save as voyages_gridded
 
-sql <-
-  "
-WITH
+sql <-"
+  #standardSQL
+  WITH
 ais_info AS(
-SELECT
-mmsi,
-vessel_type,
-flag,
-length,
-engine_power,
-crew,
-tonnage,
-aux_engine_power,
-design_speed,
-main_sfc,
-aux_sfc,
-FLOOR(start_lat/5) * 5 lat_bin,
-FLOOR(start_lon/5) * 5 lon_bin,
-from_anchorage_id,
-from_anchorage_name,
-from_port_name,
-departure_timestamp,
-DATE(departure_timestamp) departure_date,
-to_anchorage_id,
-to_anchorage_name,
-to_port_name,
-arrival_timestamp,
-SUM(avg_distance_km) distance_km,
-SUM(through_hotspot) through_hotspot,
-SUM(total_fuel_consumption_mt) total_fuel_consumption_mt
-FROM
-[piracy.voyage_ais_positions]
-GROUP BY
-mmsi,
-vessel_type,
-length,
-engine_power,
-crew,
-tonnage,
-aux_engine_power,
-design_speed,
-main_sfc,
-aux_sfc,
-lat_bin,
-lon_bin,
-from_anchorage_id,
-from_anchorage_name,
-from_port_name,
-departure_timestamp,
-departure_date,
-to_anchorage_id,
-to_anchorage_name,
-to_port_name,
-arrival_timestamp),
-ais_info_wind AS(
+  SELECT
+  mmsi,
+  vessel_type,
+  flag,
+  length,
+  engine_power,
+  crew,
+  tonnage,
+  aux_engine_power,
+  design_speed,
+  main_sfc,
+  aux_sfc,
+  FLOOR(start_lat/5) * 5 lat_bin,
+  FLOOR(start_lon/5) * 5 lon_bin,
+  from_anchorage_id,
+  from_anchorage_name,
+  from_port_name,
+  departure_timestamp,
+  DATE(departure_timestamp) departure_date,
+  to_anchorage_id,
+  to_anchorage_name,
+  to_port_name,
+  arrival_timestamp,
+  SUM(hours) hours,
+  SUM(avg_distance_km) distance_km,
+  SUM(through_hotspot) through_hotspot,
+  SUM(total_fuel_consumption_mt) total_fuel_consumption_mt
+  FROM
+  `piracy.voyage_ais_positions`
+  WHERE
+  NOT total_fuel_consumption_mt IS NULL
+  GROUP BY
+  mmsi,
+  vessel_type,
+  flag,
+  length,
+  engine_power,
+  crew,
+  tonnage,
+  aux_engine_power,
+  design_speed,
+  main_sfc,
+  aux_sfc,
+  lat_bin,
+  lon_bin,
+  from_anchorage_id,
+  from_anchorage_name,
+  from_port_name,
+  departure_timestamp,
+  departure_date,
+  to_anchorage_id,
+  to_anchorage_name,
+  to_port_name,
+  arrival_timestamp),
+wind AS(
+  SELECT
+  *
+    FROM
+  `piracy.wind`),
+piracy_attacks AS(
+  SELECT
+  *
+    FROM
+  `piracy.piracy_attacks`),
+master AS(
+  SELECT
+  ais_info.departure_date departure_date,
+  ais_info.lat_bin lat_bin,
+  ais_info.lon_bin lon_bin,
+  mmsi,
+  vessel_type,
+  flag,
+  length,
+  engine_power,
+  crew,
+  tonnage,
+  aux_engine_power,
+  design_speed,
+  main_sfc,
+  aux_sfc,
+  from_anchorage_id,
+  from_anchorage_name,
+  from_port_name,
+  departure_timestamp,
+  to_anchorage_id,
+  to_anchorage_name,
+  to_port_name,
+  arrival_timestamp,
+  distance_km,
+  hours,
+  through_hotspot,
+days_since_attack,
+grid_has_previous_attacks,
+attacks_last_7_days, 
+attacks_last_14_days,
+attacks_last_21_days,
+attacks_last_30_days,
+attacks_last_60_days,
+attacks_last_90_days,
+attacks_last_120_days,
+attacks_last_150_days,
+attacks_last_180_days,
+attacks_last_210_days,
+attacks_last_240_days,
+attacks_last_270_days,
+attacks_last_300_days,
+attacks_last_330_days,
+attacks_last_365_days,
+  total_fuel_consumption_mt,
+  speed_m_s,
+direction_degrees
+  FROM
+  ais_info
+  LEFT JOIN
+  wind
+  ON
+  ais_info.departure_date = wind.date
+  AND ais_info.lat_bin = wind.lat_bin
+  AND ais_info.lon_bin = wind.lon_bin
+  LEFT JOIN
+  piracy_attacks
+  ON
+  ais_info.departure_date = piracy_attacks.date
+  AND ais_info.lat_bin = piracy_attacks.lat_bin
+  AND ais_info.lon_bin = piracy_attacks.lon_bin)
 SELECT
 *
-FROM
-ais_info
-LEFT JOIN
-wind
-ON
-ais_info.departure_date = wind.date
-ais_info.lat_bin = wind.lat_bin
-ais_info.lon_bin = wind.lon_bin),
-ais_info_attacks AS(
-SELECT
-*
-FROM
-ais_info_wind
-LEFT JOIN
-piracy_attacks
-ON
-ais_info.departure_date = piracy_attacks.date
-ais_info.lat_bin = piracy_attacks.lat_bin
-ais_info.lon_bin = piracy_attacks.lon_bin
-)
-SELECT
-*
-FROM
-ais_info_attacks
+  FROM
+master
 "
 bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
   bq_table_delete()
