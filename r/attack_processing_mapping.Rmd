@@ -134,20 +134,10 @@ fancy_scientific <- function(l) {
 
 shipping_piracy_overlay <-   ggplot() +
   geom_tile(data = gridded_shipping_hours_processed %>%
-              filter(hours > 1000),
+              filter(hours > 100),
             aes(x = lon_bin, y = lat_bin, fill=hours), 
-            colour = NA, na.rm = TRUE) + 
-  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(50000),labels=fancy_scientific) +
-  geom_tile(data = ASAM_binned %>%
-              filter(year > 2011) %>%
-              group_by(lon_bin,lat_bin) %>%
-              summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "red") + 
-    scale_alpha(name = "Number of Attacks",range=c(0.3,0.75), na.value = 0) +
+            colour = NA, na.rm = TRUE)+
     #scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
-    geom_sf(data = world.land,
-          fill = "lightgrey",
-          lwd = 0) +
   theme_bw() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
@@ -161,10 +151,61 @@ shipping_piracy_overlay <-   ggplot() +
         panel.background = element_rect(fill = 'black'),
         plot.margin=grid::unit(c(0,0,0,0), "mm"))
 
-ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = shipping_piracy_overlay, device = cairo_ps, width = 8.5, height = 8.5/2.45)
+overlay_fig_color <- shipping_piracy_overlay + 
+  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(25000),labels=fancy_scientific) +
+  geom_tile(data = ASAM_binned %>%
+              filter(year > 2011) %>%
+              group_by(lon_bin,lat_bin) %>%
+              summarize(number_attacks = sum(number_attacks)),
+                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "red",color="darkgray",size=0.25) + 
+    scale_alpha(name = "Number of Attacks",range=c(0.3,0.85), na.value = 0) +
+      geom_sf(data = world.land,
+          fill = "lightgrey",
+          lwd = 0)
+
+overlay_fig_bw <- shipping_piracy_overlay + 
+  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "gray",high = "white",na.value = "black", trans = "log", midpoint = log(30000),labels=fancy_scientific) +
+  geom_tile(data = ASAM_binned %>%
+              filter(year > 2011) %>%
+              group_by(lon_bin,lat_bin) %>%
+              summarize(number_attacks = sum(number_attacks)),
+                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "darkgray",color="darkgray",size=0.25) + 
+    scale_alpha(name = "Number of Attacks",range=c(0.1,1), na.value = 0) +
+      geom_sf(data = world.land,
+          fill = "lightgrey",
+          lwd = 0)
+
+ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = overlay_fig_color, device = cairo_ps, width = 8.5, height = 8.5/2.45)
+
+
+ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_bw, device = cairo_ps, width = 8.5, height = 8.5/2.45)
 ```
 
 ```{r cluster_map}
+attack_time_series <- ASAM %>%
+  group_by(year) %>%
+  filter(year > 2011) %>%
+  summarize(number_attacks = n()) %>%
+  ggplot(aes(x=year,y=number_attacks)) +
+  geom_bar(stat="identity",fill="firebrick1") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  xlab("Year") +
+  ylab("Number of\nAttacks")
+
+attack_time_series_bw <- ASAM %>%
+  group_by(year) %>%
+  filter(year > 2011) %>%
+  summarize(number_attacks = n()) %>%
+  ggplot(aes(x=year,y=number_attacks)) +
+  geom_bar(stat="identity",fill="darkgrey") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  xlab("Year") +
+  ylab("Number of\nAttacks")
+
 cluster_boxes_map <- read_csv("../processed_data/cluster_boxes.csv") %>%
   filter(year > 2011 & year < 2018) %>%
   rowwise() %>%
@@ -176,10 +217,6 @@ cluster_lat_limits <- c(min(cluster_boxes_map$lat_min) - 10, max(cluster_boxes_m
 cluster_lon_limits <- c(min(cluster_boxes_map$lon_min) - 2, max(cluster_boxes_map$lon_max) + 2)
 
 cluster_plot <-   ggplot() +
-    geom_sf(data = cluster_boxes_map, fill="firebrick1",color="red") +
-    geom_sf(data = world.land,
-          fill = "lightgrey",
-          lwd = 0) +
   theme_bw() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
@@ -199,7 +236,27 @@ cluster_plot <-   ggplot() +
         xlim(cluster_lon_limits)
   #viridis::scale_fill_viridis(discrete = TRUE,option="B",begin=0.25)
 
-ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot, device = cairo_ps, width = 8.5, height = 8.5/2)
+cluster_plot_color <- cluster_plot +
+    geom_sf(data = cluster_boxes_map, fill="firebrick1",color="red") +
+    geom_sf(data = world.land,
+          fill = "lightgrey",
+          lwd = 0)
+
+cluster_plot_bw <- cluster_plot +
+    geom_sf(data = cluster_boxes_map, fill="darkgrey",color="white") +
+    geom_sf(data = world.land,
+          fill = "lightgrey",
+          lwd = 0)
+
+library(cowplot)
+cluster_plot_color <- plot_grid(cluster_plot_color, attack_time_series, labels = c("A", "B"), nrow = 2, align = "v",axis="tblr",rel_widths=c(1,1),rel_heights=c(3,2))
+
+cluster_plot_bw <- plot_grid(cluster_plot_bw, attack_time_series_bw, labels = c("A", "B"), nrow = 2, align = "v",axis="tblr",rel_widths=c(1,1),rel_heights=c(3,2))
+
+
+ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot_color, device = cairo_ps, width = 8.5, height = 8.5/2)
+
+ggsave(filename = "../figs/cluster_plot_bw.eps", plot = cluster_plot_bw, device = cairo_ps, width = 8.5, height = 8.5/2)
 ```
 
 
