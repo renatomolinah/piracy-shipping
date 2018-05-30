@@ -37,6 +37,23 @@ daily_fuel_prices <- bind_rows(daily_fuel_prices_380,
 
 write_csv(daily_fuel_prices,path = "processed_data/daily_fuel_prices.csv")
 
+daily_fuel_prices <- read.csv("processed_data/daily_fuel_prices.csv",stringsAsFactors = F)
+
+date_range_fuel <- data.frame(date = seq(ymd('2012-01-01'),ymd('2017-12-31'), by = '1 day')) %>%
+  mutate(date = as_date(date)) %>%
+  mutate(fuel_index = "BIX 380 CST") %>%
+  bind_rows(data.frame(date = seq(ymd('2012-01-01'),ymd('2017-12-31'), by = '1 day')) %>%
+              mutate(date = as_date(date)) %>%
+              mutate(fuel_index = "BIX 180 CST"))
+
+daily_fuel_prices <- date_range_fuel %>%
+  left_join(daily_fuel_prices %>%
+              mutate(date = as_date(date)),by = c("date","fuel_index")) %>%
+  fill(price_usd_mt) %>%
+  fill(price_usd_mt, .direction = "up")
+
+write_csv(daily_fuel_prices,path = "processed_data/daily_fuel_prices.csv")
+
 bq_table(project = project,table = "daily_fuel_prices",dataset = "piracy") %>% 
   bq_table_delete()
 
