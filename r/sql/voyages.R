@@ -1,7 +1,7 @@
 # Summarize gridded data into a single row for each voyage
 # Emissions info from here: https://www.sciencedirect.com/science/article/pii/S1361920909001072
 # Price info scraped from bunkerindex.com
-sql <-
+sql <-glue::glue(
   "
 #standardSQL
 CREATE TEMP FUNCTION RADIANS(x FLOAT64) AS (
@@ -42,9 +42,7 @@ to_anchorage_id,
 to_anchorage_name,
 to_port_name,
 SUM(distance_km) total_distance_km,
-(CASE WHEN SUM(through_hotspot) > 0 THEN 1
-ELSE 0
-END) through_hotspot,
+{clusters_aggregated},
 SUM(hours) total_hours,
 SUM(total_fuel_consumption_mt) total_fuel_consumption_mt,
 SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
@@ -173,10 +171,10 @@ DATE(arrival_timestamp) arrival_date,
 total_distance_km,
 HAVERSINE(from_anchorage_lat,from_anchorage_lon,to_anchorage_lat,to_anchorage_lon) total_haversine_distance_km,
 total_hours,
+{clusters_aggregated_2},
 attack_grid_distance_km,
 attack_grid_hours,
 number_attack_grids,
-through_hotspot,
 days_since_attack,
 attacks_last_7_days,
 attacks_last_14_days,
@@ -211,6 +209,7 @@ master_2
 WHERE
 total_distance_km > 0.8 * total_haversine_distance_km
 "
+)
 
 bq_table(project = project,table = "voyages",dataset = "piracy") %>% 
   bq_table_delete()

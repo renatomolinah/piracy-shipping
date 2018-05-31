@@ -112,6 +112,13 @@ cluster_filters <- cluster_boxes %>%
 
 cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 
+clusters_aggregated <- cluster_boxes %>%
+  mutate(cluster_filter = paste0("(CASE WHEN SUM(",cluster,") > 0 THEN 1 ELSE 0 END) ",cluster))
+
+clusters_aggregated <- paste0(clusters_aggregated$cluster_filter,collapse = ", ")
+
+clusters_aggregated_2 <- paste0(cluster_boxes$cluster,collapse = ", ")
+
 # Cache attack data for later
 write_csv(ASAM,"processed_data/attacks.csv")
 

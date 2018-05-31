@@ -3,7 +3,7 @@
 # Add wind data for each grid
 # Save as voyages_gridded
 
-sql <-"
+sql <-glue::glue("
   #standardSQL
   WITH
 ais_info AS(
@@ -32,8 +32,8 @@ ais_info AS(
   arrival_timestamp,
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
-  SUM(through_hotspot) through_hotspot,
-  SUM(total_fuel_consumption_mt) total_fuel_consumption_mt
+  SUM(total_fuel_consumption_mt) total_fuel_consumption_mt,
+  {clusters_aggregated}
   FROM
   `piracy.voyage_ais_positions`
   WHERE
@@ -97,7 +97,7 @@ master AS(
   arrival_timestamp,
   distance_km,
   hours,
-  through_hotspot,
+{clusters_aggregated_2},
 days_since_attack,
 grid_has_previous_attacks,
 attacks_last_7_days, 
@@ -136,7 +136,7 @@ SELECT
 *
   FROM
 master
-"
+")
 bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
   bq_table_delete()
 bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages_gridded",dataset = "piracy"),
