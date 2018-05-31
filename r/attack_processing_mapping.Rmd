@@ -182,7 +182,7 @@ ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_b
 ```
 
 ```{r cluster_map}
-
+library(scico)
 palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
 
 palette_bw = setNames(gray.colors(5),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
@@ -190,11 +190,11 @@ palette_bw = setNames(gray.colors(5),c("Gulf of Guinea","Malacca Straits","South
 
 attack_time_series <- ASAM %>%
   group_by(year,Hotspot) %>%
-  filter(year > 2011) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_bar(stat="identity",aes(fill=Hotspot)) +
+  scale_x_continuous(breaks=unique(ASAM$year)) +
   scale_fill_manual(values = palette) +
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
@@ -204,12 +204,12 @@ attack_time_series <- ASAM %>%
 
 attack_time_series_bw <- ASAM %>%
   group_by(year,Hotspot) %>%
-  filter(year > 2011) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_bar(stat="identity",aes(fill=Hotspot)) +
   scale_fill_manual(values = palette_bw) +
+  scale_x_continuous(breaks=unique(ASAM$year)) +
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
