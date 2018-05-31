@@ -60,6 +60,8 @@ grids <- distinct(ASAM_binned %>% dplyr::select(lon_bin,lat_bin)) %>%
 ASAM_binned <- ASAM_binned %>%
   left_join(grids, by = c("lat_bin","lon_bin"))
 
+write_csv(ASAM_binned,"processed_data/ASAM_binned.csv")
+
 ASAM <- ASAM %>%
   left_join(ASAM_binned %>%
               dplyr::select(year,lon_bin,lat_bin,grid_id),by = c("year", "lon_bin", "lat_bin")) %>%
