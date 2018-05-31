@@ -158,7 +158,7 @@ overlay_fig_color <- shipping_piracy_overlay +
               group_by(lon_bin,lat_bin) %>%
               summarize(number_attacks = sum(number_attacks)),
                 aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "red",color="darkgray",size=0.25) + 
-    scale_alpha(name = "Number of Attacks",range=c(0.3,0.85), na.value = 0) +
+    scale_alpha(name = "Number of Encounters",range=c(0.3,0.85), na.value = 0) +
       geom_sf(data = world.land,
           fill = "darkgrey",
           lwd = 0)
@@ -170,7 +170,7 @@ overlay_fig_bw <- shipping_piracy_overlay +
               group_by(lon_bin,lat_bin) %>%
               summarize(number_attacks = sum(number_attacks)),
                 aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "darkgray",color="darkgray",size=0.25) + 
-    scale_alpha(name = "Number of Attacks",range=c(0.1,1), na.value = 0) +
+    scale_alpha(name = "Number of Encounters",range=c(0.1,1), na.value = 0) +
       geom_sf(data = world.land,
           fill = "darkgrey",
           lwd = 0)
@@ -200,7 +200,7 @@ attack_time_series <- ASAM %>%
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
   xlab("Year") +
-  ylab("Number of Attacks")
+  ylab("Number of Encounters")
 
 attack_time_series_bw <- ASAM %>%
   group_by(year,Hotspot) %>%
@@ -214,7 +214,7 @@ attack_time_series_bw <- ASAM %>%
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
   xlab("Year") +
-  ylab("Number of Attacks")
+  ylab("Number of Encounters")
 
 cluster_boxes_map <- read_csv("../processed_data/cluster_boxes.csv") %>%
   rowwise() %>%
