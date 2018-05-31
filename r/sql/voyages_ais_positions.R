@@ -97,9 +97,7 @@ sql<-glue::glue("
 SELECT
 *,
 (hours*(0.8 * POW(ais_speed/design_speed, 3))*main_sfc*engine_power/1000000 + hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
-(CASE
-WHEN {cluster_filters2} THEN 1
-ELSE 0 END) through_hotspot
+{cluster_filters}
 FROM
 ais_info
 "

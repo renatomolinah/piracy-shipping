@@ -160,7 +160,7 @@ overlay_fig_color <- shipping_piracy_overlay +
                 aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "red",color="darkgray",size=0.25) + 
     scale_alpha(name = "Number of Attacks",range=c(0.3,0.85), na.value = 0) +
       geom_sf(data = world.land,
-          fill = "lightgrey",
+          fill = "darkgrey",
           lwd = 0)
 
 overlay_fig_bw <- shipping_piracy_overlay + 
@@ -172,7 +172,7 @@ overlay_fig_bw <- shipping_piracy_overlay +
                 aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "darkgray",color="darkgray",size=0.25) + 
     scale_alpha(name = "Number of Attacks",range=c(0.1,1), na.value = 0) +
       geom_sf(data = world.land,
-          fill = "lightgrey",
+          fill = "darkgrey",
           lwd = 0)
 
 ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = overlay_fig_color, device = cairo_ps, width = 8.5, height = 8.5/2.45)
@@ -182,32 +182,41 @@ ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_b
 ```
 
 ```{r cluster_map}
+
+palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
+
+palette_bw = setNames(gray.colors(5),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
+
+
 attack_time_series <- ASAM %>%
-  group_by(year) %>%
+  group_by(year,Hotspot) %>%
   filter(year > 2011) %>%
   summarize(number_attacks = n()) %>%
+  ungroup() %>%
   ggplot(aes(x=year,y=number_attacks)) +
-  geom_bar(stat="identity",fill="firebrick1") +
+  geom_bar(stat="identity",aes(fill=Hotspot)) +
+  scale_fill_manual(values = palette) +
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
   xlab("Year") +
-  ylab("Number of\nAttacks")
+  ylab("Number of Attacks")
 
 attack_time_series_bw <- ASAM %>%
-  group_by(year) %>%
+  group_by(year,Hotspot) %>%
   filter(year > 2011) %>%
   summarize(number_attacks = n()) %>%
+  ungroup() %>%
   ggplot(aes(x=year,y=number_attacks)) +
-  geom_bar(stat="identity",fill="darkgrey") +
+  geom_bar(stat="identity",aes(fill=Hotspot)) +
+  scale_fill_manual(values = palette_bw) +
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
   xlab("Year") +
-  ylab("Number of\nAttacks")
+  ylab("Number of Attacks")
 
 cluster_boxes_map <- read_csv("../processed_data/cluster_boxes.csv") %>%
-  filter(year > 2011 & year < 2018) %>%
   rowwise() %>%
   mutate(geometry = st_geometry(st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
   st_as_sf(sf_column_name = "geometry") %>%
@@ -230,33 +239,32 @@ cluster_plot <-   ggplot() +
         panel.background = element_rect(fill = 'black'),
         plot.margin=grid::unit(c(0,0,0,0), "mm")) +
   #geom_point(data = ASAM %>% filter(!str_detect(cluster,"_0") & year > 2011), aes(x=lon,y=lat,color=cluster)) +
-  facet_wrap(~year,ncol=2) +
-  guides(fill=FALSE) +
         ylim(cluster_lat_limits) +
         xlim(cluster_lon_limits)
   #viridis::scale_fill_viridis(discrete = TRUE,option="B",begin=0.25)
 
 cluster_plot_color <- cluster_plot +
-    geom_sf(data = cluster_boxes_map, fill="firebrick1",color="red") +
+    geom_sf(data = cluster_boxes_map,aes(fill=Hotspot),color="black") +
+    scale_fill_manual(values = palette) +
     geom_sf(data = world.land,
-          fill = "lightgrey",
+          fill = "darkgrey",
           lwd = 0)
 
 cluster_plot_bw <- cluster_plot +
-    geom_sf(data = cluster_boxes_map, fill="darkgrey",color="white") +
+    geom_sf(data = cluster_boxes_map,aes(fill=Hotspot),color="white") +
+    scale_fill_manual(values = palette_bw) +
     geom_sf(data = world.land,
-          fill = "lightgrey",
+          color="white",
+          fill = "darkgrey",
           lwd = 0)
 
-library(cowplot)
-cluster_plot_color <- plot_grid(cluster_plot_color, attack_time_series, labels = c("A", "B"), nrow = 2, align = "v",axis="tblr",rel_widths=c(1,1),rel_heights=c(3,2))
+ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot_color, device = cairo_ps, width = 8.5, height = 6)
 
-cluster_plot_bw <- plot_grid(cluster_plot_bw, attack_time_series_bw, labels = c("A", "B"), nrow = 2, align = "v",axis="tblr",rel_widths=c(1,1),rel_heights=c(3,2))
+ggsave(filename = "../figs/attack_time_series.eps", plot = attack_time_series, device = cairo_ps, width = 8.5, height = 6)
 
+ggsave(filename = "../figs/cluster_plot_bw.eps", plot = cluster_plot_bw, device = cairo_ps, width = 8.5, height = 6)
 
-ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot_color, device = cairo_ps, width = 8.5, height = 8.5/2)
-
-ggsave(filename = "../figs/cluster_plot_bw.eps", plot = cluster_plot_bw, device = cairo_ps, width = 8.5, height = 8.5/2)
+ggsave(filename = "../figs/attack_time_series_bw.eps", plot = attack_time_series_bw, device = cairo_ps, width = 8.5, height = 6)
 ```
 
 

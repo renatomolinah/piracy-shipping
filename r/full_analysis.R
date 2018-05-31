@@ -65,52 +65,52 @@ ASAM <- ASAM %>%
               dplyr::select(year,lon_bin,lat_bin,grid_id),by = c("year", "lon_bin", "lat_bin")) %>%
   dplyr::select(date,year,lat,lon,lat_bin,lon_bin,grid_id,aggressor,victim,attack_eez)
 
-# Figure out cluster for each year
+# Figure out clusters across all years
 # Cluster attacks together based on max distance between attacks and minimum number of attacks
-ASAM <- purrr::map(unique(ASAM$year),function(x){
-  temp_asam <- ASAM %>%
-    filter(year == x)
-  
-  dist_temp<- earth.dist(temp_asam %>%
-                           dplyr::select(lat,lon), dist=T)
-  
-  # calcualte clusters for attacks
-  DBSCAN_temp <- dbscan(dist_temp,
-                        eps = 200, #km
-                        MinPts = 25, # number of attacks per cluster
-                        method = "dist")
-  
-  temp_asam$cluster <-DBSCAN_temp$cluster
-  temp_asam
-  
-}) %>%
-  bind_rows() %>%
-  mutate(cluster = paste0(year,"_",cluster))
+dist<- earth.dist(ASAM %>%
+                         dplyr::select(lat,lon), dist=T)
+
+# calcualte clusters for attacks
+DBSCAN_temp <- dbscan(dist,
+                      eps = 600, #km
+                      MinPts = 200, # number of attacks per cluster
+                      method = "dist")
+
+ASAM$cluster <-DBSCAN_temp$cluster
+
+ASAM <- ASAM %>%
+  mutate(cluster = case_when(cluster == 1 ~ "hotspot_gulf_of_guinea",
+                             cluster == 2 ~ "hotspot_malacca_straits",
+                             cluster == 3 ~ "hotspot_south_china_sea",
+                             cluster == 4 ~ "hotspot_gulf_of_aden",
+                             TRUE ~ "0")) %>%
+  mutate(Hotspot = case_when(cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
+                             cluster == "hotspot_malacca_straits" ~ "Malacca Straits",
+                             cluster == "hotspot_south_china_sea" ~ "South China Sea",
+                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                             cluster == "0" ~ "Outside of Hotspots"))
 
 # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
 cluster_boxes <- purrr::map(unique(ASAM$cluster),function(x){
   temp_df <- ASAM %>%
     filter(cluster == x)
-  data.frame(year = temp_df$year[1],
-             cluster = x,
+  data.frame(cluster = x,
+             Hotspot = temp_df$Hotspot[1],
              lon_min = min(temp_df$lon),
              lat_min = min(temp_df$lat),
              lon_max = max(temp_df$lon),
              lat_max = max(temp_df$lat))
 }) %>%
   bind_rows() %>%
-  filter(!str_detect(cluster,"_0"))
+  filter(cluster != "0")
 
 write_csv(cluster_boxes,"processed_data/cluster_boxes.csv")
 
-# Create sql filters for each cluter
+# Create sql SELECT clauses for each hotspot cluster
 cluster_filters <- cluster_boxes %>%
-  mutate(cluster_filter = paste0("(start_lat < ",lat_max, " AND start_lat > ",lat_min, " AND start_lon < ",lon_max," AND start_lon > ",lon_min,")")) %>%
-  group_by(year) %>%
-  summarize(cluster_filter = paste0(cluster_filter,collapse = " OR "))
+  mutate(cluster_filter = paste0("(CASE WHEN (start_lat < ",lat_max, " AND start_lat > ",lat_min, " AND start_lon < ",lon_max," AND start_lon > ",lon_min,") THEN 1 ELSE 0 END) ",cluster))
 
-cluster_filters2 <- paste0("(year = ",cluster_filters$year," AND (",cluster_filters$cluster_filter,"))") %>%
-  paste0(collapse = " OR ")
+cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 
 # Cache attack data for later
 write_csv(ASAM,"processed_data/attacks.csv")
