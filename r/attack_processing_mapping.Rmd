@@ -145,7 +145,7 @@ ggsave(filename = "../figs/attacks_by_year_bw.eps", plot = p_all_years_bw, devic
 
 ```{r cluster_map}
 library(scico)
-palette = setNames(c(scico(4, palette = 'tokyo',begin =0.05,end=.75),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
+palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
 
 palette_bw = setNames(gray.colors(5),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
 
@@ -178,7 +178,7 @@ attack_time_series_bw <- ASAM %>%
   xlab("Year") +
   ylab("Number of Encounters")
 cluster_boxes <- read_csv("../processed_data/cluster_boxes.csv") %>%
-  mutate(cluster_num=1:n())
+  mutate(cluster_num=c(1,3,4,2))
 cluster_boxes_map <- cluster_boxes %>%
   rowwise() %>%
   mutate(geometry = st_geometry(st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
@@ -221,13 +221,13 @@ cluster_plot_bw <- cluster_plot +
           fill = "darkgrey",
           lwd = 0)
 
-ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot_color, device = cairo_ps, width = 8.5, height = 6)
+ggsave(filename = "../figs/cluster_plot.eps", plot = cluster_plot_color, device = cairo_ps, width = 8.5, height = 4)
 
 ggsave(filename = "../figs/attack_time_series.eps", plot = attack_time_series, device = cairo_ps, width = 8.5, height = 6)
 
-ggsave(filename = "../figs/cluster_plot_bw.eps", plot = cluster_plot_bw, device = cairo_ps, width = 8.5, height = 6)
+ggsave(filename = "../figs/cluster_plot_bw.eps", plot = cluster_plot_bw, device = cairo_ps, width = 8.5, height = 4)
 
-ggsave(filename = "../figs/attack_time_series_bw.eps", plot = attack_time_series_bw, device = cairo_ps, width = 8.5, height = 6)
+ggsave(filename = "../figs/attack_time_series_bw.eps", plot = attack_time_series_bw, device = cairo_ps, width = 8.5, height = 6/2.45)
 ```
 
 ```{r shipping_plot}
@@ -258,18 +258,11 @@ shipping_piracy_overlay <-   ggplot() +
         axis.title.y=element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank(),
-        legend.position = "bottom",
-        legend.direction = "horizontal",
         panel.grid.major = element_line(colour = "black"),
         panel.grid.minor = element_line(color = "black"),
         strip.background =element_rect(fill="white"),
         panel.background = element_rect(fill = 'black'),
-        plot.margin=grid::unit(c(0,0,0,0), "mm")) +
-  guides(fill =
-  guide_legend(
-    title.theme = element_text(
-      angle = 0
-    )))
+        plot.margin=grid::unit(c(0,0,0,0), "mm"))
 
 overlay_fig_color <- shipping_piracy_overlay + 
   scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(25000),labels=fancy_scientific) +
@@ -295,12 +288,14 @@ overlay_fig_bw <- shipping_piracy_overlay +
     scale_alpha(name = "Number of Encounters",range=c(0.1,1), na.value = 0) +
       geom_sf(data = world.land,
           fill = "darkgrey",
-          lwd = 0)
+          lwd = 0)+
+    geom_sf(data = cluster_boxes_map,color="white",fill=NA,size=1) +
+geom_text(data = cluster_boxes,aes(label = cluster_num, x=lon_max + 5, y=lat_max + 5),color="white")
 
-ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = overlay_fig_color, device = cairo_ps, width = 8.5, height = 8.5)
+ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = overlay_fig_color, device = cairo_ps, width = 8.5, height = 8.5/2)
 
 
-ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_bw, device = cairo_ps, width = 8.5, height = 8.5)
+ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_bw, device = cairo_ps, width = 8.5, height = 8.5/2)
 ```
 
 
