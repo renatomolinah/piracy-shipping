@@ -78,16 +78,16 @@ proj <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84"
 # file.remove("ne_110m_land.zip")
 
 world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", stringsAsFactors = FALSE)
+ASAM_binned <- read.csv("../processed_data/ASAM_binned.csv", stringsAsFactors = F)
 
 attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 5)
 attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
-ASAM_binned <- read_csv("../processed_data/ASAM_binned.csv")
 # # Make attack plot for every year
 p_all_years <-  ggplot() +
     geom_tile(data = ASAM_binned %>%
               group_by(lon_bin,lat_bin,year) %>%
               summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, alpha=number_attacks),fill = "red",color="darkgray",size=0.25) + 
+                aes(x = lon_bin, y = lat_bin, alpha=number_attacks),fill = "red",size=0.25) + 
     scale_alpha(name = "Number of Encounters",range=c(0.3,0.85), na.value = 0) +
             geom_sf(data = world.land,
             fill = "darkgrey",
@@ -143,73 +143,9 @@ ggsave(filename = "../figs/attacks_by_year.eps", plot = p_all_years, device = ca
 ggsave(filename = "../figs/attacks_by_year_bw.eps", plot = p_all_years_bw, device = cairo_ps, width = 8.5, height = 6)
 ```
 
-```{r shipping_plot}
-gridded_shipping_hours_processed <- read_csv("../processed_data/gridded_shipping_hours_processed.csv")
-
-fancy_scientific <- function(l) {
-     # turn in to character string in scientific notation
-     l <- format(signif(l,3), scientific = TRUE)
-     # quote the part before the exponent to keep all the digits
-     l <- gsub("^(.*)e", "'\\1'e", l)
-     # turn the 'e+' into plotmath format
-     l <- gsub("e", "%*%10^", l)
-     # return this as an expression
-     parse(text=l)
-}
-
-
-shipping_piracy_overlay <-   ggplot() +
-  geom_tile(data = gridded_shipping_hours_processed %>%
-              filter(hours > 100),
-            aes(x = lon_bin, y = lat_bin, fill=hours), 
-            colour = NA, na.rm = TRUE)+
-    #scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
-  theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank(),
-        panel.grid.major = element_line(colour = "black"),
-        panel.grid.minor = element_line(color = "black"),
-        strip.background =element_rect(fill="white"),
-        panel.background = element_rect(fill = 'black'),
-        plot.margin=grid::unit(c(0,0,0,0), "mm"))
-
-overlay_fig_color <- shipping_piracy_overlay + 
-  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(25000),labels=fancy_scientific) +
-  geom_tile(data = ASAM_binned %>%
-              filter(year > 2011) %>%
-              group_by(lon_bin,lat_bin) %>%
-              summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "red",color="darkgray",size=0.25) + 
-    scale_alpha(name = "Number of Encounters",range=c(0.3,0.85), na.value = 0) +
-      geom_sf(data = world.land,
-          fill = "darkgrey",
-          lwd = 0)
-
-overlay_fig_bw <- shipping_piracy_overlay + 
-  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "gray",high = "white",na.value = "black", trans = "log", midpoint = log(30000),labels=fancy_scientific) +
-  geom_tile(data = ASAM_binned %>%
-              filter(year > 2011) %>%
-              group_by(lon_bin,lat_bin) %>%
-              summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "darkgray",color="darkgray",size=0.25) + 
-    scale_alpha(name = "Number of Encounters",range=c(0.1,1), na.value = 0) +
-      geom_sf(data = world.land,
-          fill = "darkgrey",
-          lwd = 0)
-
-ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = overlay_fig_color, device = cairo_ps, width = 8.5, height = 8.5/2.45)
-
-
-ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_bw, device = cairo_ps, width = 8.5, height = 8.5/2.45)
-```
-
 ```{r cluster_map}
 library(scico)
-palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
+palette = setNames(c(scico(4, palette = 'tokyo',begin =0.05,end=.75),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
 
 palette_bw = setNames(gray.colors(5),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
 
@@ -241,8 +177,9 @@ attack_time_series_bw <- ASAM %>%
         panel.grid.minor = element_blank()) +
   xlab("Year") +
   ylab("Number of Encounters")
-
-cluster_boxes_map <- read_csv("../processed_data/cluster_boxes.csv") %>%
+cluster_boxes <- read_csv("../processed_data/cluster_boxes.csv") %>%
+  mutate(cluster_num=1:n())
+cluster_boxes_map <- cluster_boxes %>%
   rowwise() %>%
   mutate(geometry = st_geometry(st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
   st_as_sf(sf_column_name = "geometry") %>%
@@ -291,6 +228,79 @@ ggsave(filename = "../figs/attack_time_series.eps", plot = attack_time_series, d
 ggsave(filename = "../figs/cluster_plot_bw.eps", plot = cluster_plot_bw, device = cairo_ps, width = 8.5, height = 6)
 
 ggsave(filename = "../figs/attack_time_series_bw.eps", plot = attack_time_series_bw, device = cairo_ps, width = 8.5, height = 6)
+```
+
+```{r shipping_plot}
+gridded_shipping_hours_processed <- read_csv("../processed_data/gridded_shipping_hours_processed.csv")
+
+fancy_scientific <- function(l) {
+     # turn in to character string in scientific notation
+     l <- format(signif(l,3), scientific = TRUE)
+     # quote the part before the exponent to keep all the digits
+     l <- gsub("^(.*)e", "'\\1'e", l)
+     # turn the 'e+' into plotmath format
+     l <- gsub("e", "%*%10^", l)
+     # return this as an expression
+     parse(text=l)
+}
+
+
+shipping_piracy_overlay <-   ggplot() +
+  geom_tile(data = gridded_shipping_hours_processed %>%
+              filter(hours > 100),
+            aes(x = lon_bin, y = lat_bin, fill=hours), 
+            colour = NA, na.rm = TRUE)+
+    #scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
+  theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        panel.grid.major = element_line(colour = "black"),
+        panel.grid.minor = element_line(color = "black"),
+        strip.background =element_rect(fill="white"),
+        panel.background = element_rect(fill = 'black'),
+        plot.margin=grid::unit(c(0,0,0,0), "mm")) +
+  guides(fill =
+  guide_legend(
+    title.theme = element_text(
+      angle = 0
+    )))
+
+overlay_fig_color <- shipping_piracy_overlay + 
+  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(25000),labels=fancy_scientific) +
+  geom_tile(data = ASAM_binned %>%
+              filter(year > 2011) %>%
+              group_by(lon_bin,lat_bin) %>%
+              summarize(number_attacks = sum(number_attacks)),
+                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "red")+ 
+    scale_alpha(name = "Number of Encounters",range=c(0.3,0.85), na.value = 0) +
+      geom_sf(data = world.land,
+          fill = "darkgrey",
+          lwd = 0)+
+    geom_sf(data = cluster_boxes_map,color="white",fill=NA,size=1) +
+geom_text(data = cluster_boxes,aes(label = cluster_num, x=lon_max + 5, y=lat_max + 5),color="white")
+
+overlay_fig_bw <- shipping_piracy_overlay + 
+  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "gray",high = "white",na.value = "black", trans = "log", midpoint = log(30000),labels=fancy_scientific) +
+  geom_tile(data = ASAM_binned %>%
+              filter(year > 2011) %>%
+              group_by(lon_bin,lat_bin) %>%
+              summarize(number_attacks = sum(number_attacks)),
+                aes(x = lon_bin, y = lat_bin, alpha=number_attacks), fill = "darkgray",color="darkgray",size=0.25) + 
+    scale_alpha(name = "Number of Encounters",range=c(0.1,1), na.value = 0) +
+      geom_sf(data = world.land,
+          fill = "darkgrey",
+          lwd = 0)
+
+ggsave(filename = "../figs/shipping_piracy_overlay.eps", plot = overlay_fig_color, device = cairo_ps, width = 8.5, height = 8.5)
+
+
+ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_bw, device = cairo_ps, width = 8.5, height = 8.5)
 ```
 
 
