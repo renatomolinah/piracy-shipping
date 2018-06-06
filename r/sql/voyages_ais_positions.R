@@ -5,6 +5,7 @@
 # Use main load factor of 0.8
 # Aux load factor of 0.5
 # Fuel consumption equation from that paper
+# For posterity, this carries old fuel consumption - but we will recalculate this at the voyage level in the last query
 sql<-glue::glue("
 #standardSQL
   WITH ping_info AS (

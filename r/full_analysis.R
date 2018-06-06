@@ -27,7 +27,7 @@ ASAM <- read_sf(dsn = "raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFa
   mutate(Date = as_date(DateOfOcc),
          Year = year(Date)) %>%
   dplyr::select(-DateOfOcc) %>%
-  filter(Year > 2010 & Year < 2018) %>%
+  filter(Year > 2008 & Year < 2018) %>%
   `st_crs<-`(st_crs(eez)) %>%
   st_join(eez, join = st_intersects) %>%
   mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
@@ -71,10 +71,11 @@ ASAM <- ASAM %>%
 # Cluster attacks together based on max distance between attacks and minimum number of attacks
 dist<- earth.dist(ASAM %>%
                          dplyr::select(lat,lon), dist=T)
-
+# Set seed for reproducibility
+set.seed(101)
 # calcualte clusters for attacks
 DBSCAN_temp <- dbscan(dist,
-                      eps = 600, #km
+                      eps = 500, #km
                       MinPts = 200, # number of attacks per cluster
                       method = "dist")
 
@@ -83,8 +84,8 @@ ASAM$cluster <-DBSCAN_temp$cluster
 ASAM <- ASAM %>%
   mutate(cluster = case_when(cluster == 1 ~ "hotspot_gulf_of_guinea",
                              cluster == 2 ~ "hotspot_malacca_straits",
-                             cluster == 3 ~ "hotspot_south_china_sea",
-                             cluster == 4 ~ "hotspot_gulf_of_aden",
+                             cluster == 3 ~ "hotspot_gulf_of_aden",
+                             cluster == 4 ~ "hotspot_south_china_sea",
                              TRUE ~ "0")) %>%
   mutate(Hotspot = case_when(cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
                              cluster == "hotspot_malacca_straits" ~ "Malacca Straits",
@@ -127,7 +128,7 @@ write_csv(ASAM,"processed_data/attacks.csv")
 # Create expanded attack dataframe for every grid and date combination
 # To create summary stats for each combination
 # Will then join this to vessel track info in big query
-date_range <- seq(ymd('2011-01-01'),ymd('2017-12-31'), by = '1 day')
+date_range <- seq(ymd('2009-01-01'),ymd('2017-12-31'), by = '1 day')
 
 expanded_asam <- expand.grid(date = date_range,
                              grid_id = unique(ASAM$grid_id)) %>%
@@ -140,21 +141,25 @@ expanded_asam <- expand.grid(date = date_range,
               group_by(date,lon_bin,lat_bin) %>%
               summarize(number_attacks = n()),by=c("date","lon_bin","lat_bin")) %>%
   mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
-         attacks_last_7_days = rollapplyr(number_attacks, width = 7, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_14_days = rollapplyr(number_attacks, width = 14, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_21_days = rollapplyr(number_attacks, width = 21, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_60_days = rollapplyr(number_attacks, width = 60, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_90_days = rollapplyr(number_attacks, width = 90, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_120_days = rollapplyr(number_attacks, width = 120, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_150_days = rollapplyr(number_attacks, width = 150, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_180_days = rollapplyr(number_attacks, width = 180, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_210_days = rollapplyr(number_attacks, width = 210, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_240_days = rollapplyr(number_attacks, width = 240, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_270_days = rollapplyr(number_attacks, width = 270, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_300_days = rollapplyr(number_attacks, width = 300, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_330_days = rollapplyr(number_attacks, width = 330, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_365_days = rollapplyr(number_attacks, width = 365, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
+         attacks_last_1_year = rollapplyr(number_attacks, width = 365, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_2_years = rollapplyr(number_attacks, width = 730, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_3_years = rollapplyr(number_attacks, width = 1095, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
+  # mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
+  #        attacks_last_7_days = rollapplyr(number_attacks, width = 7, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_14_days = rollapplyr(number_attacks, width = 14, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_21_days = rollapplyr(number_attacks, width = 21, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_60_days = rollapplyr(number_attacks, width = 60, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_90_days = rollapplyr(number_attacks, width = 90, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_120_days = rollapplyr(number_attacks, width = 120, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_150_days = rollapplyr(number_attacks, width = 150, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_180_days = rollapplyr(number_attacks, width = 180, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_210_days = rollapplyr(number_attacks, width = 210, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_240_days = rollapplyr(number_attacks, width = 240, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_270_days = rollapplyr(number_attacks, width = 270, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_300_days = rollapplyr(number_attacks, width = 300, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_330_days = rollapplyr(number_attacks, width = 330, FUN = sum, na.rm=TRUE, partial = TRUE),
+  #        attacks_last_365_days = rollapplyr(number_attacks, width = 365, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
   # Calculate elapsed time since last attack
   # See https://stackoverflow.com/questions/26553638/calculate-elapsed-time-since-last-event/26554441
   group_by(grid_id) %>%
@@ -162,10 +167,10 @@ expanded_asam <- expand.grid(date = date_range,
   mutate(tmp_a = c(1, diff(date)) * !number_attacks) %>%
   group_by(grid_id,tmpG) %>%
   mutate(days_since_attack = ifelse(tmpG == 0, NA, cumsum(tmp_a)),
-         grid_has_previous_attacks = ifelse(is.na(days_since_attack), NA, 1)) %>%
+         grid_has_previous_attacks = ifelse(is.na(days_since_attack), 0, 1)) %>%
   ungroup() %>%
-  select(-c(tmp_a, tmpG, number_attacks))
-
+  select(-c(tmp_a, tmpG, number_attacks)) %>%
+  filter(date > ymd('2011-12-31'))
 ##########################################################################################
 # Run wind analysis to prep wind data for big query
 # Takes a super long time - need to run one year at a time, then stich them all together

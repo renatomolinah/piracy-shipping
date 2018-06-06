@@ -2,6 +2,7 @@
 # Add attack data for each grid
 # Add wind data for each grid
 # Save as voyages_gridded
+# For posterity, this carries old fuel consumption - but we will recalculate this at the voyage level in the last query
 
 sql <-glue::glue("
   #standardSQL
@@ -100,21 +101,9 @@ master AS(
 {clusters_aggregated_2},
 days_since_attack,
 grid_has_previous_attacks,
-attacks_last_7_days, 
-attacks_last_14_days,
-attacks_last_21_days,
-attacks_last_30_days,
-attacks_last_60_days,
-attacks_last_90_days,
-attacks_last_120_days,
-attacks_last_150_days,
-attacks_last_180_days,
-attacks_last_210_days,
-attacks_last_240_days,
-attacks_last_270_days,
-attacks_last_300_days,
-attacks_last_330_days,
-attacks_last_365_days,
+attacks_last_1_year, 
+attacks_last_2_years, 
+attacks_last_3_years, 
   total_fuel_consumption_mt,
   speed_m_s,
 direction_degrees

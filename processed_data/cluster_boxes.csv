@@ -1,5 +1,5 @@
 cluster,Hotspot,lon_min,lat_min,lon_max,lat_max
-hotspot_gulf_of_guinea,Gulf of Guinea,-4.06666666667,-4.9,11.8666666667,6.45
-hotspot_malacca_straits,Malacca Straits,96.25,-10,114.466666667,20.9666666667
-hotspot_south_china_sea,South China Sea,115.216666667,-1.71666666667,126.383333333,14.6116666667
-hotspot_gulf_of_aden,Gulf of Aden,39.95,5.06666666667,53.8166666667,17.1333333333
+hotspot_gulf_of_guinea,Gulf of Guinea,-4.06666666667,-0.75,9.7,6.45
+hotspot_malacca_straits,Malacca Straits,96.25,-10,114,20.9666666667
+hotspot_south_china_sea,South China Sea,115.216666667,-1.71666666667,123.15,14.75
+hotspot_gulf_of_aden,Gulf of Aden,39.95,0.433333333333,67.4333333333,26.2833333333
