@@ -1,6 +1,7 @@
 # Summarize gridded data into a single row for each voyage
 # Emissions info from here: https://www.sciencedirect.com/science/article/pii/S1361920909001072
 # Price info scraped from bunkerindex.com
+# Calculate fuel consumption at trip level using average speed
 sql <-glue::glue(
   "
 #standardSQL
@@ -44,9 +45,10 @@ to_port_name,
 SUM(distance_km) total_distance_km,
 {clusters_aggregated},
 SUM(hours) total_hours,
-SUM(total_fuel_consumption_mt) total_fuel_consumption_mt,
+(SUM(distance_km) * 0.539957 / SUM(hours)) implied_speed_knots,
+(SUM(hours)*(0.8 * POW((SUM(distance_km) * 0.539957 / SUM(hours))/design_speed, 3))*main_sfc*engine_power/1000000 + SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
 SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
-(SUM(total_fuel_consumption_mt) - SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000) main_fuel_consumption_mt,
+(SUM(hours)*(0.8 * POW((SUM(distance_km) * 0.539957 / SUM(hours))/design_speed, 3))*main_sfc*engine_power/1000000) main_fuel_consumption_mt,
 SUM(CASE
 WHEN NOT(grid_has_previous_attacks IS NULL) THEN distance_km
 ELSE 0 END) attack_grid_distance_km,
@@ -56,21 +58,9 @@ ELSE 0 END) attack_grid_hours,
 (CASE WHEN SUM(grid_has_previous_attacks) IS NULL THEN 0
 ELSE SUM(grid_has_previous_attacks)
 END) number_attack_grids,
-SUM(attacks_last_7_days) attacks_last_7_days,
-SUM(attacks_last_14_days) attacks_last_14_days,
-SUM(attacks_last_21_days) attacks_last_21_days,
-SUM(attacks_last_30_days) attacks_last_30_days,
-SUM(attacks_last_60_days) attacks_last_60_days,
-SUM(attacks_last_90_days) attacks_last_90_days,
-SUM(attacks_last_120_days) attacks_last_120_days,
-SUM(attacks_last_150_days) attacks_last_150_days,
-SUM(attacks_last_180_days) attacks_last_180_days,
-SUM(attacks_last_210_days) attacks_last_210_days,
-SUM(attacks_last_240_days) attacks_last_240_days,
-SUM(attacks_last_270_days) attacks_last_270_days,
-SUM(attacks_last_300_days) attacks_last_300_days,
-SUM(attacks_last_330_days) attacks_last_330_days,
-SUM(attacks_last_365_days) attacks_last_365_days,
+SUM(attacks_last_1_year) attacks_last_1_year,
+SUM(attacks_last_2_years) attacks_last_2_years,
+SUM(attacks_last_3_years) attacks_last_3_years,
 MIN(days_since_attack) days_since_attack,
 (CASE WHEN SUM(hours) = 0 THEN AVG(speed_m_s)
 ELSE (SUM(speed_m_s * hours) / SUM(hours))
@@ -82,6 +72,7 @@ FROM
 `piracy.voyages_gridded`
 WHERE
 from_anchorage_id != to_anchorage_id
+AND hours > 0
 GROUP BY
 mmsi,
 vessel_type,
@@ -171,26 +162,15 @@ DATE(arrival_timestamp) arrival_date,
 total_distance_km,
 HAVERSINE(from_anchorage_lat,from_anchorage_lon,to_anchorage_lat,to_anchorage_lon) total_haversine_distance_km,
 total_hours,
+implied_speed_knots,
 {clusters_aggregated_2},
 attack_grid_distance_km,
 attack_grid_hours,
 number_attack_grids,
 days_since_attack,
-attacks_last_7_days,
-attacks_last_14_days,
-attacks_last_21_days,
-attacks_last_30_days,
-attacks_last_60_days,
-attacks_last_90_days,
-attacks_last_120_days,
-attacks_last_150_days,
-attacks_last_180_days,
-attacks_last_210_days,
-attacks_last_240_days,
-attacks_last_270_days,
-attacks_last_300_days,
-attacks_last_330_days,
-attacks_last_365_days,
+attacks_last_1_year,
+attacks_last_2_years,
+attacks_last_3_years,
 speed_m_s wind_speed_m_per_s,
 direction_degrees wind_direction_degrees,
 main_fuel_consumption_mt,
@@ -208,6 +188,7 @@ FROM
 master_2
 WHERE
 total_distance_km > 0.8 * total_haversine_distance_km
+AND implied_speed_knots < 2 * design_speed_knots
 "
 )
 
