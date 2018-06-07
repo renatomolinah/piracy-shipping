@@ -78,76 +78,78 @@ proj <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84"
 # file.remove("ne_110m_land.zip")
 
 world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", stringsAsFactors = FALSE)
-ASAM_binned <- read.csv("../processed_data/ASAM_binned.csv", stringsAsFactors = F)
-
-attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 5)
-attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
-# # Make attack plot for every year
-p_all_years <-  ggplot() +
-    geom_tile(data = ASAM_binned %>%
-              group_by(lon_bin,lat_bin,year) %>%
-              summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, alpha=number_attacks),fill = "red",size=0.25) + 
-    scale_alpha(name = "Number of Encounters",range=c(0.3,0.85), na.value = 0) +
-            geom_sf(data = world.land,
-            fill = "darkgrey",
-            lwd = 0) +
-    theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank(),
-        panel.grid.major = element_line(colour = "black"),
-        panel.grid.minor = element_line(color = "black"),
-        strip.background =element_rect(fill="white"),
-        panel.background = element_rect(fill = 'black')) +
-    facet_wrap(~year, ncol = 2) +
-      guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
-  theme(legend.position = c(1, 0),
-        legend.justification = c(1, 0),
-        legend.direction="horizontal") +
-      ylim(attack_lat_limits) +
-    xlim(attack_lon_limits)
-
-p_all_years_bw <-  ggplot() +
-    geom_tile(data = ASAM_binned %>%
-              group_by(lon_bin,lat_bin,year) %>%
-              summarize(number_attacks = sum(number_attacks)),
-                aes(x = lon_bin, y = lat_bin, alpha=number_attacks),fill = "darkgray",color="darkgray",size=0.25) + 
-    scale_alpha(name = "Number of Encounters",range=c(0.1,0.9), na.value = 0) +
-            geom_sf(data = world.land,
-            fill = "darkgrey",
-            lwd = 0) +
-    theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank(),
-        panel.grid.major = element_line(colour = "black"),
-        panel.grid.minor = element_line(color = "black"),
-        strip.background =element_rect(fill="white"),
-        panel.background = element_rect(fill = 'black')) +
-    facet_wrap(~year, ncol = 2) +
-      guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
-  theme(legend.position = c(1, 0),
-        legend.justification = c(1, 0),
-        legend.direction="horizontal") +
-      ylim(attack_lat_limits) +
-    xlim(attack_lon_limits)
-
-ggsave(filename = "../figs/attacks_by_year.eps", plot = p_all_years, device = cairo_ps, width = 8.5, height = 6)
-ggsave(filename = "../figs/attacks_by_year_bw.eps", plot = p_all_years_bw, device = cairo_ps, width = 8.5, height = 6)
+# ASAM_binned <- read.csv("../processed_data/ASAM_binned.csv", stringsAsFactors = F)
+# 
+# attack_lat_limits <- c(min(ASAM_binned$lat_bin) - 5, max(ASAM_binned$lat_bin) + 5)
+# attack_lon_limits <- c(min(ASAM_binned$lon_bin) - 5, max(ASAM_binned$lon_bin) + 5)
+# # # Make attack plot for every year
+# p_all_years <-  ggplot() +
+#     geom_tile(data = ASAM_binned %>%
+#               group_by(lon_bin,lat_bin,year) %>%
+#               summarize(number_attacks = sum(number_attacks)),
+#                 aes(x = lon_bin, y = lat_bin, alpha=number_attacks),fill = "red",size=0.25) + 
+#     scale_alpha(name = "Number of Encounters",range=c(0.3,0.85), na.value = 0) +
+#             geom_sf(data = world.land,
+#             fill = "darkgrey",
+#             lwd = 0) +
+#     theme_bw() +
+#   theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+#         axis.title.y=element_blank(),
+#         axis.text.y=element_blank(),
+#         axis.ticks.y=element_blank(),
+#         panel.grid.major = element_line(colour = "black"),
+#         panel.grid.minor = element_line(color = "black"),
+#         strip.background =element_rect(fill="white"),
+#         panel.background = element_rect(fill = 'black')) +
+#     facet_wrap(~year, ncol = 2) +
+#       guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
+#   theme(legend.position = c(1, 0),
+#         legend.justification = c(1, 0),
+#         legend.direction="horizontal") +
+#       ylim(attack_lat_limits) +
+#     xlim(attack_lon_limits)
+# 
+# p_all_years_bw <-  ggplot() +
+#     geom_tile(data = ASAM_binned %>%
+#               group_by(lon_bin,lat_bin,year) %>%
+#               summarize(number_attacks = sum(number_attacks)),
+#                 aes(x = lon_bin, y = lat_bin, alpha=number_attacks),fill = "darkgray",color="darkgray",size=0.25) + 
+#     scale_alpha(name = "Number of Encounters",range=c(0.1,0.9), na.value = 0) +
+#             geom_sf(data = world.land,
+#             fill = "darkgrey",
+#             lwd = 0) +
+#     theme_bw() +
+#   theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+#         axis.title.y=element_blank(),
+#         axis.text.y=element_blank(),
+#         axis.ticks.y=element_blank(),
+#         panel.grid.major = element_line(colour = "black"),
+#         panel.grid.minor = element_line(color = "black"),
+#         strip.background =element_rect(fill="white"),
+#         panel.background = element_rect(fill = 'black')) +
+#     facet_wrap(~year, ncol = 2) +
+#       guides(fill = guide_colourbar(barheight = 3.25, barwidth = 3.25)) +
+#   theme(legend.position = c(1, 0),
+#         legend.justification = c(1, 0),
+#         legend.direction="horizontal") +
+#       ylim(attack_lat_limits) +
+#     xlim(attack_lon_limits)
+# 
+# ggsave(filename = "../figs/attacks_by_year.eps", plot = p_all_years, device = cairo_ps, width = 8.5, height = 6)
+# ggsave(filename = "../figs/attacks_by_year_bw.eps", plot = p_all_years_bw, device = cairo_ps, width = 8.5, height = 6)
 ```
 
 ```{r cluster_map}
 library(scico)
-palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
+palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Gulf of Aden","Malacca Straits","South China Sea","Outside of Hotspots"))
 
-palette_bw = setNames(c(gray.colors(4),"black"),c("Gulf of Guinea","Malacca Straits","South China Sea","Gulf of Aden","Outside of Hotspots"))
+palette_bw = setNames(c(gray.colors(4),"black"),c("Gulf of Guinea","Gulf of Aden","Malacca Straits","South China Sea","Outside of Hotspots"))
+
+ASAM$Hotspot <- factor(ASAM$Hotspot, levels = c("Gulf of Guinea","Gulf of Aden","Malacca Straits","South China Sea","Outside of Hotspots"))
 
 
 attack_time_series <- ASAM %>%
@@ -169,7 +171,7 @@ attack_time_series_bw <- ASAM %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
   ggplot(aes(x=year,y=number_attacks)) +
-  geom_bar(stat="identity",aes(fill=Hotspot)) +
+  geom_bar(stat="identity",aes(fill=Hotspot),color="black",size=0.25) +
   scale_fill_manual(values = palette_bw) +
   scale_x_continuous(breaks=unique(ASAM$year)) +
   theme_bw() +
