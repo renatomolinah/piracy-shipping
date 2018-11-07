@@ -46,9 +46,9 @@ SUM(distance_km) total_distance_km,
 {clusters_aggregated},
 SUM(hours) total_hours,
 (SUM(distance_km) * 0.539957 / SUM(hours)) implied_speed_knots,
-(SUM(hours)*(0.8 * POW((SUM(distance_km) * 0.539957 / SUM(hours))/design_speed, 3))*main_sfc*engine_power/1000000 + SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
-SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
-(SUM(hours)*(0.8 * POW((SUM(distance_km) * 0.539957 / SUM(hours))/design_speed, 3))*main_sfc*engine_power/1000000) main_fuel_consumption_mt,
+SUM(main_fuel_consumption_mt) main_fuel_consumption_mt,
+SUM(aux_fuel_consumption_mt) aux_fuel_consumption_mt,
+SUM(total_fuel_consumption_mt) total_fuel_consumption_mt,
 SUM(CASE
 WHEN NOT(grid_has_previous_attacks IS NULL) THEN distance_km
 ELSE 0 END) attack_grid_distance_km,
@@ -187,8 +187,8 @@ SELECT
 FROM
 master_2
 WHERE
-total_distance_km > 0.8 * total_haversine_distance_km
-AND implied_speed_knots < 2 * design_speed_knots
+total_distance_km > total_haversine_distance_km
+AND implied_speed_knots < design_speed_knots
 "
 )
 

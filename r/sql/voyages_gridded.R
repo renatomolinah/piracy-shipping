@@ -33,6 +33,8 @@ ais_info AS(
   arrival_timestamp,
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
+  SUM(main_fuel_consumption_mt) main_fuel_consumption_mt,
+  SUM(aux_fuel_consumption_mt) aux_fuel_consumption_mt,
   SUM(total_fuel_consumption_mt) total_fuel_consumption_mt,
   {clusters_aggregated}
   FROM
@@ -105,6 +107,8 @@ attacks_last_1_year,
 attacks_last_2_years, 
 attacks_last_3_years, 
   total_fuel_consumption_mt,
+  main_fuel_consumption_mt,
+  aux_fuel_consumption_mt,
   speed_m_s,
 direction_degrees
   FROM

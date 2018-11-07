@@ -18,7 +18,7 @@ sql<-glue::glue("
                 next_lon end_lon,
                 next_timestamp end_timestamp,
                 hours,
-                ais_speed,
+                implied_speed,
                 avg_distance_km
                 FROM
                 `world-fishing-827.gfw_research.pipeline_p_p550_daily`
@@ -66,7 +66,7 @@ sql<-glue::glue("
                 ping_info.start_lat start_lat,
                 ping_info.start_lon start_lon,
                 ping_info.hours hours,
-                ping_info.ais_speed ais_speed,
+                ping_info.implied_speed implied_speed,
                 ping_info.avg_distance_km avg_distance_km,
                 voyage_info.flag flag,
                 voyage_info.year year,
@@ -97,7 +97,9 @@ sql<-glue::glue("
                 AND ping_info.start_timestamp < voyage_info.arrival_timestamp)
 SELECT
 *,
-(hours*(0.8 * POW(ais_speed/design_speed, 3))*main_sfc*engine_power/1000000 + hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
+hours*(0.8 * POW(GREATEST(implied_speed/design_speed,1), 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
+hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
+(hours*(0.8 * POW(GREATEST(implied_speed/design_speed,1), 3))*main_sfc*engine_power/1000000 + hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
 {cluster_filters}
 FROM
 ais_info
