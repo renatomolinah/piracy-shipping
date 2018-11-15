@@ -1,10 +1,35 @@
 library(tidyverse)
 library(bigrquery)
 library(lubridate)
+library(sf)
 # Set up bigquery
 project <-  "ucsb-gfw"
+eez <- read_sf(dsn = "raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
 
-ASAM_binned <- read_csv("processed_data/ASAM_binned.csv")
+ASAM <- read_sf(dsn = "raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE) %>%
+  mutate(Date = as_date(DateOfOcc),
+         Year = year(Date)) %>%
+  dplyr::select(-DateOfOcc) %>%
+  filter(Year > 2008 & Year < 2018) %>%
+  `st_crs<-`(st_crs(eez)) %>%
+  st_join(eez, join = st_intersects) %>%
+  mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
+
+# Define cell size for grid map
+cell_size <- 5 #degrees
+one_over_cellsize = 1/cell_size
+
+ASAM <- do.call(rbind, st_geometry(ASAM)) %>% 
+  as_tibble() %>% 
+  cbind(ASAM$Year,
+        ASAM$Date,
+        ASAM$Aggressor,
+        ASAM$Victim,
+        ASAM$attack_eez) %>%
+  setNames(c("lon","lat","year","date","aggressor","victim","attack_eez")) %>%
+  mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
+         lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize) 
+
 
 # pick 8 lon and 4 lat for bin
 
@@ -18,7 +43,7 @@ attack_info <- ASAM %>%
   distinct() %>%
   filter(lon_bin==7 & lat_bin==4)
 
-attack_info <- attack_info[nrow(attack_info),]
+attack_info <- attack_info[2,]
 
 sql <- "
 #standardSQL
@@ -81,8 +106,9 @@ mmsi_start_date <- cell_figure %>%
 cell_figure %>%
   left_join(mmsi_start_date,by="mmsi") %>%
   filter(!is.na(date_bin)) %>%
+  arrange(mmsi,timestamp) %>%
   ggplot() +
-  geom_line(aes(x = lon,y=lat,group=mmsi,color=mmsi)) +
+  geom_path(aes(x = lon,y=lat,group=mmsi,color=mmsi)) +
   facet_wrap(~date_bin) + 
   coord_fixed() +
   geom_point(data = attack_info,aes(x = lon,y=lat),color="red",size=3) +
