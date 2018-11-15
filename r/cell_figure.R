@@ -28,7 +28,8 @@ ASAM <- do.call(rbind, st_geometry(ASAM)) %>%
         ASAM$attack_eez) %>%
   setNames(c("lon","lat","year","date","aggressor","victim","attack_eez")) %>%
   mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
-         lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize) 
+         lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize,
+         attack_id = 1:n())
 
 library(leaflet)
 leaflet() %>%
@@ -47,13 +48,14 @@ leaflet() %>%
                             lon_map = lon) %>%
                      st_as_sf(coords = c("lon","lat")) %>%
                      `st_crs<-`(st_crs(eez)) %>%
-                     filter(year >= 2017) %>%
+                     filter(date >= "2017-03-01" & date <= "2017-11-01") %>%
                      distinct(),
               color="red",
               stroke=FALSE,
               fillOpacity = 0.5,
               radius = 3,
               popup = ~paste0("<font color=#000000>",
+                              "<b>Attack ID: </b>", attack_id, "<br>",
                 "<b>EEZ: </b>", attack_eez, "<br>",
                 "<b>Date: </b>", date, "<br>",
                 "<b>Lat: </b>", lat_map, "<br>",
@@ -61,103 +63,106 @@ leaflet() %>%
                 "<b>Aggressor: </b>", aggressor, "<br>",
                 "<b>Victim: </b>", victim, "<br>",
                  "</font>"))
-# pick 8 lon and 4 lat for bin
 
-attack_info <- ASAM %>% 
-  filter(attack_eez == "NGA") %>% 
-  mutate(lat_bin = floor(lat),
-         lon_bin=floor(lon),
-         area=paste(lon_bin,lat_bin,sep="-")) %>% 
-  arrange(area,date) %>%
-  filter(date >="2017-08-01" & date <= "2017-11-01") %>% 
-  distinct() %>%
-  filter(lon_bin==7 & lat_bin==3)
-
-attack_info <- attack_info[3,]
-
-sql <- "
-#standardSQL
+sql <- "#standardSQL
 SELECT
-  mmsi,
-  lat,
-  lon,
-  timestamp,
-  hours,
-  implied_speed,
-  avg_distance_km
+EXTRACT(date FROM departure_timestamp) date,
+FLOOR(start_lat / 0.01) * 0.01 lat_bin,
+FLOOR(start_lon / 0.01) * 0.01 lon_bin,
+SUM(hours) hours
 FROM
-  `world-fishing-827.gfw_research.pipeline_p_p550_daily`
-WHERE
-  FLOOR(lat) >= 2
-  AND FLOOR(lat) <= 6
-  AND FLOOR(lon) >= 2
-  AND FLOOR(lon) <= 8
-  AND _PARTITIONTIME BETWEEN TIMESTAMP('2017-06-01')
-  AND TIMESTAMP('2017-12-31')
-  AND mmsi IN (
-  SELECT
-    mmsi
-  FROM
-    `piracy.voyages_with_anchorages`)"
+`piracy.voyage_ais_positions`
+GROUP BY
+date,
+lat_bin,
+lon_bin"
 
-#bq_table(project = project,table = "nga_cell_figure",dataset = "piracy") %>% 
-#  bq_table_delete()
-
-#bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "nga_cell_figure",dataset = "piracy"),
+# bq_table(project = project,table = "cell_data",dataset = "piracy") %>% 
+#   bq_table_delete()
+# 
+# bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "cell_data",dataset = "piracy"),
 #                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
 
+attacks_som <- ASAM %>%
+  filter(attack_eez == "SOM")  %>%
+  filter(date >= "2017-03-01" & date <= "2017-11-01")
+
+som_filter <- glue::glue("lat_bin >= {min(attacks_som$lat) - 0.5} AND lat_bin <= {max(attacks_som$lat) + 0.5} AND lon_bin >= {min(attacks_som$lon) - 0.5} AND lon_bin <= {max(attacks_som$lon) + 0.5}")
+
+malacca_filter <- glue::glue("lat_bin >= 0 AND lat_bin <= 2 AND lon_bin >= 98 AND lon_bin <= 105.5")
+
+nga_filter <- glue::glue("lat_bin >= 1 AND lat_bin <= 8 AND lon_bin >= 1 AND lon_bin <= 10")
+
+sql <- glue::glue("
+#standardSQL
+SELECT
+  *
+FROM
+  `piracy.cell_data`
+WHERE
+  ({som_filter}) OR ({malacca_filter}) OR ({nga_filter})")
+
+
+# bq_table(project = project,table = "figure_cell_data",dataset = "piracy") %>% 
+#   bq_table_delete()
+# 
+# bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "figure_cell_data",dataset = "piracy"),
+#                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
+
+# cell_data <- bq_project_query(project, "#standardSQL 
+# SELECT * 
+# FROM `piracy.figure_cell_data`") %>%
+#   bq_table_download(max_results = Inf)
+
+#write_csv(cell_data,path="Data sets/cell_data.csv")
+cell_data <- read_csv("Data sets/cell_data.csv")
 world_land <-
   st_as_sf(rworldmap::countriesLow) ## data(countriesLow) is from the rworldmap package
 
 
-nga_gfw <- bq_project_query(project, "SELECT * FROM `piracy.nga_cell_figure`") %>%
-  bq_table_download(max_results = Inf)
-
-cell_figure <- nga_gfw %>%
+all_attack_info <- ASAM %>% 
   mutate(lat_bin = floor(lat),
-         lon_bin = floor(lon)) %>%
-  filter(lat_bin == attack_info$lat_bin & lon_bin ==attack_info$lon_bin) %>%
-  mutate(date = date(timestamp)) %>%
-  mutate(mmsi = as.character(mmsi)) %>%
-  filter(implied_speed < 50) %>%
-  filter(date >= attack_info$date %m+% months(-2))
-  
+         lon_bin=floor(lon),
+         area=paste(lon_bin,lat_bin,sep="-")) %>% 
+  arrange(attack_eez,area,date) %>%
+  filter(date >="2017-08-01" & date <= "2017-11-01") %>% 
+  distinct(lon,lat,date,.keep_all=TRUE)
 
-mmsi_start_date <- cell_figure %>%
-  group_by(mmsi) %>%
-  summarize(min_date = min(date)) %>%
-  ungroup() %>%
-  mutate(date_bin = case_when(min_date >= attack_info$date %m+% months(-2) & min_date < attack_info$date %m+% months(-1) ~ -2,
-                              min_date >= attack_info$date %m+% months(-1) & min_date < attack_info$date ~ -1,
-                              min_date >= attack_info$date & min_date < attack_info$date %m+% months(1) ~ 1,
-                              min_date >= attack_info$date %m+% months(1) & min_date < attack_info$date %m+% months(2) ~ 2,
-                              TRUE~NA_real_))
+fig_ids <- c(220,221,222) # first NGA fig
 
-cell_figure %>%
-  left_join(mmsi_start_date,by="mmsi") %>%
-  filter(!is.na(date_bin)) %>%
-  arrange(mmsi,timestamp) %>%
-  ggplot() +
-  geom_path(aes(x = lon,y=lat,group=mmsi,color=mmsi)) +
-  facet_wrap(~date_bin) + 
-  coord_fixed() +
-  geom_point(data = attack_info,aes(x = lon,y=lat),color="red",size=3) +
-  geom_sf(data=world_land, color = NA, fill="grey30") +
-  xlim(c(attack_info$lon_bin,attack_info$lon_bin+1)) +
-  ylim(c(attack_info$lat_bin,attack_info$lat_bin+1)) +
-  theme(panel.background = element_rect(fill ="black",color="black"),
-        panel.grid.major =  element_line(color = "black"),
-        panel.grid.minor = element_line(color = "black")) +
-  guides(color=FALSE) +
-  ggtitle("Transits through 1x1 cell in Nigeria waters\n2 months prior to attack to 2 months after attack\nAttack location shown as red dot")
+fig_ids <- 156 # second NGA fig
 
-cell_figure %>%
-  left_join(mmsi_start_date,by="mmsi") %>%
-  filter(!is.na(date_bin)) %>%
-  arrange(mmsi,timestamp) %>%
-  mutate(lat_bin = floor(lat*100)/100,
-         lon_bin = floor(lon*100)/100) %>%
-  group_by(lat_bin,lon_bin,date_bin) %>%
+attack_info <- all_attack_info %>%
+  filter(attack_id %in% fig_ids)
+
+min_lat = mean(attack_info$lat) - 0.5
+max_lat = mean(attack_info$lat) + 0.5
+min_lon = mean(attack_info$lon) - 0.5
+max_lon = mean(attack_info$lon) + 0.5
+min_date = min(attack_info$date)
+max_date = max(attack_info$date)
+
+attack_info <- all_attack_info %>%
+  filter(lat > min_lat & lat < max_lat & lon > min_lon & lat < max_lat & date >= min_date & date <= max_date)
+
+min_lat = mean(attack_info$lat) - 0.5
+max_lat = mean(attack_info$lat) + 0.5
+min_lon = mean(attack_info$lon) - 0.5
+max_lon = mean(attack_info$lon) + 0.5
+min_date = min(attack_info$date)
+max_date = max(attack_info$date)
+
+cell_figure <- cell_data %>%
+  filter(lat_bin >= min_lat & lat_bin <= max_lat & lon_bin >= min_lon & lat_bin <= max_lat) %>%
+  mutate(date_bin = case_when(date >= min_date %m+% months(-2) & date < min_date %m+% months(-1) ~ -2,
+                              date >= min_date %m+% months(-1) & date < min_date ~ -1,
+                              date >= max_date & date < max_date %m+% months(1) ~ 1,
+                              date >= max_date %m+% months(1) & date < max_date %m+% months(2) ~ 2,
+                              TRUE~NA_real_)) %>%
+  filter(!is.na(date_bin))
+
+fig <- cell_figure %>%
+  group_by(lon_bin,lat_bin,date_bin) %>%
   summarize(hours = sum(hours)) %>%
   ungroup() %>%
   ggplot() +
@@ -166,15 +171,20 @@ cell_figure %>%
   coord_fixed() +
   geom_point(data = attack_info,aes(x = lon,y=lat),color="red",size=3) +
   geom_sf(data=world_land, color = NA, fill="grey30") +
-  xlim(c(attack_info$lon_bin,attack_info$lon_bin+1)) +
-  ylim(c(attack_info$lat_bin,attack_info$lat_bin+1)) +
+  xlim(c(min_lon,max_lon)) +
+  ylim(c(min_lat,max_lat)) +
   theme(panel.background = element_rect(fill ="black",color="black"),
         panel.grid.major =  element_line(color = "black"),
         panel.grid.minor = element_line(color = "black")) +
-  ggtitle("Transit time spent in 0.01 x 0.01 degree cells in Nigeria waters\n2 months prior to attack to 2 months after attack\nAttack location shown as red dot")+
+  ggtitle(paste0("Transit time spent in 0.01 x 0.01 degree cells\n2 months prior to first attack to 2 months after last attack\nAttack location(s) shown as red dot(s)\nAttack(s) took place on ",paste(unique(attack_info$date),collapse=", ")))+
   scale_fill_gradientn(colours = pals::parula(100),
                        "Transit hours",
                        guide = "colourbar",
                        trans = "log",
                        breaks = scales::log_breaks(n = 7, base = 2),
-                       labels = scales::comma)
+                       labels = scales::comma) +
+  xlab("") +
+  ylab("")
+
+ggsave(filename = "figs/nga_cell_2.eps", plot = fig, device = cairo_ps, width = 8.5, height = 8.5)
+
