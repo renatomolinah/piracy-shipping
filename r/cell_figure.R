@@ -30,7 +30,37 @@ ASAM <- do.call(rbind, st_geometry(ASAM)) %>%
   mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
          lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize) 
 
-
+library(leaflet)
+leaflet() %>%
+  # fitBounds(0, 60, 35, 72) %>%
+  addPolygons(data = eez,
+    fillOpacity = 0.15,
+    fillColor = "blue",
+    stroke=TRUE,
+    weight=1,
+    color="black",
+    popup = ~paste0("<font color=#000000>",
+      "<b>EEZ: </b>", GeoName, "<br>",
+    "</font>"))  %>%
+  addCircleMarkers(data=ASAM %>%
+                     mutate(lat_map = lat,
+                            lon_map = lon) %>%
+                     st_as_sf(coords = c("lon","lat")) %>%
+                     `st_crs<-`(st_crs(eez)) %>%
+                     filter(year >= 2017) %>%
+                     distinct(),
+              color="red",
+              stroke=FALSE,
+              fillOpacity = 0.5,
+              radius = 3,
+              popup = ~paste0("<font color=#000000>",
+                "<b>EEZ: </b>", attack_eez, "<br>",
+                "<b>Date: </b>", date, "<br>",
+                "<b>Lat: </b>", lat_map, "<br>",
+                "<b>Lon: </b>", lon_map, "<br>",
+                "<b>Aggressor: </b>", aggressor, "<br>",
+                "<b>Victim: </b>", victim, "<br>",
+                 "</font>"))
 # pick 8 lon and 4 lat for bin
 
 attack_info <- ASAM %>% 
@@ -39,11 +69,11 @@ attack_info <- ASAM %>%
          lon_bin=floor(lon),
          area=paste(lon_bin,lat_bin,sep="-")) %>% 
   arrange(area,date) %>%
-  filter(date >="2017-08-01" & date <= "2017-10-01") %>% 
+  filter(date >="2017-08-01" & date <= "2017-11-01") %>% 
   distinct() %>%
-  filter(lon_bin==7 & lat_bin==4)
+  filter(lon_bin==7 & lat_bin==3)
 
-attack_info <- attack_info[2,]
+attack_info <- attack_info[3,]
 
 sql <- "
 #standardSQL
@@ -120,3 +150,31 @@ cell_figure %>%
         panel.grid.minor = element_line(color = "black")) +
   guides(color=FALSE) +
   ggtitle("Transits through 1x1 cell in Nigeria waters\n2 months prior to attack to 2 months after attack\nAttack location shown as red dot")
+
+cell_figure %>%
+  left_join(mmsi_start_date,by="mmsi") %>%
+  filter(!is.na(date_bin)) %>%
+  arrange(mmsi,timestamp) %>%
+  mutate(lat_bin = floor(lat*100)/100,
+         lon_bin = floor(lon*100)/100) %>%
+  group_by(lat_bin,lon_bin,date_bin) %>%
+  summarize(hours = sum(hours)) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_tile(aes(x = lon_bin,y=lat_bin,fill = hours)) +
+  facet_wrap(~date_bin) + 
+  coord_fixed() +
+  geom_point(data = attack_info,aes(x = lon,y=lat),color="red",size=3) +
+  geom_sf(data=world_land, color = NA, fill="grey30") +
+  xlim(c(attack_info$lon_bin,attack_info$lon_bin+1)) +
+  ylim(c(attack_info$lat_bin,attack_info$lat_bin+1)) +
+  theme(panel.background = element_rect(fill ="black",color="black"),
+        panel.grid.major =  element_line(color = "black"),
+        panel.grid.minor = element_line(color = "black")) +
+  ggtitle("Transit time spent in 0.01 x 0.01 degree cells in Nigeria waters\n2 months prior to attack to 2 months after attack\nAttack location shown as red dot")+
+  scale_fill_gradientn(colours = pals::parula(100),
+                       "Transit hours",
+                       guide = "colourbar",
+                       trans = "log",
+                       breaks = scales::log_breaks(n = 7, base = 2),
+                       labels = scales::comma)
