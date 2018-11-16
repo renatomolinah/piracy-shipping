@@ -36,33 +36,33 @@ library(leaflet)
 leaflet() %>%
   # fitBounds(0, 60, 35, 72) %>%
   addPolygons(data = eez,
-    fillOpacity = 0.15,
-    fillColor = "blue",
-    stroke=TRUE,
-    weight=1,
-    color="black",
-    popup = ~paste0("<font color=#000000>",
-      "<b>EEZ: </b>", GeoName, "<br>",
-    "</font>"))  %>%
+              fillOpacity = 0.15,
+              fillColor = "blue",
+              stroke=TRUE,
+              weight=1,
+              color="black",
+              popup = ~paste0("<font color=#000000>",
+                              "<b>EEZ: </b>", GeoName, "<br>",
+                              "</font>"))  %>%
   addCircleMarkers(data=ASAM %>%
                      mutate(lat_map = lat,
                             lon_map = lon) %>%
                      st_as_sf(coords = c("lon","lat")) %>%
                      `st_crs<-`(st_crs(eez)) %>%
                      filter(date >= "2016-06-01" & date <= "2017-06-01"),
-              color="red",
-              stroke=FALSE,
-              fillOpacity = 0.5,
-              radius = 3,
-              popup = ~paste0("<font color=#000000>",
-                              "<b>Attack ID: </b>", attack_id, "<br>",
-                "<b>EEZ: </b>", attack_eez, "<br>",
-                "<b>Date: </b>", date, "<br>",
-                "<b>Lat: </b>", lat_map, "<br>",
-                "<b>Lon: </b>", lon_map, "<br>",
-                "<b>Aggressor: </b>", aggressor, "<br>",
-                "<b>Victim: </b>", victim, "<br>",
-                 "</font>"))
+                   color="red",
+                   stroke=FALSE,
+                   fillOpacity = 0.5,
+                   radius = 3,
+                   popup = ~paste0("<font color=#000000>",
+                                   "<b>Attack ID: </b>", attack_id, "<br>",
+                                   "<b>EEZ: </b>", attack_eez, "<br>",
+                                   "<b>Date: </b>", date, "<br>",
+                                   "<b>Lat: </b>", lat_map, "<br>",
+                                   "<b>Lon: </b>", lon_map, "<br>",
+                                   "<b>Aggressor: </b>", aggressor, "<br>",
+                                   "<b>Victim: </b>", victim, "<br>",
+                                   "</font>"))
 
 sql <- "#standardSQL
 SELECT
@@ -87,9 +87,9 @@ attacks_som <- ASAM %>%
   filter(attack_eez == "SOM")  %>%
   filter(date >= "2017-03-01" & date <= "2017-11-01")
 
-som_filter <- glue::glue("lat_bin >= {min(attacks_som$lat) - 0.5} AND lat_bin <= {max(attacks_som$lat) + 0.5} AND lon_bin >= {min(attacks_som$lon) - 0.5} AND lon_bin <= {max(attacks_som$lon) + 0.5}")
+som_filter <- glue::glue("lat_bin >= 2 AND lat_bin <= 18 AND lon_bin >= 40 AND lon_bin <= 62")
 
-malacca_filter <- glue::glue("lat_bin >= 0 AND lat_bin <= 2 AND lon_bin >= 98 AND lon_bin <= 105.5")
+malacca_filter <- glue::glue("lat_bin >= -7 AND lat_bin <= 4 AND lon_bin >= 98 AND lon_bin <= 115")
 
 nga_filter <- glue::glue("lat_bin >= 1 AND lat_bin <= 8 AND lon_bin >= 1 AND lon_bin <= 10")
 
@@ -103,18 +103,18 @@ WHERE
   ({som_filter}) OR ({malacca_filter}) OR ({nga_filter})")
 
 
-# bq_table(project = project,table = "figure_cell_data",dataset = "piracy") %>% 
-#   bq_table_delete()
+#  bq_table(project = project,table = "figure_cell_data",dataset = "piracy") %>% 
+#    bq_table_delete()
+#  
+#  bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "figure_cell_data",dataset = "piracy"),
+#                   use_legacy_sql = FALSE, allowLargeResults = TRUE)
 # 
-# bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "figure_cell_data",dataset = "piracy"),
-#                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
-
-# cell_data <- bq_project_query(project, "#standardSQL 
-# SELECT * 
-# FROM `piracy.figure_cell_data`") %>%
-#   bq_table_download(max_results = Inf)
-
-#write_csv(cell_data,path="Data sets/cell_data.csv")
+#  cell_data <- bq_project_query(project, glue::glue("#standardSQL 
+#  SELECT * 
+#  FROM `piracy.figure_cell_data` WHERE date > '2016-01-01' AND date < '2017-12-31'")) %>%
+#    bq_table_download(max_results = Inf)
+# 
+# write_csv(cell_data,path="Data sets/cell_data.csv")
 cell_data <- read_csv("Data sets/cell_data.csv")
 world_land <-
   st_as_sf(rworldmap::countriesLow) ## data(countriesLow) is from the rworldmap package
@@ -128,10 +128,16 @@ all_attack_info <- ASAM %>%
   filter(date >= "2016-06-01" & date <= "2017-06-01")
 
 fig_ids <- c(777) # first NGA fig
-
 fig_ids <- c(161) # second NGA fig
-
 fig_ids <- c(102)  # third NGA fig
+
+fig_ids <- 69 # first SOM fig
+fig_ids <- 79 # second SOM fig
+fig_ids <- 27 # third SOM fig
+
+fig_ids <- 2760 # first malacca fig
+fig_ids <- 3410 # second malacca fig
+fig_ids <- 2769 # third malacca fig
 
 attack_info <- ASAM %>%
   filter(attack_id %in% fig_ids)
@@ -159,7 +165,7 @@ min_date = min(attack_info$date)
 max_date = max(attack_info$date)
 
 cell_figure <- cell_data %>%
-  filter(lat_bin >= min_lat & lat_bin <= max_lat & lon_bin >= min_lon & lat_bin <= max_lat) %>%
+  filter(lat_bin >= min_lat & lat_bin <= max_lat & lon_bin >= min_lon & lon_bin <= max_lon) %>%
   mutate(date_bin = case_when(date >= min_date %m+% months(-3) & date < min_date %m+% months(-2) ~ -3,
                               date >= min_date %m+% months(-2) & date < min_date %m+% months(-1) ~ -2,
                               date >= min_date %m+% months(-1) & date < min_date ~ -1,
@@ -195,6 +201,6 @@ fig <- cell_figure %>%
                        labels = scales::comma) +
   xlab("") +
   ylab("")
-
-ggsave(filename = "figs/nga_cell_2.eps", plot = fig, device = cairo_ps, width = 8.5, height = 6)
+fig
+ggsave(filename = "figs/som_cell_1.eps", plot = fig, device = cairo_ps, width = 8.5, height = 6)
 
