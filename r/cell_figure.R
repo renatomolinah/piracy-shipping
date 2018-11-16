@@ -26,10 +26,11 @@ ASAM <- do.call(rbind, st_geometry(ASAM)) %>%
         ASAM$Aggressor,
         ASAM$Victim,
         ASAM$attack_eez) %>%
-  setNames(c("lon","lat","year","date","aggressor","victim","attack_eez")) %>%
+  setNames(c("lon","lat","year","date","aggressor","victim","attack_eez"))%>%
   mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
          lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize,
-         attack_id = 1:n())
+         attack_id = 1:n()) %>%
+  distinct(lon,lat,date,.keep_all=TRUE)
 
 library(leaflet)
 leaflet() %>%
@@ -48,8 +49,7 @@ leaflet() %>%
                             lon_map = lon) %>%
                      st_as_sf(coords = c("lon","lat")) %>%
                      `st_crs<-`(st_crs(eez)) %>%
-                     filter(date >= "2017-03-01" & date <= "2017-11-01") %>%
-                     distinct(),
+                     filter(date >= "2016-06-01" & date <= "2017-06-01"),
               color="red",
               stroke=FALSE,
               fillOpacity = 0.5,
@@ -125,14 +125,15 @@ all_attack_info <- ASAM %>%
          lon_bin=floor(lon),
          area=paste(lon_bin,lat_bin,sep="-")) %>% 
   arrange(attack_eez,area,date) %>%
-  filter(date >="2017-08-01" & date <= "2017-11-01") %>% 
-  distinct(lon,lat,date,.keep_all=TRUE)
+  filter(date >= "2016-06-01" & date <= "2017-06-01")
 
-fig_ids <- c(220,221,222) # first NGA fig
+fig_ids <- c(777) # first NGA fig
 
-fig_ids <- 156 # second NGA fig
+fig_ids <- c(161) # second NGA fig
 
-attack_info <- all_attack_info %>%
+fig_ids <- c(102)  # third NGA fig
+
+attack_info <- ASAM %>%
   filter(attack_id %in% fig_ids)
 
 min_lat = mean(attack_info$lat) - 0.5
@@ -141,9 +142,14 @@ min_lon = mean(attack_info$lon) - 0.5
 max_lon = mean(attack_info$lon) + 0.5
 min_date = min(attack_info$date)
 max_date = max(attack_info$date)
-
-attack_info <- all_attack_info %>%
-  filter(lat > min_lat & lat < max_lat & lon > min_lon & lat < max_lat & date >= min_date & date <= max_date)
+# Also find nearby attacks for plotting
+attack_info <- ASAM  %>%
+  filter(lat > min_lat & 
+           lat < max_lat & 
+           lon > min_lon & 
+           lon < max_lon & 
+           date >= min_date %m+% months(-3) & 
+           date <= max_date %m+% months(3))
 
 min_lat = mean(attack_info$lat) - 0.5
 max_lat = mean(attack_info$lat) + 0.5
@@ -154,17 +160,21 @@ max_date = max(attack_info$date)
 
 cell_figure <- cell_data %>%
   filter(lat_bin >= min_lat & lat_bin <= max_lat & lon_bin >= min_lon & lat_bin <= max_lat) %>%
-  mutate(date_bin = case_when(date >= min_date %m+% months(-2) & date < min_date %m+% months(-1) ~ -2,
+  mutate(date_bin = case_when(date >= min_date %m+% months(-3) & date < min_date %m+% months(-2) ~ -3,
+                              date >= min_date %m+% months(-2) & date < min_date %m+% months(-1) ~ -2,
                               date >= min_date %m+% months(-1) & date < min_date ~ -1,
                               date >= max_date & date < max_date %m+% months(1) ~ 1,
                               date >= max_date %m+% months(1) & date < max_date %m+% months(2) ~ 2,
+                              date >= max_date %m+% months(2) & date < max_date %m+% months(3) ~ 3,
                               TRUE~NA_real_)) %>%
   filter(!is.na(date_bin))
 
 fig <- cell_figure %>%
-  group_by(lon_bin,lat_bin,date_bin) %>%
-  summarize(hours = sum(hours)) %>%
-  ungroup() %>%
+  # mutate(lat_bin = floor(lat_bin / 0.025) * 0.025,
+  #        lon_bin = floor(lon_bin / 0.025) * 0.025) %>%
+  # group_by(lon_bin,lat_bin,date_bin) %>%
+  # summarize(hours = sum(hours)) %>%
+  # ungroup() %>%
   ggplot() +
   geom_tile(aes(x = lon_bin,y=lat_bin,fill = hours)) +
   facet_wrap(~date_bin) + 
@@ -176,7 +186,7 @@ fig <- cell_figure %>%
   theme(panel.background = element_rect(fill ="black",color="black"),
         panel.grid.major =  element_line(color = "black"),
         panel.grid.minor = element_line(color = "black")) +
-  ggtitle(paste0("Transit time spent in 0.01 x 0.01 degree cells\n2 months prior to first attack to 2 months after last attack\nAttack location(s) shown as red dot(s)\nAttack(s) took place on ",paste(unique(attack_info$date),collapse=", ")))+
+  ggtitle(paste0("Transit time spent in 0.01 x 0.01 degree cells\n3 months prior to first attack to 3 months after last attack\nAttack location(s) shown as red dot(s)\nAttack(s) took place on ",paste(unique(attack_info$date),collapse=", ")))+
   scale_fill_gradientn(colours = pals::parula(100),
                        "Transit hours",
                        guide = "colourbar",
@@ -186,5 +196,5 @@ fig <- cell_figure %>%
   xlab("") +
   ylab("")
 
-ggsave(filename = "figs/nga_cell_2.eps", plot = fig, device = cairo_ps, width = 8.5, height = 8.5)
+ggsave(filename = "figs/nga_cell_2.eps", plot = fig, device = cairo_ps, width = 8.5, height = 6)
 
