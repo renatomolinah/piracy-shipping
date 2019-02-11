@@ -32,6 +32,21 @@ ASAM <- read_sf(dsn = "raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFa
   st_join(eez, join = st_intersects) %>%
   mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
 
+# Upload this to BQ
+bq_table(project = project,table = "asam",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_table(project = project,table = "asam",dataset = "piracy") %>% 
+  bq_table_upload(values = ASAM %>% 
+                    mutate(point=st_as_text(geometry)) %>%
+                    st_set_geometry(NULL) %>%
+                    dplyr::select(reference=Reference,
+                                  aggressor=Aggressor,
+                                  victim=Victim,
+                                  date=Date,
+                                  year=Year,
+                                  attack_eez,
+                                  point))
+
 # Define cell size for grid map
 cell_size <- 5 #degrees
 one_over_cellsize = 1/cell_size
