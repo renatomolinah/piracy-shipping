@@ -370,11 +370,11 @@ ggsave(filename = "../figs/shipping_piracy_overlay_bw_preso.eps", plot = ggplot(
         axis.ticks.y=element_blank(),
         legend.position = "bottom",
         legend.direction = "horizontal",
-        legend.title=element_text(size=15),
-        legend.text=element_text(size=15),
+        legend.title=element_text(size=20),
+        legend.text=element_text(size=20),
         strip.background =element_rect(fill="white"),
         plot.margin=grid::unit(c(0,0,0,0), "mm"),
-        plot.title = element_text(color="black",hjust=0,vjust=1, size=15),
+        plot.title = element_text(color="black",hjust=0,vjust=1, size=20),
         panel.background = element_rect(fill ="black"),
         panel.grid.major = element_blank())+ 
   scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(25000),labels=fancy_scientific) +
