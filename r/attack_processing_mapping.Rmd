@@ -322,7 +322,8 @@ overlay_fig_bw <-   ggplot() +
             colour = NA, na.rm = TRUE)+
     #scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
   theme_bw() +
-  theme(axis.title.x=element_blank(),
+  theme(plot.title = element_text(size=15),
+        axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
         axis.title.y=element_blank(),
@@ -347,11 +348,44 @@ overlay_fig_bw <-   ggplot() +
 geom_text(data = cluster_boxes %>% 
   mutate(lat_label = ifelse(cluster == "hotspot_malacca_straits",lat_max + 8,lat_max +6),
          lon_label = ifelse(cluster == "hotspot_malacca_straits",lon_max - (lon_max - lon_min)/2,lon_max +6)),aes(label = cluster_num, x=lon_label, y=lat_label),color="black",size = 8) + guides(fill=guide_legend(
-                 keywidth=0.4,
-                 keyheight=0.4,
+                 keywidth=0.25,
+                 keyheight=0.25,
                  default.unit="inch")
       )
 
 ggsave(filename = "../figs/shipping_piracy_overlay_bw.eps", plot = overlay_fig_bw, width = 8.5, height = 8.5/2)
+
+ggsave(filename = "../figs/shipping_piracy_overlay_bw_preso.eps", plot = ggplot() +
+  geom_tile(data = gridded_shipping_hours_processed %>%
+              filter(hours > 100),
+            aes(x = lon_bin, y = lat_bin, fill=hours), 
+            colour = NA, na.rm = TRUE)+
+  #scale_fill_viridis(na.value="white",name="Number of Attacks",option = "C", direction = -1, end = 0.95) +
+  theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title=element_text(size=15),
+        legend.text=element_text(size=15),
+        strip.background =element_rect(fill="white"),
+        plot.margin=grid::unit(c(0,0,0,0), "mm"),
+        plot.title = element_text(color="black",hjust=0,vjust=1, size=15),
+        panel.background = element_rect(fill ="black"),
+        panel.grid.major = element_blank())+ 
+  scale_fill_gradient2(name="Shipping Hours", low = "black", mid = "dodgerblue",high = "white",na.value = "black", trans = "log", midpoint = log(25000),labels=fancy_scientific) +
+  geom_sf(data = world.land,
+          fill = "grey30",
+          lwd = 0)+ 
+  ylim(c(-55,90)) +
+  geom_point(data = ASAM, aes(x = lon, y = lat),size = 0.01,color="red") + guides(fill=guide_legend(
+    keywidth=0.25,
+    keyheight=0.25,
+    default.unit="inch")
+  ), width = 8.5, height = 8.5/2)
 ```
 

@@ -199,3 +199,4 @@ AND distance_to_attack_km_bin <= 500
 point_analysis_summary <- bq_project_query(project, sql) %>%
   bq_table_download(max_results = Inf)
 write_csv(point_analysis_summary,path="point_analysis_summary.csv")
+
