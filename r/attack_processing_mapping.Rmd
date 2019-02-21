@@ -386,6 +386,7 @@ ggsave(filename = "../figs/shipping_piracy_overlay_bw_preso.eps", plot = ggplot(
     keywidth=0.25,
     keyheight=0.25,
     default.unit="inch")
-  ), width = 8.5, height = 8.5/2)
+  ) +
+      labs(title="Global shipping and piracy attacks"), width = 8.5, height = 8.5/2)
 ```
 
