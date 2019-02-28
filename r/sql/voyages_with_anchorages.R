@@ -10,15 +10,11 @@ master AS(SELECT
 anchorages.mmsi mmsi,
 anchorages.flag flag,
 anchorages.from_anchorage_id from_anchorage_id,
-CONCAT(b.anchor_group,
-'-',
-b.label) from_anchorage_name,
+b.s2id from_anchorage_name,
 b.label from_port_name,
 anchorages.departure_timestamp departure_timestamp,
 anchorages.to_anchorage_id to_anchorage_id,
-CONCAT(c.anchor_group,
-'-',
-c.label) to_anchorage_name,
+c.s2id to_anchorage_name,
 c.label to_port_name,
 anchorages.arrival_timestamp arrival_timestamp,
 anchorages.vessel_type vessel_type,
@@ -104,19 +100,17 @@ AND anchor1.rn = anchor2.rn_plus) anchorages
 LEFT JOIN (
 SELECT
 s2id,
-label,
-anchor_group
+label
 FROM
-`world-fishing-827.gfw_research.named_anchorages_20171120`) b
+`world-fishing-827.gfw_research.named_anchorages_v20180803_13b`) b
 ON
 anchorages.from_anchorage_id = b.s2id
 LEFT JOIN (
 SELECT
 s2id,
-label,
-anchor_group
+label
 FROM
-`world-fishing-827.gfw_research.named_anchorages_20171120`) c
+`world-fishing-827.gfw_research.named_anchorages_v20180803_13b`) c
 ON
 anchorages.to_anchorage_id = c.s2id
 )
