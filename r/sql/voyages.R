@@ -46,9 +46,6 @@ SUM(distance_km) total_distance_km,
 {clusters_aggregated},
 SUM(hours) total_hours,
 (SUM(distance_km) * 0.539957 / SUM(hours)) implied_speed_knots,
-SUM(main_fuel_consumption_mt) main_fuel_consumption_mt,
-SUM(aux_fuel_consumption_mt) aux_fuel_consumption_mt,
-SUM(total_fuel_consumption_mt) total_fuel_consumption_mt,
 SUM(CASE
 WHEN NOT(grid_has_previous_attacks IS NULL) THEN distance_km
 ELSE 0 END) attack_grid_distance_km,
@@ -109,14 +106,14 @@ s2id,
 lat to_anchorage_lat,
 lon to_anchorage_lon
 FROM
-`world-fishing-827.gfw_research.named_anchorages_20171120`),
+`world-fishing-827.gfw_research.named_anchorages_v20180803_13b`),
 from_anchorage_info AS(
 SELECT
 s2id,
 lat from_anchorage_lat,
 lon from_anchorage_lon
 FROM
-`world-fishing-827.gfw_research.named_anchorages_20171120`),
+`world-fishing-827.gfw_research.named_anchorages_v20180803_13b`),
 master AS(
 SELECT
 *
@@ -173,22 +170,19 @@ attacks_last_2_years,
 attacks_last_3_years,
 speed_m_s wind_speed_m_per_s,
 direction_degrees wind_direction_degrees,
-main_fuel_consumption_mt,
-aux_fuel_consumption_mt,
-total_fuel_consumption_mt,
+total_hours*(0.8 * POW(GREATEST(implied_speed_knots/design_speed,1), 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
+total_hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
+(total_hours*(0.8 * POW(GREATEST(implied_speed_knots/design_speed,1), 3))*main_sfc*engine_power/1000000 + total_hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt
+FROM
+master)
+SELECT
+*,
 price_usd_mt * total_fuel_consumption_mt total_fuel_cost_usd,
 3.17 * total_fuel_consumption_mt emissions_co2_kg,
 87 * main_fuel_consumption_mt + 57 * aux_fuel_consumption_mt emissions_nox_kg,
 20 * 3.3 * total_fuel_consumption_mt emissions_sox_kg
 FROM
-master)
-SELECT
-*
-FROM
 master_2
-WHERE
-total_distance_km > total_haversine_distance_km
-AND implied_speed_knots < design_speed_knots
 "
 )
 
