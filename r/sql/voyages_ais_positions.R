@@ -65,6 +65,8 @@ sql<-glue::glue("
                 ping_info.mmsi mmsi,
                 ping_info.start_lat start_lat,
                 ping_info.start_lon start_lon,
+                ping_info.start_timestamp start_timestamp,
+                ping_info.end_timestamp end_timestamp,
                 ping_info.hours hours,
                 ping_info.implied_speed implied_speed,
                 ping_info.avg_distance_km avg_distance_km,
@@ -89,7 +91,7 @@ sql<-glue::glue("
                 voyage_info.aux_sfc aux_sfc
                 FROM
                 ping_info
-                LEFT JOIN
+                JOIN
                 voyage_info
                 ON
                 ping_info.mmsi = voyage_info.mmsi
@@ -97,9 +99,6 @@ sql<-glue::glue("
                 AND ping_info.start_timestamp < voyage_info.arrival_timestamp)
 SELECT
 *,
-hours*(0.8 * POW(GREATEST(implied_speed/design_speed,1), 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
-hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
-(hours*(0.8 * POW(GREATEST(implied_speed/design_speed,1), 3))*main_sfc*engine_power/1000000 + hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt,
 {cluster_filters}
 FROM
 ais_info
