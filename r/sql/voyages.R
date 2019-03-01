@@ -103,6 +103,7 @@ fuel_index = 'BIX 380 CST'
 to_anchorage_info AS(
 SELECT
 s2id,
+iso3 to_country,
 lat to_anchorage_lat,
 lon to_anchorage_lon
 FROM
@@ -110,6 +111,7 @@ FROM
 from_anchorage_info AS(
 SELECT
 s2id,
+iso3 from_country,
 lat from_anchorage_lat,
 lon from_anchorage_lon
 FROM
@@ -146,14 +148,10 @@ aux_engine_power aux_engine_power_kW,
 design_speed design_speed_knots,
 main_sfc main_sfc_g_per_kWH,
 aux_sfc aux_sfc_g_per_kWH,
-from_anchorage_id from_anchorage,
-from_anchorage_name from_anchorage_group,
 from_port_name from_port,
-SPLIT(from_anchorage_name, ',')[SAFE_ORDINAL(2)] from_country,
-to_anchorage_id to_anchorage,
-to_anchorage_name to_anchorage_group,
+from_country,
 to_port_name to_port,
-SPLIT(to_anchorage_name, ',')[SAFE_ORDINAL(2)] to_country,
+to_country,
 DATE(departure_timestamp) departure_date,
 DATE(arrival_timestamp) arrival_date,
 total_distance_km,
@@ -171,9 +169,9 @@ attacks_last_3_years,
 speed_m_s wind_speed_m_per_s,
 direction_degrees wind_direction_degrees,
 price_usd_mt,
-total_hours*(0.8 * POW(GREATEST(implied_speed_knots/design_speed,1), 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
+total_hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
 total_hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
-(total_hours*(0.8 * POW(GREATEST(implied_speed_knots/design_speed,1), 3))*main_sfc*engine_power/1000000 + total_hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt
+(total_hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*main_sfc*engine_power/1000000 + total_hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt
 FROM
 master)
 SELECT
