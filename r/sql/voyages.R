@@ -170,6 +170,7 @@ attacks_last_2_years,
 attacks_last_3_years,
 speed_m_s wind_speed_m_per_s,
 direction_degrees wind_direction_degrees,
+price_usd_mt,
 total_hours*(0.8 * POW(GREATEST(implied_speed_knots/design_speed,1), 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
 total_hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
 (total_hours*(0.8 * POW(GREATEST(implied_speed_knots/design_speed,1), 3))*main_sfc*engine_power/1000000 + total_hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt
