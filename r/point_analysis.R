@@ -25,7 +25,7 @@ SELECT
   FLOOR(lon / 0.1) * 0.1 + 0.05 lon_bin,
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
-  STRING_AGG(DISTINCT voyage_id) voyage_id_array
+  ARRAY_AGG(DISTINCT voyage_id) voyage_id_array
 FROM
   ping_info
 GROUP BY
@@ -147,8 +147,11 @@ bq_table(project = project,table = "point_analysis_full",dataset = "piracy") %>%
   bq_table_delete()
 bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "point_analysis_full",dataset = "piracy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
-
+#https://stackoverflow.com/questions/52485871/distinct-count-across-bigquery-arrays
 sql<-"#standardSQL
+CREATE TEMP FUNCTION DistinctCount(arr ANY TYPE) AS (
+  (SELECT COUNT(DISTINCT x) FROM UNNEST(arr) AS x)
+);
 SELECT
   attack_reference,
   attack_eez,
@@ -162,7 +165,7 @@ SELECT
       ELSE CEILING(distance_to_attack_km/50)*50 END) distance_to_attack_km_bin,
   SUM(shipping_distance_traveled_km) shipping_distance_traveled_km,
   SUM(shipping_hours) shipping_hours,
-  ARRAY_CONCAT_AGG(DISTINCT voyage_id_array) voyage_id_array
+  DistinctCount(ARRAY_CONCAT_AGG(voyage_id_array)) unique_number_voyages
 FROM
   `ucsb-gfw.piracy.point_analysis_full`
 GROUP BY
