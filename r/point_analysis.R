@@ -11,23 +11,12 @@ sql <-
   SELECT
     lat,
     lon,
-    timestamp,
+    start_timestamp timestamp,
     hours,
-    avg_distance_km
+    avg_distance_km,
+    CONCAT(mmsi,'-',departure_timestamp) voyage_id
   FROM
-    `world-fishing-827.gfw_research.pipeline_p_p550_daily`
-  WHERE
-    lat < 90
-    AND lat > -90
-    AND lon < 180
-    AND lon >-180
-    AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
-    AND TIMESTAMP('2017-12-31')
-    AND mmsi IN (
-    SELECT
-      mmsi
-    FROM
-      `piracy.voyages_with_anchorages`))
+    `ucsb-gfw.piracy.voyages_ais_positions`)
 SELECT
   EXTRACT(date
   FROM
@@ -35,7 +24,8 @@ SELECT
   FLOOR(lat / 0.1) * 0.1 + 0.05 lat_bin,
   FLOOR(lon / 0.1) * 0.1 + 0.05 lon_bin,
   SUM(hours) hours,
-  SUM(avg_distance_km) distance_km
+  SUM(avg_distance_km) distance_km,
+  STRING_AGG(DISTINCT voyage_id) voyage_id_array
 FROM
   ping_info
 GROUP BY
@@ -171,7 +161,8 @@ SELECT
       WHEN distance_to_attack_km = 0 THEN 50
       ELSE CEILING(distance_to_attack_km/50)*50 END) distance_to_attack_km_bin,
   SUM(shipping_distance_traveled_km) shipping_distance_traveled_km,
-  SUM(shipping_hours) shipping_hours
+  SUM(shipping_hours) shipping_hours,
+  ARRAY_CONCAT_AGG(DISTINCT voyage_id_array) voyage_id_array
 FROM
   `ucsb-gfw.piracy.point_analysis_full`
 GROUP BY
