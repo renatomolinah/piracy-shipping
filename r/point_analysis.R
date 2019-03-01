@@ -9,14 +9,14 @@ sql <-
 #standardSQL
   WITH ping_info AS (
   SELECT
-    lat,
-    lon,
+    start_lat lat,
+    start_lon lon,
     start_timestamp timestamp,
     hours,
     avg_distance_km,
-    CONCAT(mmsi,'-',departure_timestamp) voyage_id
+    CONCAT(CAST(mmsi AS string),'-',CAST(departure_timestamp AS string)) voyage_id
   FROM
-    `ucsb-gfw.piracy.voyages_ais_positions`)
+    `ucsb-gfw.piracy.voyage_ais_positions`)
 SELECT
   EXTRACT(date
   FROM
@@ -49,7 +49,7 @@ WITH
   FROM
     `ucsb-gfw.piracy.asam`
   WHERE
-    date >= DATE(TIMESTAMP('2012-06-01'))),
+    date >= DATE(TIMESTAMP('2011-01-01'))),
   distinct_grids AS(
   SELECT
     DISTINCT lon_bin,
@@ -71,6 +71,8 @@ WITH
   final AS(
   SELECT
     attack_reference,
+    date_attack,
+    attack_eez,
     lon_bin,
     lat_bin,
     ST_Distance(attack_geog,
@@ -89,31 +91,63 @@ bq_table(project = project,table = "point_distance_lookup",dataset = "piracy") %
 bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "point_distance_lookup",dataset = "piracy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
 
-
-sql<- "#standardSQL
-  WITH filtered_attacks AS(
+sql<-"#standardSQL
+  WITH attack_info_1 AS(
   SELECT
-    reference attack_reference,
-    attack_eez,
-    date date_attack
+    reference attack_reference_1,
+    date date_attack_1,
+    ST_GEOGFROMTEXT(point) attack_geog_1
   FROM
-    `ucsb-gfw.piracy.asam`
-  WHERE
-    date >= DATE(TIMESTAMP('2012-06-01'))),
-  distance_lookup AS(
+    `ucsb-gfw.piracy.asam`),
+  attack_info_2 AS(
+  SELECT
+    reference attack_reference_2,
+    date date_attack_2,
+    ST_GEOGFROMTEXT(point) attack_geog_2
+  FROM
+    `ucsb-gfw.piracy.asam`),
+  joined_data AS(
   SELECT
     *
   FROM
-    `ucsb-gfw.piracy.point_distance_lookup`
-  LEFT JOIN
-    filtered_attacks USING (attack_reference)),
+    attack_info_1
+  CROSS JOIN
+    attack_info_2),
+  processed AS(
+  SELECT
+    attack_reference_1 attack_reference,
+    attack_reference_2,
+    ST_Distance(attack_geog_1,
+      attack_geog_2)/1000 distance_between_attacks_km,
+    DATE_DIFF(date_attack_1,
+      date_attack_2,
+      DAY) days_between_attacks
+  FROM
+    joined_data)
+SELECT
+  *
+FROM
+  processed"
+
+bq_table(project = project,table = "point_attacks_crossed",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "point_attacks_crossed",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
+
+sql<- "#standardSQL
+  WITH distance_lookup AS(
+  SELECT
+    *
+  FROM
+    `ucsb-gfw.piracy.point_distance_lookup`),
   gridded_shipping_hours AS(
   SELECT
     date date_shipping,
     hours shipping_hours,
     distance_km shipping_distance_traveled_km,
     lat_bin,
-    lon_bin
+    lon_bin,
+    voyage_id_array
   FROM
     `ucsb-gfw.piracy.point_analysis_gridded_shipping_hours` ),
   final AS(
@@ -129,7 +163,8 @@ sql<- "#standardSQL
     lon_bin shipping_lon_bin,
     distance_to_attack_m/1000 distance_to_attack_km,
     shipping_distance_traveled_km,
-    shipping_hours
+    shipping_hours,
+    voyage_id_array
   FROM
     gridded_shipping_hours
   JOIN
@@ -149,31 +184,58 @@ bq_project_query(project,query = sql, destination_table =  bq_table(project = pr
                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
 #https://stackoverflow.com/questions/52485871/distinct-count-across-bigquery-arrays
 sql<-"#standardSQL
-CREATE TEMP FUNCTION DistinctCount(arr ANY TYPE) AS (
-  (SELECT COUNT(DISTINCT x) FROM UNNEST(arr) AS x)
-);
+  CREATE TEMP FUNCTION DistinctCOUNT(arr ANY TYPE) AS ( (
+    SELECT
+      COUNT(DISTINCT x)
+    FROM
+      UNNEST(arr) AS x) ); WITH shipping_info AS(
+  SELECT
+    attack_reference,
+    attack_eez,
+    date_attack,
+    (CASE
+        WHEN days_since_attack = 0 THEN 30
+        WHEN days_since_attack <0 THEN FLOOR(days_since_attack/30)*30
+        ELSE CEILING(days_since_attack/30)*30 END) days_since_attack_bin,
+    (CASE
+        WHEN distance_to_attack_km = 0 THEN 50
+        ELSE CEILING(distance_to_attack_km/50)*50 END) distance_to_attack_km_bin,
+    SUM(shipping_distance_traveled_km) shipping_distance_traveled_km,
+    SUM(shipping_hours) shipping_hours,
+    DistinctCOUNT(ARRAY_CONCAT_AGG(voyage_id_array)) unique_number_voyages
+  FROM
+    `ucsb-gfw.piracy.point_analysis_full`
+  GROUP BY
+    attack_reference,
+    attack_eez,
+    date_attack,
+    days_since_attack_bin,
+    distance_to_attack_km_bin),
+  attack_info AS(
+  SELECT
+    attack_reference,
+    COUNT(*) number_attacks,
+    (CASE
+        WHEN days_between_attacks = 0 THEN 30
+        WHEN days_between_attacks <0 THEN FLOOR(days_between_attacks/30)*30
+        ELSE CEILING(days_between_attacks/30)*30 END) days_since_attack_bin,
+    (CASE
+        WHEN distance_between_attacks_km = 0 THEN 50
+        ELSE CEILING(distance_between_attacks_km/50)*50 END) distance_to_attack_km_bin
+  FROM
+    `ucsb-gfw.piracy.point_attacks_crossed`
+  GROUP BY
+    attack_reference,
+    days_since_attack_bin,
+    distance_to_attack_km_bin)
 SELECT
-  attack_reference,
-  attack_eez,
-  date_attack,
-  (CASE
-      WHEN days_since_attack = 0 THEN -30
-      WHEN days_since_attack <0 THEN FLOOR(days_since_attack/30)*30
-      ELSE CEILING(days_since_attack/30)*30 END) days_since_attack_bin,
-  (CASE
-      WHEN distance_to_attack_km = 0 THEN 50
-      ELSE CEILING(distance_to_attack_km/50)*50 END) distance_to_attack_km_bin,
-  SUM(shipping_distance_traveled_km) shipping_distance_traveled_km,
-  SUM(shipping_hours) shipping_hours,
-  DistinctCount(ARRAY_CONCAT_AGG(voyage_id_array)) unique_number_voyages
+  *
 FROM
-  `ucsb-gfw.piracy.point_analysis_full`
-GROUP BY
-  attack_reference,
-  attack_eez,
-  date_attack,
-  days_since_attack_bin,
-  distance_to_attack_km_bin"
+  shipping_info
+LEFT JOIN
+  attack_info USING(attack_reference,
+    days_since_attack_bin,
+    distance_to_attack_km_bin)"
 
 bq_table(project = project,table = "point_analysis_summary",dataset = "piracy") %>% 
   bq_table_delete()
