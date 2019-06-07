@@ -125,7 +125,7 @@ write_csv(cluster_boxes,"processed_data/cluster_boxes.csv")
 cluster_filters <- cluster_boxes %>%
   mutate(cluster_filter = paste0("(CASE WHEN (start_lat < ",lat_max, " AND start_lat > ",lat_min, " AND start_lon < ",lon_max," AND start_lon > ",lon_min,") THEN 1 ELSE 0 END) ",cluster))
 
-cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
+#cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 
 clusters_aggregated <- cluster_boxes %>%
   mutate(cluster_filter = paste0("(CASE WHEN SUM(",cluster,") > 0 THEN 1 ELSE 0 END) ",cluster))
@@ -204,7 +204,7 @@ expanded_asam <- expand.grid(date = date_range,
 # Only run if necessary!! Some of these are very large and expensive
 ##########################################################################################
 #source("sql/piracy_attacks.R") # Check - already run!
-#source("sql/cluster_filters.R") # Check - already run!
+#source("r/sql/cluster_filters.R") # Check - already run!
 #source("sql/vessel_info.R") # Check - already run!
 #source("sql/voyages_with_anchorages.R") # Check - already run!
 #source("sql/voyage_ais_positions.R")# Check - already run!
