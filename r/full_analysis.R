@@ -102,7 +102,7 @@ ASAM <- ASAM %>%
                              cluster == 3 ~ "hotspot_gulf_of_aden",
                              TRUE ~ "0")) %>%
   mutate(Hotspot = case_when(cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
-                             cluster == "hotspot_malacca_straits" ~ "Malacca Straits",
+                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
                              cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
                              cluster == "0" ~ "Outside of Hotspots"))
 

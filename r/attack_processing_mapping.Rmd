@@ -145,17 +145,18 @@ world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", 
 
 ```{r cluster_map}
 library(scico)
-palette = setNames(c(scico(4, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Gulf of Aden","Malacca Straits","South China Sea","Outside of Hotspots"))
+palette = setNames(c(scico(3, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Outside of Hotspots"))
 
-palette_bw = setNames(c(gray.colors(4),"black"),c("Gulf of Guinea","Gulf of Aden","Malacca Straits","South China Sea","Outside of Hotspots"))
+palette_bw = setNames(c(gray.colors(3),"black"),c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Outside of Hotspots"))
 
-ASAM$Hotspot <- factor(ASAM$Hotspot, levels = c("Gulf of Guinea","Gulf of Aden","Malacca Straits","South China Sea","Outside of Hotspots"))
+ASAM$Hotspot <- factor(ASAM$Hotspot, levels = c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Outside of Hotspots"))
 
 
 attack_time_series <- ASAM %>%
   group_by(year,Hotspot) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
+  mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Outside of Hotspots"))) %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_bar(stat="identity",aes(fill=Hotspot)) +
   scale_x_continuous(breaks=unique(ASAM$year)) +
@@ -170,6 +171,7 @@ attack_time_series_bw <- ASAM %>%
   group_by(year,Hotspot) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
+    mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Outside of Hotspots"))) %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_bar(stat="identity",aes(fill=Hotspot),color="black",size=0.25) +
   scale_fill_manual(values = palette_bw) +
