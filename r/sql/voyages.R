@@ -2,21 +2,6 @@
 # Emissions info from here: https://www.sciencedirect.com/science/article/pii/S1361920909001072
 # Price info scraped from bunkerindex.com
 # Calculate fuel consumption at trip level using average speed
-sql<- "#standardSQL
-SELECT
-  to_port,
-  from_port,
-  AVG(total_distance_km) mean_distance,
-  STDDEV(total_distance_km) sd_distance,
-  GREATEST(AVG(total_distance_km) - 2 * STDDEV(total_distance_km),0) min_distance_cutoff_2sd,
-  AVG(total_distance_km) + 2 * STDDEV(total_distance_km) max_distance_cutoff_2sd,
-  GREATEST(AVG(total_distance_km) - 3 * STDDEV(total_distance_km),0) min_distance_cutoff_3sd,
-  AVG(total_distance_km) + 3 * STDDEV(total_distance_km) max_distance_cutoff_3sd
-FROM
-  `ucsb-gfw.piracy.voyages`
-GROUP BY
-from_port,
-to_port"
 
 sql <-glue::glue(
   "
