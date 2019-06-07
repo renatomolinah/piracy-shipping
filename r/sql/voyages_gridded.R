@@ -32,6 +32,7 @@ ais_info AS(
   arrival_timestamp,
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
+  AVG(heading) heading,
   {clusters_aggregated}
   FROM
   `piracy.voyage_ais_positions`
@@ -100,8 +101,13 @@ grid_has_previous_attacks,
 attacks_last_1_year, 
 attacks_last_2_years, 
 attacks_last_3_years, 
+attacks_last_4_years, 
+attacks_last_5_years, 
+attacks_last_6_years, 
+attacks_last_7_years, 
   speed_m_s,
-direction_degrees
+direction_degrees,
+heading
   FROM
   ais_info
   LEFT JOIN
