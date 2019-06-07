@@ -84,8 +84,8 @@ ASAM <- ASAM %>%
 
 # Figure out clusters across all years
 # Cluster attacks together based on max distance between attacks and minimum number of attacks
-dist<- earth.dist(ASAM %>%
-                         dplyr::select(lat,lon), dist=T)
+dist<- earth.dist(ASAM  %>%
+                    dplyr::select(lat,lon), dist=T)
 # Set seed for reproducibility
 set.seed(101)
 # calcualte clusters for attacks
@@ -98,14 +98,12 @@ ASAM$cluster <-DBSCAN_temp$cluster
 
 ASAM <- ASAM %>%
   mutate(cluster = case_when(cluster == 1 ~ "hotspot_gulf_of_guinea",
-                             cluster == 2 ~ "hotspot_malacca_straits",
+                             cluster == 2 ~ "hotspot_southeast_asia",
                              cluster == 3 ~ "hotspot_gulf_of_aden",
-                             cluster == 4 ~ "hotspot_south_china_sea",
                              TRUE ~ "0")) %>%
   mutate(Hotspot = case_when(cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
                              cluster == "hotspot_malacca_straits" ~ "Malacca Straits",
-                             cluster == "hotspot_south_china_sea" ~ "South China Sea",
-                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                             cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
                              cluster == "0" ~ "Outside of Hotspots"))
 
 # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
@@ -113,11 +111,10 @@ cluster_boxes <- purrr::map(unique(ASAM$cluster),function(x){
   temp_df <- ASAM %>%
     filter(cluster == x)
   data.frame(cluster = x,
-             Hotspot = temp_df$Hotspot[1],
-             lon_min = min(temp_df$lon),
-             lat_min = min(temp_df$lat),
-             lon_max = max(temp_df$lon),
-             lat_max = max(temp_df$lat))
+             lon_min = min(temp_df$lon)-5,
+             lat_min = min(temp_df$lat)-5,
+             lon_max = max(temp_df$lon)+5,
+             lat_max = max(temp_df$lat) + 5)
 }) %>%
   bind_rows() %>%
   filter(cluster != "0")
@@ -143,7 +140,7 @@ write_csv(ASAM,"processed_data/attacks.csv")
 # Create expanded attack dataframe for every grid and date combination
 # To create summary stats for each combination
 # Will then join this to vessel track info in big query
-date_range <- seq(ymd('2009-01-01'),ymd('2017-12-31'), by = '1 day')
+date_range <- seq(ymd('2005-01-01'),ymd('2017-12-31'), by = '1 day')
 
 expanded_asam <- expand.grid(date = date_range,
                              grid_id = unique(ASAM$grid_id)) %>%
@@ -156,9 +153,13 @@ expanded_asam <- expand.grid(date = date_range,
               group_by(date,lon_bin,lat_bin) %>%
               summarize(number_attacks = n()),by=c("date","lon_bin","lat_bin")) %>%
   mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
-         attacks_last_1_year = rollapplyr(number_attacks, width = 365, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_2_years = rollapplyr(number_attacks, width = 730, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_3_years = rollapplyr(number_attacks, width = 1095, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
+         attacks_last_1_year = rollapplyr(number_attacks, width = 365*1, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_2_years = rollapplyr(number_attacks, width = 365*2, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_3_years = rollapplyr(number_attacks, width = 365*3, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_4_years = rollapplyr(number_attacks, width = 365*4, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_5_years = rollapplyr(number_attacks, width = 365*5, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_6_years = rollapplyr(number_attacks, width = 365*6, FUN = sum, na.rm=TRUE, partial = TRUE),
+         attacks_last_7_years = rollapplyr(number_attacks, width = 365*7, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
   # mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
   #        attacks_last_7_days = rollapplyr(number_attacks, width = 7, FUN = sum, na.rm=TRUE, partial = TRUE),
   #        attacks_last_14_days = rollapplyr(number_attacks, width = 14, FUN = sum, na.rm=TRUE, partial = TRUE),
