@@ -1,7 +1,7 @@
 ##########################################################################################
 ## Full analysis script for global piracy shipping paper with Renato Molina
 ## Gavin McDonald
-## May 1, 2018
+## June 7, 2018
 ##########################################################################################
 library(sf)
 library(lubridate)
@@ -27,7 +27,7 @@ ASAM <- read_sf(dsn = "raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFa
   mutate(Date = as_date(DateOfOcc),
          Year = year(Date)) %>%
   dplyr::select(-DateOfOcc) %>%
-  filter(Year > 2008 & Year < 2018) %>%
+  filter(Year > 2004 & Year < 2018) %>%
   `st_crs<-`(st_crs(eez)) %>%
   st_join(eez, join = st_intersects) %>%
   mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
