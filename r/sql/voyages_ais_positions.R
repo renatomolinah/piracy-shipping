@@ -19,6 +19,7 @@ sql<-glue::glue("
                 next_timestamp end_timestamp,
                 hours,
                 implied_speed,
+                heading,
                 avg_distance_km
                 FROM
                 `world-fishing-827.gfw_research.pipeline_p_p550_daily`
@@ -69,6 +70,7 @@ sql<-glue::glue("
                 ping_info.end_timestamp end_timestamp,
                 ping_info.hours hours,
                 ping_info.implied_speed implied_speed,
+                ping_info.heading heading,
                 ping_info.avg_distance_km avg_distance_km,
                 voyage_info.flag flag,
                 voyage_info.year year,
