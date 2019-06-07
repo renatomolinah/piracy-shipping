@@ -2,6 +2,22 @@
 # Emissions info from here: https://www.sciencedirect.com/science/article/pii/S1361920909001072
 # Price info scraped from bunkerindex.com
 # Calculate fuel consumption at trip level using average speed
+sql<- "#standardSQL
+SELECT
+  to_port,
+  from_port,
+  AVG(total_distance_km) mean_distance,
+  STDDEV(total_distance_km) sd_distance,
+  GREATEST(AVG(total_distance_km) - 2 * STDDEV(total_distance_km),0) min_distance_cutoff_2sd,
+  AVG(total_distance_km) + 2 * STDDEV(total_distance_km) max_distance_cutoff_2sd,
+  GREATEST(AVG(total_distance_km) - 3 * STDDEV(total_distance_km),0) min_distance_cutoff_3sd,
+  AVG(total_distance_km) + 3 * STDDEV(total_distance_km) max_distance_cutoff_3sd
+FROM
+  `ucsb-gfw.piracy.voyages`
+GROUP BY
+from_port,
+to_port"
+
 sql <-glue::glue(
   "
 #standardSQL
@@ -189,4 +205,38 @@ bq_table(project = project,table = "voyages",dataset = "piracy") %>%
   bq_table_delete()
 
 bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages",dataset = "piracy"),
+                 allowLargeResults = TRUE)
+
+# Create table that defines port-to-port distance cutoff values
+# Based on all voyages, then add column for outliers
+sql <- "#standardSQL
+  WITH outlier_info AS(
+  SELECT
+    to_port,
+    from_port,
+    AVG(total_distance_km) mean_distance,
+    STDDEV(total_distance_km) sd_distance,
+    GREATEST(AVG(total_distance_km) - 2 * STDDEV(total_distance_km),0) min_distance_cutoff_2sd,
+    AVG(total_distance_km) + 2 * STDDEV(total_distance_km) max_distance_cutoff_2sd,
+    GREATEST(AVG(total_distance_km) - 3 * STDDEV(total_distance_km),0) min_distance_cutoff_3sd,
+    AVG(total_distance_km) + 3 * STDDEV(total_distance_km) max_distance_cutoff_3sd
+  FROM
+    `ucsb-gfw.piracy.voyages`
+  GROUP BY
+    from_port,
+    to_port)
+SELECT
+  *,
+  IF(total_distance_km > min_distance_cutoff_2sd AND total_distance_km < max_distance_cutoff_2sd,FALSE,TRUE) outlier_2sd,
+  IF(total_distance_km > min_distance_cutoff_3sd AND total_distance_km < max_distance_cutoff_3sd,FALSE,TRUE) outlier_3sd
+FROM
+  `ucsb-gfw.piracy.voyages`
+LEFT JOIN
+  outlier_info USING(to_port,
+    from_port)"
+
+bq_table(project = project,table = "voyages_with_outliers",dataset = "piracy") %>% 
+  bq_table_delete()
+
+bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages_with_outliers",dataset = "piracy"),
                  allowLargeResults = TRUE)
