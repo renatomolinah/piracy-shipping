@@ -28,6 +28,10 @@ ASAM <- read_sf(dsn = "raw_data/ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFa
          Year = year(Date)) %>%
   dplyr::select(-DateOfOcc) %>%
   filter(Year > 2004 & Year < 2018) %>%
+  group_by(Reference) %>%
+  # Remove duplicates
+  filter(row_number() == 1) %>%
+  ungroup() %>%
   `st_crs<-`(st_crs(eez)) %>%
   st_join(eez, join = st_intersects) %>%
   mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))

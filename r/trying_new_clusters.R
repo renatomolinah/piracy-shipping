@@ -1,5 +1,5 @@
 ASAM_original <- ASAM
-
+world.land <- read_sf(dsn = "raw_data/ne_110m_land", layer = "ne_110m_land", stringsAsFactors = FALSE)
 cluster_boxes_original <- purrr::map(unique(ASAM_original$cluster),function(x){
   temp_df <- ASAM_original %>%
     filter(cluster == x)
