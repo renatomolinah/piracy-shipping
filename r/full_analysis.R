@@ -124,10 +124,10 @@ cluster_boxes <- purrr::map(unique(ASAM$cluster),function(x){
   filter(cluster != "0")
 
 write_csv(cluster_boxes,"processed_data/cluster_boxes.csv")
-
+cluster_boxes<-read_csv("processed_data/cluster_boxes.csv")
 # Create sql SELECT clauses for each hotspot cluster
 cluster_filters <- cluster_boxes %>%
-  mutate(cluster_filter = paste0("(CASE WHEN (start_lat < ",lat_max, " AND start_lat > ",lat_min, " AND start_lon < ",lon_max," AND start_lon > ",lon_min,") THEN 1 ELSE 0 END) ",cluster))
+  mutate(cluster_filter = paste0("(CASE WHEN (lat < ",lat_max, " AND lat > ",lat_min, " AND lon < ",lon_max," AND lon > ",lon_min,") THEN 1 ELSE 0 END) ",cluster))
 
 #cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 
@@ -207,7 +207,7 @@ expanded_asam <- expand.grid(date = date_range,
 # Run SQL queries
 # Only run if necessary!! Some of these are very large and expensive
 ##########################################################################################
-#source("sql/piracy_attacks.R") # Check - already run!
+#source("r/sql/piracy_attacks.R") # Check - already run!
 #source("r/sql/cluster_filters.R") # Check - already run!
 #source("sql/vessel_info.R") # Check - already run!
 #source("sql/voyages_with_anchorages.R") # Check - already run!
