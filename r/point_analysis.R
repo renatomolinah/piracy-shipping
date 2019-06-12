@@ -4,17 +4,44 @@ library(bigrquery)
 # Set up bigquery
 project <-  "ucsb-gfw"
 
+# Get region info
+# Will need to join attacks to closest region
+# https://stackoverflow.com/questions/53989172/sql-finding-the-closest-lat-lon-record-on-google-bigquery
+sql <-"#standardSQL
+  WITH region_points AS(
+  SELECT
+    CAST(SUBSTR(gridcode, 5, 7) AS FLOAT64) lon,
+    CAST(SUBSTR(gridcode, 17, 7) AS FLOAT64) lat,
+    IF(ARRAY_LENGTH(regions.ocean)=0,NULL,regions.ocean[ordinal(1)]) ocean,
+    IF(ARRAY_LENGTH(regions.major_fao)=0,NULL,regions.major_fao[ordinal(1)]) major_fao
+  FROM
+    `world-fishing-827.pipe_reference.spatial_measures`),
+  attack_points AS(
+  SELECT
+    ROUND(FLOOR(ST_Y(ST_GEOGFROMTEXT(point)) / 0.01) * 0.01,2) lat,
+    ROUND(FLOOR(ST_X(ST_GEOGFROMTEXT(point)) / 0.01) * 0.01,2) lon,
+    reference attack_reference
+  FROM
+    `piracy.asam`)
+ SELECT
+*
+FROM
+attack_points
+LEFT JOIN
+region_points
+USING(lat,lon)"
+
 sql <-
   "
 #standardSQL
   WITH ping_info AS (
   SELECT
-    start_lat lat,
-    start_lon lon,
-    start_timestamp timestamp,
+    lat,
+    lon,
+    timestamp,
     hours,
     avg_distance_km,
-    CONCAT(CAST(mmsi AS string),'-',CAST(departure_timestamp AS string)) voyage_id
+    trip_id
   FROM
     `ucsb-gfw.piracy.voyage_ais_positions`)
 SELECT
@@ -47,9 +74,7 @@ WITH
     date date_attack,
     ST_GEOGFROMTEXT(point) attack_geog
   FROM
-    `ucsb-gfw.piracy.asam`
-  WHERE
-    date >= DATE(TIMESTAMP('2011-01-01'))),
+    `ucsb-gfw.piracy.asam`),
   distinct_grids AS(
   SELECT
     DISTINCT lon_bin,
@@ -84,7 +109,7 @@ SELECT
 FROM
   final
 WHERE
-  distance_to_attack_m <= 1e6"
+  distance_to_attack_m <= 500e5"
 
 bq_table(project = project,table = "point_distance_lookup",dataset = "piracy") %>% 
   bq_table_delete()
