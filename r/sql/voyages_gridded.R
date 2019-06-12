@@ -23,8 +23,8 @@ ais_info AS(
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
   AVG(heading) heading,
-  SUM(hours*(0.8 * POW(implied_speed/design_speed, 3)))*main_sfc*engine_power/1000000 main_fuel_consumption_mt_inst,
-  SUM(hours)*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
+  SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
+  SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
   {clusters_aggregated}
   FROM
   `piracy.voyage_ais_positions`
