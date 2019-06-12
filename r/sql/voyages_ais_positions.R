@@ -6,104 +6,98 @@
 # Aux load factor of 0.5
 # Fuel consumption equation from that paper
 # For posterity, this carries old fuel consumption - but we will recalculate this at the voyage level in the last query
+
+cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 sql<-glue::glue("
 #standardSQL
-  WITH ping_info AS (
-                SELECT
-                mmsi,
-                lat start_lat,
-                lon start_lon,
-                timestamp start_timestamp,
-                next_lat end_lat,
-                next_lon end_lon,
-                next_timestamp end_timestamp,
-                hours,
-                implied_speed,
-                heading,
-                avg_distance_km
-                FROM
-                `world-fishing-827.gfw_research.pipeline_p_p550_daily`
-                WHERE
-                lat < 90
-                AND lat > -90
-                AND lon < 180
-                AND lon >-180
-                AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
-                AND TIMESTAMP('2017-12-31')
-                AND mmsi IN (
-                SELECT
-                mmsi
-                FROM
-                `piracy.voyages_with_anchorages`)),
-                voyage_info AS(
-                SELECT
-                mmsi,
-                flag,
-                EXTRACT(YEAR
-                FROM
-                departure_timestamp) AS year,
-                from_anchorage_id,
-                from_anchorage_name,
-                from_port_name,
-                departure_timestamp,
-                to_anchorage_id,
-                to_anchorage_name,
-                to_port_name,
-                arrival_timestamp,
-                vessel_type,
-                length,
-                engine_power,
-                crew,
-                tonnage,
-                aux_engine_power,
-                design_speed,
-                main_sfc,
-                aux_sfc
-                FROM
-                `ucsb-gfw.piracy.voyages_with_anchorages`),
-                ais_info AS(
-                SELECT
-                ping_info.mmsi mmsi,
-                ping_info.start_lat start_lat,
-                ping_info.start_lon start_lon,
-                ping_info.start_timestamp start_timestamp,
-                ping_info.end_timestamp end_timestamp,
-                ping_info.hours hours,
-                ping_info.implied_speed implied_speed,
-                ping_info.heading heading,
-                ping_info.avg_distance_km avg_distance_km,
-                voyage_info.flag flag,
-                voyage_info.year year,
-                voyage_info.from_anchorage_id from_anchorage_id,
-                voyage_info.from_anchorage_name from_anchorage_name,
-                voyage_info.from_port_name from_port_name,
-                voyage_info.departure_timestamp departure_timestamp,
-                voyage_info.to_anchorage_id to_anchorage_id,
-                voyage_info.to_anchorage_name to_anchorage_name,
-                voyage_info.to_port_name to_port_name,
-                voyage_info.arrival_timestamp arrival_timestamp,
-                voyage_info.vessel_type vessel_type,
-                voyage_info.length length,
-                voyage_info.engine_power engine_power,
-                voyage_info.crew crew,
-                voyage_info.tonnage tonnage,
-                voyage_info.aux_engine_power aux_engine_power,
-                voyage_info.design_speed design_speed,
-                voyage_info.main_sfc main_sfc,
-                voyage_info.aux_sfc aux_sfc
-                FROM
-                ping_info
-                JOIN
-                voyage_info
-                ON
-                ping_info.mmsi = voyage_info.mmsi
-                AND ping_info.start_timestamp > voyage_info.departure_timestamp
-                AND ping_info.start_timestamp < voyage_info.arrival_timestamp)
+  WITH 
+  vessel_info AS(
+  SELECT
+  mmsi,
+  year,
+  design_speed,
+  main_sfc,
+  aux_sfc,
+  engine_power,
+  aux_engine_power
+  FROM
+  `piracy.vessel_info`),
+  ping_info AS (
+  SELECT
+    CAST(ssvid AS INT64) mmsi,
+    lat,
+    lon,
+    timestamp,
+    hours,
+    implied_speed_knots,
+    heading,
+    avg_distance_m/1000 avg_distance_km
+  FROM
+    `world-fishing-827.gfw_research.pipe_production_b`
+  WHERE
+    lat < 90
+    AND lat > -90
+    AND lon < 180
+    AND lon >-180
+    AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
+    AND TIMESTAMP('2017-12-31')
+    AND CAST(ssvid AS INT64) IN (
+    SELECT
+      mmsi
+    FROM
+      `piracy.vessel_info`)),
+   voyage_info AS(
+  SELECT
+    mmsi,
+    year,
+    departure_timestamp,
+    arrival_timestamp,
+    trip_id
+  FROM
+    `ucsb-gfw.piracy.voyages_with_anchorages`),
+  ais_info AS(
+  SELECT
+    voyage_info.mmsi mmsi,
+    ping_info.lat lat,
+    ping_info.lon lon,
+    ping_info.timestamp timestamp,
+    ping_info.hours hours,
+    ping_info.implied_speed_knots implied_speed,
+    ping_info.heading heading,
+    ping_info.avg_distance_km avg_distance_km,
+    voyage_info.year year,
+    voyage_info.trip_id trip_id
+  FROM
+    ping_info
+  JOIN
+    voyage_info
+  ON
+    ping_info.mmsi = voyage_info.mmsi
+    AND ping_info.timestamp > voyage_info.departure_timestamp
+    AND ping_info.timestamp < voyage_info.arrival_timestamp),
+master AS(
 SELECT
-*,
-{cluster_filters}
+*
 FROM
 ais_info
+LEFT JOIN
+vessel_info
+USING(mmsi,year))
+SELECT
+  mmsi,
+  year,
+  trip_id,
+  lat,
+  lon,
+  timestamp,
+  avg_distance_km,
+  hours,
+  heading,
+  hours*(0.8 * POW(implied_speed/design_speed, 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt_inst,
+  hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
+                {cluster_filters}
+FROM
+  master
 "
 )
 
