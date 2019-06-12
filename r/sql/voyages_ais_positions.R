@@ -10,18 +10,17 @@
 cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 sql<-glue::glue("
 #standardSQL
-  WITH 
-  vessel_info AS(
+  WITH vessel_info AS(
   SELECT
-  mmsi,
-  year,
-  design_speed,
-  main_sfc,
-  aux_sfc,
-  engine_power,
-  aux_engine_power
+    mmsi,
+    year,
+    design_speed,
+    main_sfc,
+    aux_sfc,
+    engine_power,
+    aux_engine_power
   FROM
-  `piracy.vessel_info`),
+    `piracy.vessel_info`),
   ping_info AS (
   SELECT
     CAST(ssvid AS INT64) mmsi,
@@ -46,15 +45,23 @@ sql<-glue::glue("
       mmsi
     FROM
       `piracy.vessel_info`)),
-   voyage_info AS(
+  voyage_info AS(
   SELECT
     mmsi,
     year,
     departure_timestamp,
     arrival_timestamp,
-    trip_id
+    trip_id,
+    design_speed,
+    main_sfc,
+    aux_sfc,
+    engine_power,
+    aux_engine_power
   FROM
-    `ucsb-gfw.piracy.voyages_with_anchorages`),
+    `ucsb-gfw.piracy.voyages_with_anchorages`
+  LEFT JOIN
+    vessel_info USING(mmsi,
+      year)),
   ais_info AS(
   SELECT
     voyage_info.mmsi mmsi,
@@ -66,7 +73,12 @@ sql<-glue::glue("
     ping_info.heading heading,
     ping_info.avg_distance_km avg_distance_km,
     voyage_info.year year,
-    voyage_info.trip_id trip_id
+    voyage_info.trip_id trip_id,
+    voyage_info.design_speed,
+    voyage_info.main_sfc,
+    voyage_info.aux_sfc,
+    voyage_info.engine_power,
+    voyage_info.aux_engine_power
   FROM
     ping_info
   JOIN
@@ -74,15 +86,7 @@ sql<-glue::glue("
   ON
     ping_info.mmsi = voyage_info.mmsi
     AND ping_info.timestamp > voyage_info.departure_timestamp
-    AND ping_info.timestamp < voyage_info.arrival_timestamp),
-master AS(
-SELECT
-*
-FROM
-ais_info
-LEFT JOIN
-vessel_info
-USING(mmsi,year))
+    AND ping_info.timestamp < voyage_info.arrival_timestamp)
 SELECT
   mmsi,
   year,
@@ -95,9 +99,9 @@ SELECT
   heading,
   hours*(0.8 * POW(implied_speed/design_speed, 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt_inst,
   hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
-                {cluster_filters}
+  {cluster_filters}
 FROM
-  master
+  ais_info
 "
 )
 

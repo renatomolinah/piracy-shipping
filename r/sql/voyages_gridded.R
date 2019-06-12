@@ -17,9 +17,8 @@ ais_info AS(
   mmsi,
   FLOOR(lat/5) * 5 lat_bin,
   FLOOR(lon/5) * 5 lon_bin,
-  from_anchorage_id,
-  departure_timestamp,
-  DATE(departure_timestamp) departure_date,
+  trip_id,
+  DATE(timestamp) departure_date,
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
   AVG(heading) heading,
@@ -28,17 +27,11 @@ ais_info AS(
   {clusters_aggregated}
   FROM
   `piracy.voyage_ais_positions`
-  JOIN
-  SELECT
-  mmsi,year,design_speed,main_sfc,engine_power,aux_engine_power,aux_sfc
-  FROM vessel_info
-  USING(mmsi,year)
   GROUP BY
   mmsi,
   lat_bin,
   lon_bin
-  from_anchorage_id,
-  departure_timestamp),
+  trip_id),
   voyage_info AS(
   SELECT
   *
@@ -54,8 +47,7 @@ piracy_attacks AS(
   SELECT
   *
     FROM
-  `piracy.piracy_attacks`),
-master AS(
+  `piracy.piracy_attacks`)
   SELECT
   ais_info.departure_date departure_date,
   ais_info.lat_bin lat_bin,
@@ -73,10 +65,10 @@ master AS(
   main_sfc,
   aux_sfc,
   from_anchorage_id,
-  from_port_name,
+  from_port from_port_name,
   departure_timestamp,
   to_anchorage_id,
-  to_port_name,
+  to_port to_port_name,
   arrival_timestamp,
   distance_km,
   hours,
@@ -95,7 +87,9 @@ attacks_last_6_years,
 attacks_last_7_years, 
   speed_m_s,
 direction_degrees,
-heading
+# Wind vector relative to direction of travel
+# Positive is tailwind, negative is headwind
+COS(RADIANS(direction_degrees - heading)) * speed_m_s wind_vector
   FROM
   ais_info
   LEFT JOIN
@@ -115,14 +109,7 @@ heading
   USING(mmsi,year)
   LEFT JOIN
   voyage_info
-  USING(mmsi,departure_timestamp,from_anchorage_id))
-SELECT
-*,
-# Wind vector relative to direction of travel
-# Positive is tailwind, negative is headwind
-COS(RADIANS(direction_degrees - heading)) * speed_m_s wind_vec
-  FROM
-master
+  USING(mmsi,trip_id))
 ")
 bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
   bq_table_delete()
