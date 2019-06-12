@@ -54,7 +54,10 @@ FROM
 LEFT JOIN
   from_anchorage_info USING(from_anchorage_id)
 LEFT JOIN
-  to_anchorage_info USING(to_anchorage_id)"
+  to_anchorage_info USING(to_anchorage_id)
+WHERE
+NOT from_anchorage_id = to_anchorage_id
+AND NOT from_port = to_port"
 
 bq_table(project = project,table = "voyages_with_anchorages",dataset = "piracy") %>% 
   bq_table_delete()
