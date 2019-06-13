@@ -323,12 +323,32 @@ bq_project_query(project,query = sql, destination_table =  bq_table(project = pr
 
 # Pull in data we want
 sql<-"
+#standardSQL
+WITH
+master AS(
 SELECT * 
 FROM `piracy.point_analysis_summary` 
 WHERE 
 distance_to_attack_km_bin <= 500
 AND date_attack >= DATE(TIMESTAMP('2013-01-01'))
-AND date_attack < DATE(TIMESTAMP('2018-01-01'))
+AND date_attack < DATE(TIMESTAMP('2018-01-01'))),
+cumulative_info AS(
+SELECT 
+attack_reference,
+days_since_attack_bin,
+SUM(number_attacks) cumulative_attacks_across_space
+FROM master
+GROUP BY
+attack_reference,
+days_since_attack_bin)
+SELECT
+*
+FROM
+master
+LEFT JOIN
+cumulative_info
+USING(attack_reference,
+days_since_attack_bin)
 "
 
 point_analysis_summary <- bq_project_query(project, sql) %>%
