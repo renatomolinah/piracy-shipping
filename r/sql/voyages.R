@@ -69,7 +69,10 @@ ELSE (SUM(speed_m_s * hours) / SUM(hours))
 END) speed_m_s,
 (CASE WHEN SUM(hours) = 0 THEN AVG(direction_degrees)
 ELSE (SUM(direction_degrees * hours) / SUM(hours))
-END) direction_degrees
+END) direction_degrees,
+(CASE WHEN SUM(hours) = 0 THEN AVG(wind_vector)
+ELSE (SUM(wind_vector * hours) / SUM(hours))
+END) wind_vector
 FROM
 `piracy.voyages_gridded`
 WHERE
@@ -177,18 +180,19 @@ attacks_last_6_years,
 attacks_last_7_years,
 speed_m_s wind_speed_m_per_s,
 direction_degrees wind_direction_degrees,
+wind_vector,
 price_usd_mt,
-total_hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt,
-total_hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt,
-(total_hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*main_sfc*engine_power/1000000 + total_hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt
+total_hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt_voyage,
+total_hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt_voyage,
+(total_hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*main_sfc*engine_power/1000000 + total_hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt_voyage
 FROM
 master)
 SELECT
 *,
-price_usd_mt * total_fuel_consumption_mt total_fuel_cost_usd,
-3.17 * total_fuel_consumption_mt emissions_co2_kg,
-87 * main_fuel_consumption_mt + 57 * aux_fuel_consumption_mt emissions_nox_kg,
-20 * 3.3 * total_fuel_consumption_mt emissions_sox_kg
+price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
+3.17 * total_fuel_consumption_mt_voyage emissions_co2_kg_voyage,
+87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt emissions_nox_kg_voyage,
+20 * 3.3 * total_fuel_consumption_mt_voyage emissions_sox_kg_voyage
 FROM
 master_2
 "
