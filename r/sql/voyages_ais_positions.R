@@ -15,8 +15,6 @@ sql<-glue::glue("
     mmsi,
     year,
     design_speed,
-    main_sfc,
-    aux_sfc,
     engine_power,
     aux_engine_power
   FROM
@@ -39,12 +37,7 @@ sql<-glue::glue("
     AND lon < 180
     AND lon >-180
     AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
-    AND TIMESTAMP('2017-12-31')
-    AND CAST(ssvid AS INT64) IN (
-    SELECT
-      mmsi
-    FROM
-      `piracy.vessel_info`)),
+    AND TIMESTAMP('2017-12-31')),
   voyage_info AS(
   SELECT
     mmsi,
@@ -53,8 +46,6 @@ sql<-glue::glue("
     arrival_timestamp,
     trip_id,
     design_speed,
-    main_sfc,
-    aux_sfc,
     engine_power,
     aux_engine_power
   FROM
@@ -75,8 +66,6 @@ sql<-glue::glue("
     voyage_info.year year,
     voyage_info.trip_id trip_id,
     voyage_info.design_speed,
-    voyage_info.main_sfc,
-    voyage_info.aux_sfc,
     voyage_info.engine_power,
     voyage_info.aux_engine_power
   FROM
@@ -97,8 +86,9 @@ SELECT
   avg_distance_km,
   hours,
   heading,
-  hours*(0.8 * POW(implied_speed/design_speed, 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt_inst,
-  hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
+  #main_sfc is always 206; aux_sfc is always 221
+  hours*(0.8 * POW(implied_speed/design_speed, 3))*206*engine_power/1000000 main_fuel_consumption_mt_inst,
+  hours*0.5*221*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
   {cluster_filters}
 FROM
   ais_info
