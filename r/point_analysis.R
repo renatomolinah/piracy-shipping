@@ -13,7 +13,8 @@ sql <-"#standardSQL
     CAST(SUBSTR(gridcode, 5, 7) AS FLOAT64) lon,
     CAST(SUBSTR(gridcode, 17, 7) AS FLOAT64) lat,
     IF(ARRAY_LENGTH(regions.ocean)=0,NULL,regions.ocean[ordinal(1)]) ocean,
-    IF(ARRAY_LENGTH(regions.major_fao)=0,NULL,regions.major_fao[ordinal(1)]) major_fao
+    IF(ARRAY_LENGTH(regions.major_fao)=0,NULL,regions.major_fao[ordinal(1)]) major_fao,
+    CAST(IF(ARRAY_LENGTH(regions.eez)=0,NULL,regions.eez[ordinal(1)]) AS INT64) eez_id
   FROM
     `world-fishing-827.pipe_reference.spatial_measures`),
   attack_points AS(
@@ -25,11 +26,23 @@ sql <-"#standardSQL
     `piracy.asam`)
  SELECT
 *
+EXCEPT(eez_id)
 FROM
 attack_points
 LEFT JOIN
 region_points
-USING(lat,lon)"
+USING(lat,lon)
+LEFT JOIN(SELECT
+eez_id,
+sovereign1_iso3
+FROM
+`world-fishing-827.gfw_research.eez_info`)
+USING(eez_id)"
+
+bq_table(project = project,table = "asam_regions",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "asam_regions",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
 
 sql <-
   "
@@ -70,7 +83,6 @@ WITH
   filtered_attacks AS(
   SELECT
     reference attack_reference,
-    attack_eez,
     date date_attack,
     ST_GEOGFROMTEXT(point) attack_geog
   FROM
@@ -97,7 +109,6 @@ WITH
   SELECT
     attack_reference,
     date_attack,
-    attack_eez,
     lon_bin,
     lat_bin,
     ST_Distance(attack_geog,
@@ -120,7 +131,6 @@ sql<-"#standardSQL
   WITH attack_info_1 AS(
   SELECT
     reference attack_reference_1,
-    attack_eez,
     date date_attack_1,
     ST_GEOGFROMTEXT(point) attack_geog_1
   FROM
@@ -143,7 +153,6 @@ sql<-"#standardSQL
   SELECT
     attack_reference_1 attack_reference,
     attack_reference_2,
-    attack_eez,
     date_attack_1 date_attack,
     ST_Distance(attack_geog_1,
       attack_geog_2)/1000 distance_between_attacks_km,
@@ -181,7 +190,6 @@ sql<- "#standardSQL
   final AS(
   SELECT
     attack_reference,
-    attack_eez,
     date_attack,
     date_shipping,
     DATE_DIFF(date_shipping,
@@ -201,10 +209,7 @@ sql<- "#standardSQL
 SELECT
   *
 FROM
-  final
-WHERE
-  days_since_attack <= 365
-  AND days_since_attack >= -365"
+  final"
 
 bq_table(project = project,table = "point_analysis_full",dataset = "piracy") %>% 
   bq_table_delete()
@@ -220,12 +225,11 @@ sql<-"#standardSQL
       UNNEST(arr) AS x) );
   SELECT
     attack_reference,
-    attack_eez,
     date_attack,
     (CASE
-        WHEN days_since_attack = 0 THEN 30
-        WHEN days_since_attack <0 THEN FLOOR(days_since_attack/30)*30
-        ELSE CEILING(days_since_attack/30)*30 END) days_since_attack_bin,
+        WHEN days_since_attack = 0 THEN 90
+        WHEN days_since_attack <0 THEN FLOOR(days_since_attack/90)*90
+        ELSE CEILING(days_since_attack/90)*90 END) days_since_attack_bin,
     (CASE
         WHEN distance_to_attack_km = 0 THEN 50
         ELSE CEILING(distance_to_attack_km/50)*50 END) distance_to_attack_km_bin,
@@ -236,7 +240,6 @@ sql<-"#standardSQL
     `ucsb-gfw.piracy.point_analysis_full`
   GROUP BY
     attack_reference,
-    attack_eez,
     date_attack,
     days_since_attack_bin,
     distance_to_attack_km_bin"
@@ -247,15 +250,15 @@ bq_project_query(project,query = sql, destination_table =  bq_table(project = pr
                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
 
 sql<-"#standardSQL
-SELECT
+  WITH master AS(
+  SELECT
     attack_reference,
-    attack_eez,
     date_attack,
     COUNT(*) number_attacks,
     (CASE
-        WHEN days_between_attacks = 0 THEN 30
-        WHEN days_between_attacks <0 THEN FLOOR(days_between_attacks/30)*30
-        ELSE CEILING(days_between_attacks/30)*30 END) days_since_attack_bin,
+        WHEN days_between_attacks = 0 THEN 90
+        WHEN days_between_attacks <0 THEN FLOOR(days_between_attacks/90)*90
+        ELSE CEILING(days_between_attacks/90)*90 END) days_since_attack_bin,
     (CASE
         WHEN distance_between_attacks_km = 0 THEN 50
         ELSE CEILING(distance_between_attacks_km/50)*50 END) distance_to_attack_km_bin
@@ -263,10 +266,21 @@ SELECT
     `ucsb-gfw.piracy.point_attacks_crossed`
   GROUP BY
     attack_reference,
-    attack_eez,
     date_attack,
     days_since_attack_bin,
-    distance_to_attack_km_bin"
+    distance_to_attack_km_bin)
+SELECT
+  *
+FROM
+  master
+LEFT JOIN (
+  SELECT
+    attack_reference,
+    ocean,
+    major_fao,
+    sovereign1_iso3 eez
+  FROM
+    `ucsb-gfw.piracy.asam_regions`) USING(attack_reference)"
 
 bq_table(project = project,table = "point_summary_attacks",dataset = "piracy") %>% 
   bq_table_delete()
@@ -300,7 +314,6 @@ JOIN
   attack_info USING(attack_reference,
     days_since_attack_bin,
     distance_to_attack_km_bin,
-    attack_eez,
     date_attack)"
 
 bq_table(project = project,table = "point_analysis_summary",dataset = "piracy") %>% 
@@ -313,9 +326,7 @@ sql<-"
 SELECT * 
 FROM `piracy.point_analysis_summary` 
 WHERE 
-days_since_attack_bin > -390 
-AND days_since_attack_bin < 390 
-AND distance_to_attack_km_bin <= 500
+distance_to_attack_km_bin <= 500
 AND date_attack >= DATE(TIMESTAMP('2013-01-01'))
 AND date_attack < DATE(TIMESTAMP('2018-01-01'))
 "
