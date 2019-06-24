@@ -74,8 +74,8 @@ sql<-glue::glue("
     voyage_info
   ON
     ping_info.mmsi = voyage_info.mmsi
-    AND ping_info.timestamp > voyage_info.departure_timestamp
-    AND ping_info.timestamp < voyage_info.arrival_timestamp)
+    AND ping_info.timestamp >= voyage_info.departure_timestamp
+    AND ping_info.timestamp <= voyage_info.arrival_timestamp)
 SELECT
   mmsi,
   year,

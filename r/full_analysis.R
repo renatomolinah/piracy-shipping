@@ -211,7 +211,7 @@ expanded_asam <- expand.grid(date = date_range,
 #source("r/sql/cluster_filters.R") # Check - already run!
 #source("sql/vessel_info.R") # Check - already run!
 #source("sql/voyages_with_anchorages.R") # Check - already run!
-#source("sql/voyage_ais_positions.R")# Check - already run!
-#source("sql/voyages_gridded.R")# Check - already run!
-#source("sql/voyages.R")# Check - already run!
-#source("sql/gridded_shipping_hours.R")# Check - already run!
+#source("sql/voyage_ais_positions.R")
+#source("sql/voyages_gridded.R")#
+#source("sql/voyages.R")
+#source("sql/gridded_shipping_hours.R")
