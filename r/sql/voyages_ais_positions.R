@@ -8,6 +8,7 @@
 # For posterity, this carries old fuel consumption - but we will recalculate this at the voyage level in the last query
 
 cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
+
 sql<-glue::glue("
 #standardSQL
   WITH vessel_info AS(
@@ -21,38 +22,18 @@ sql<-glue::glue("
     `piracy.vessel_info`),
   ping_info AS (
   SELECT
-    CAST(ssvid AS INT64) mmsi,
-    lat,
-    lon,
-    timestamp,
-    hours,
-    implied_speed_knots,
-    heading,
-    avg_distance_m/1000 avg_distance_km
+    *
   FROM
-    `world-fishing-827.gfw_research.pipe_production_b`
-  WHERE
-    lat < 90
-    AND lat > -90
-    AND lon < 180
-    AND lon >-180
-    AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
-    AND TIMESTAMP('2017-12-31')),
+    `ucsb-gfw.piracy.filtered_ais_pings`),
   voyage_info AS(
   SELECT
     mmsi,
     year,
     departure_timestamp,
     arrival_timestamp,
-    trip_id,
-    design_speed,
-    engine_power,
-    aux_engine_power
+    trip_id
   FROM
-    `ucsb-gfw.piracy.voyages_with_anchorages`
-  LEFT JOIN
-    vessel_info USING(mmsi,
-      year)),
+    `ucsb-gfw.piracy.voyages_with_anchorages`),
   ais_info AS(
   SELECT
     voyage_info.mmsi mmsi,
@@ -64,10 +45,7 @@ sql<-glue::glue("
     ping_info.heading heading,
     ping_info.avg_distance_km avg_distance_km,
     voyage_info.year year,
-    voyage_info.trip_id trip_id,
-    voyage_info.design_speed,
-    voyage_info.engine_power,
-    voyage_info.aux_engine_power
+    voyage_info.trip_id trip_id
   FROM
     ping_info
   JOIN
@@ -75,7 +53,15 @@ sql<-glue::glue("
   ON
     ping_info.mmsi = voyage_info.mmsi
     AND ping_info.timestamp >= voyage_info.departure_timestamp
-    AND ping_info.timestamp <= voyage_info.arrival_timestamp)
+    AND ping_info.timestamp <= voyage_info.arrival_timestamp),
+  all_info AS(
+  SELECT
+    *
+  FROM
+    ais_info
+  LEFT JOIN
+    vessel_info USING(mmsi,
+      year) )
 SELECT
   mmsi,
   year,
@@ -91,7 +77,7 @@ SELECT
   hours*0.5*221*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
   {cluster_filters}
 FROM
-  ais_info
+  all_info
 "
 )
 
