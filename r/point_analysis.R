@@ -65,7 +65,7 @@ SELECT
   FLOOR(lon / 0.1) * 0.1 + 0.05 lon_bin,
   SUM(hours) hours,
   SUM(avg_distance_km) distance_km,
-  ARRAY_AGG(DISTINCT voyage_id) voyage_id_array
+  ARRAY_AGG(DISTINCT trip_id) voyage_id_array
 FROM
   ping_info
 GROUP BY
@@ -176,7 +176,8 @@ sql<- "#standardSQL
   SELECT
     *
   FROM
-    `ucsb-gfw.piracy.point_distance_lookup`),
+    `ucsb-gfw.piracy.point_distance_lookup`
+  WHERE distance_to_attack_m <= 500000),
   gridded_shipping_hours AS(
   SELECT
     date date_shipping,
@@ -192,10 +193,7 @@ sql<- "#standardSQL
     attack_reference,
     date_attack,
     date_shipping,
-    DATE_DIFF(date_shipping,
-      date_attack,
-      DAY) days_since_attack,
-          lat_bin shipping_lat_bin,
+    lat_bin shipping_lat_bin,
     lon_bin shipping_lon_bin,
     distance_to_attack_m/1000 distance_to_attack_km,
     shipping_distance_traveled_km,
@@ -207,7 +205,10 @@ sql<- "#standardSQL
     distance_lookup USING(lon_bin,
       lat_bin))
 SELECT
-  *
+  *,
+    DATE_DIFF(date_shipping,
+      date_attack,
+      DAY) days_since_attack
 FROM
   final"
 
@@ -280,7 +281,8 @@ LEFT JOIN (
     major_fao,
     sovereign1_iso3 eez
   FROM
-    `ucsb-gfw.piracy.asam_regions`) USING(attack_reference)"
+    `ucsb-gfw.piracy.asam_regions`) USING(attack_reference)
+WHERE distance_to_attack_km_bin <= 500"
 
 bq_table(project = project,table = "point_summary_attacks",dataset = "piracy") %>% 
   bq_table_delete()
@@ -330,7 +332,6 @@ SELECT *
 FROM `piracy.point_analysis_summary` 
 WHERE 
 distance_to_attack_km_bin <= 500
-AND date_attack >= DATE(TIMESTAMP('2013-01-01'))
 AND date_attack < DATE(TIMESTAMP('2018-01-01'))),
 cumulative_info AS(
 SELECT 
@@ -351,8 +352,13 @@ USING(attack_reference,
 days_since_attack_bin)
 "
 
-point_analysis_summary <- bq_project_query(project, sql) %>%
+bq_table(project = project,table = "point_analysis_cumulative",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "point_analysis_cumulative",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
+
+point_analysis_cumulative <- bq_project_query(project, "SELECT * FROM `piracy.point_analysis_cumulative`") %>%
   bq_table_download(max_results = Inf)
 
-write_csv(point_analysis_summary,path="point_analysis_summary.csv")
+write_csv(point_analysis_summary,path="processed_data/point_analysis.csv")
 
