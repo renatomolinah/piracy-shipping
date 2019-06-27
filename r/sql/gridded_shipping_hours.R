@@ -4,9 +4,9 @@ sql <-
   "
 #standardSQL
 SELECT
-EXTRACT(year FROM departure_timestamp) year,
-FLOOR(start_lat / 0.5) * 0.5 lat_bin,
-FLOOR(start_lon / 0.5) * 0.5 lon_bin,
+year,
+FLOOR(lat / 0.5) * 0.5 lat_bin,
+FLOOR(lon / 0.5) * 0.5 lon_bin,
 SUM(hours) hours
 FROM
 `piracy.voyage_ais_positions`
