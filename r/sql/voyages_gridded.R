@@ -5,6 +5,9 @@
 
 sql <-glue::glue("
   #standardSQL
+  CREATE TEMP FUNCTION RADIANS(x FLOAT64) AS (
+ACOS(-1) * x / 180
+);
   WITH
   vessel_info AS(
   SELECT
@@ -30,8 +33,9 @@ ais_info AS(
   GROUP BY
   mmsi,
   lat_bin,
-  lon_bin
-  trip_id),
+  lon_bin,
+  trip_id,
+  departure_date),
   voyage_info AS(
   SELECT
   *
@@ -105,11 +109,11 @@ COS(RADIANS(direction_degrees - heading)) * speed_m_s wind_vector
   AND ais_info.lat_bin = piracy_attacks.lat_bin
   AND ais_info.lon_bin = piracy_attacks.lon_bin
   LEFT JOIN
+  voyage_info
+  USING(mmsi,trip_id)
+  LEFT JOIN
   vessel_info
   USING(mmsi,year)
-  LEFT JOIN
-  voyage_info
-  USING(mmsi,trip_id))
 ")
 bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
   bq_table_delete()
