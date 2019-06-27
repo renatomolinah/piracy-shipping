@@ -352,7 +352,7 @@ overlay_fig_bw <-   ggplot() +
   geom_point(data = ASAM, aes(x = lon, y = lat),size = 0.1) +
     geom_sf(data = cluster_boxes_map,color="black",fill=NA,size=1) +
 geom_label(data = cluster_boxes %>% 
-  mutate(lat_label = lat_max + 16,
+  mutate(lat_label = lat_max + 12,
          lon_label = lon_max - (lon_max - lon_min)/2),
 aes(label = cluster_num, x=lon_label, y=lat_label),color="black",fill="gray55",size = 8) + guides(fill=guide_legend(
                  keywidth=0.25,
