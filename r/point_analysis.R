@@ -360,5 +360,5 @@ bq_project_query(project,query = sql, destination_table =  bq_table(project = pr
 point_analysis_cumulative <- bq_project_query(project, "SELECT * FROM `piracy.point_analysis_cumulative`") %>%
   bq_table_download(max_results = Inf)
 
-write_csv(point_analysis_summary,path="processed_data/point_analysis.csv")
+write_csv(point_analysis_cumulative,path="processed_data/point_analysis.csv")
 
