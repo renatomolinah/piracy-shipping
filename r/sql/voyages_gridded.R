@@ -70,6 +70,7 @@ piracy_attacks AS(
   aux_sfc,
   from_anchorage_id,
   from_port from_port_name,
+  trip_id,
   departure_timestamp,
   to_anchorage_id,
   to_port to_port_name,

@@ -7,19 +7,9 @@
 # Fuel consumption equation from that paper
 # For posterity, this carries old fuel consumption - but we will recalculate this at the voyage level in the last query
 
-cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
-sql<-glue::glue("
+sql<-"
 #standardSQL
-  WITH vessel_info AS(
-  SELECT
-    mmsi,
-    year,
-    design_speed,
-    engine_power,
-    aux_engine_power
-  FROM
-    `piracy.vessel_info`),
-  ping_info AS (
+  with ais_info AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
     lat,
@@ -37,7 +27,40 @@ sql<-glue::glue("
     AND lon < 180
     AND lon >-180
     AND _PARTITIONTIME BETWEEN TIMESTAMP('2012-01-01')
-    AND TIMESTAMP('2017-12-31')),
+    AND TIMESTAMP('2017-12-31'))
+SELECT
+  *
+FROM
+  ais_info
+WHERE
+  mmsi IN(
+  SELECT
+    mmsi
+  FROM
+    `ucsb-gfw.piracy.voyages_with_anchorages`)"
+
+bq_table(project = project,table = "filtered_ais_positions",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "filtered_ais_positions",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
+
+ 
+cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
+sql<-glue::glue("
+#standardSQL
+  WITH vessel_info AS(
+  SELECT
+    mmsi,
+    year,
+    design_speed,
+    engine_power,
+    aux_engine_power
+  FROM
+    `ucsb-gfw.piracy.vessel_info`),
+  ping_info AS (
+    SELECT * FROM
+  `ucsb-gfw.piracy.filtered_ais_pings`
+  ),
   voyage_info AS(
   SELECT
     mmsi,
@@ -74,8 +97,8 @@ sql<-glue::glue("
     voyage_info
   ON
     ping_info.mmsi = voyage_info.mmsi
-    AND ping_info.timestamp >= voyage_info.departure_timestamp
-    AND ping_info.timestamp <= voyage_info.arrival_timestamp)
+    AND ping_info.timestamp > voyage_info.departure_timestamp
+    AND ping_info.timestamp < voyage_info.arrival_timestamp)
 SELECT
   mmsi,
   year,
