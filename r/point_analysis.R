@@ -228,9 +228,9 @@ sql<-"#standardSQL
     attack_reference,
     date_attack,
     (CASE
-        WHEN days_since_attack = 0 THEN 90
-        WHEN days_since_attack <0 THEN FLOOR(days_since_attack/90)*90
-        ELSE CEILING(days_since_attack/90)*90 END) days_since_attack_bin,
+        WHEN days_since_attack = 0 THEN 30
+        WHEN days_since_attack <0 THEN FLOOR(days_since_attack/30)*30
+        ELSE CEILING(days_since_attack/30)*30 END) days_since_attack_bin,
     (CASE
         WHEN distance_to_attack_km = 0 THEN 50
         ELSE CEILING(distance_to_attack_km/50)*50 END) distance_to_attack_km_bin,
@@ -257,9 +257,9 @@ sql<-"#standardSQL
     date_attack,
     COUNT(*) number_attacks,
     (CASE
-        WHEN days_between_attacks = 0 THEN 90
-        WHEN days_between_attacks <0 THEN FLOOR(days_between_attacks/90)*90
-        ELSE CEILING(days_between_attacks/90)*90 END) days_since_attack_bin,
+        WHEN days_between_attacks = 0 THEN 30
+        WHEN days_between_attacks <0 THEN FLOOR(days_between_attacks/30)*30
+        ELSE CEILING(days_between_attacks/30)*30 END) days_since_attack_bin,
     (CASE
         WHEN distance_between_attacks_km = 0 THEN 50
         ELSE CEILING(distance_between_attacks_km/50)*50 END) distance_to_attack_km_bin
