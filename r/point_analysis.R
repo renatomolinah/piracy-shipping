@@ -323,10 +323,18 @@ bq_table(project = project,table = "point_analysis_summary",dataset = "piracy") 
 bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "point_analysis_summary",dataset = "piracy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
 
+cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
+
 # Pull in data we want
-sql<-"
+sql<-glue::glue("
 #standardSQL
 WITH
+hotspots AS(
+SELECT
+attack_reference,
+{cluster_filters}
+FROM
+`piracy.asam_regions`), 
 master AS(
 SELECT * 
 FROM `piracy.point_analysis_summary` 
@@ -350,7 +358,10 @@ LEFT JOIN
 cumulative_info
 USING(attack_reference,
 days_since_attack_bin)
-"
+LEFT JOIN
+hotspots
+USING(attack_reference)
+")
 
 bq_table(project = project,table = "point_analysis_cumulative",dataset = "piracy") %>% 
   bq_table_delete()
@@ -361,4 +372,3 @@ point_analysis_cumulative <- bq_project_query(project, "SELECT * FROM `piracy.po
   bq_table_download(max_results = Inf)
 
 write_csv(point_analysis_cumulative,path="processed_data/point_analysis.csv")
-
