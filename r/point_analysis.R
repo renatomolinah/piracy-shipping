@@ -10,34 +10,62 @@ project <-  "ucsb-gfw"
 sql <-"#standardSQL
   WITH region_points AS(
   SELECT
-    CAST(SUBSTR(gridcode, 5, 7) AS FLOAT64) lon,
-    CAST(SUBSTR(gridcode, 17, 7) AS FLOAT64) lat,
+    ST_GeogPoint(CAST(SUBSTR(gridcode, 5, 7) AS FLOAT64),
+      CAST(SUBSTR(gridcode, 17, 7) AS FLOAT64)) region_point,
+    NULL,
     IF(ARRAY_LENGTH(regions.ocean)=0,NULL,regions.ocean[ordinal(1)]) ocean,
     IF(ARRAY_LENGTH(regions.major_fao)=0,NULL,regions.major_fao[ordinal(1)]) major_fao,
     CAST(IF(ARRAY_LENGTH(regions.eez)=0,NULL,regions.eez[ordinal(1)]) AS INT64) eez_id
   FROM
     `world-fishing-827.pipe_reference.spatial_measures`),
+  region_points_filtered AS(
+  SELECT
+    *
+  FROM
+    region_points
+  WHERE
+    NOT ocean IS NULL
+    AND NOT major_fao IS NULL),
   attack_points AS(
   SELECT
-    ROUND(FLOOR(ST_Y(ST_GEOGFROMTEXT(point)) / 0.01) * 0.01,2) lat,
-    ROUND(FLOOR(ST_X(ST_GEOGFROMTEXT(point)) / 0.01) * 0.01,2) lon,
+    ST_GEOGFROMTEXT(point) attack_point,
     reference attack_reference
   FROM
-    `piracy.asam`)
- SELECT
-*
-EXCEPT(eez_id)
+    `piracy.asam`),
+  joined AS(
+  SELECT
+    *,
+    ST_Distance(attack_point,
+      region_point) distance__m
+  FROM
+    attack_points
+  CROSS JOIN
+    region_points_filtered),
+  ranked AS(
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY attack_reference ORDER BY distance__m ASC) AS region_rank
+  FROM
+    joined),
+  filtered_ranked AS(
+  SELECT
+    *
+  FROM
+    ranked
+  WHERE
+    region_rank = 1)
+SELECT
+  * EXCEPT(sovereign1_iso3,
+    region_rank),
+  IF(sovereign1_iso3 IS NULL,'high_seas',sovereign1_iso3) sovereign1_iso3
 FROM
-attack_points
-LEFT JOIN
-region_points
-USING(lat,lon)
-LEFT JOIN(SELECT
-eez_id,
-sovereign1_iso3
-FROM
-`world-fishing-827.gfw_research.eez_info`)
-USING(eez_id)"
+  filtered_ranked
+LEFT JOIN (
+  SELECT
+    eez_id,
+    sovereign1_iso3
+  FROM
+    `world-fishing-827.gfw_research.eez_info`) USING(eez_id)"
 
 bq_table(project = project,table = "asam_regions",dataset = "piracy") %>% 
   bq_table_delete()
