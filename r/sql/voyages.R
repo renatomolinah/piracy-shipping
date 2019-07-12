@@ -203,9 +203,23 @@ sql <- "#standardSQL
     from_port,
     to_port)
 SELECT
-  *,
+  *
+  EXCEPT(  attacks_last_1_year,
+  attacks_last_2_years,
+  attacks_last_3_years,
+  attacks_last_4_years,
+  attacks_last_5_years,
+  attacks_last_6_years,
+  attacks_last_7_years),
   IF(total_distance_km < min_distance_cutoff_2sd OR total_distance_km > max_distance_cutoff_2sd,TRUE,FALSE) outlier_2sd,
-  IF(total_distance_km < min_distance_cutoff_3sd OR total_distance_km > max_distance_cutoff_3sd,TRUE,FALSE) outlier_3sd
+  IF(total_distance_km < min_distance_cutoff_3sd OR total_distance_km > max_distance_cutoff_3sd,TRUE,FALSE) outlier_3sd,
+  IF(attacks_last_1_year IS NULL, 0, attacks_last_1_year) attacks_last_1_year,
+  IF(attacks_last_2_years IS NULL, 0, attacks_last_2_years) attacks_last_2_years,
+  IF(attacks_last_3_years IS NULL, 0, attacks_last_3_years) attacks_last_3_years,
+  IF(attacks_last_4_years IS NULL, 0, attacks_last_4_years) attacks_last_4_years,
+  IF(attacks_last_5_years IS NULL, 0, attacks_last_5_years) attacks_last_5_years,
+  IF(attacks_last_6_years IS NULL, 0, attacks_last_6_years) attacks_last_6_years,
+  IF(attacks_last_7_years IS NULL, 0, attacks_last_7_years) attacks_last_7_years
 FROM
   `ucsb-gfw.piracy.voyages`
 LEFT JOIN
