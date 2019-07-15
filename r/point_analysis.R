@@ -163,7 +163,9 @@ SELECT
   EXCEPT(attack_point,
   region_point,
   region_rank,
-  distance_m)
+  distance_m),
+  st_x(attack_point) lon,
+  st_y(attack_point) lat
 FROM
   ranked
 WHERE
@@ -404,14 +406,6 @@ SELECT
   *
 FROM
   master
-LEFT JOIN (
-  SELECT
-    attack_reference,
-    ocean,
-    major_fao,
-    sovereign1_iso3 eez
-  FROM
-    `ucsb-gfw.piracy.asam_regions`) USING(attack_reference)
 WHERE distance_to_attack_km_bin <= 500"
 
 bq_table(project = project,table = "point_summary_attacks",dataset = "piracy") %>% 
@@ -453,6 +447,11 @@ bq_table(project = project,table = "point_analysis_summary",dataset = "piracy") 
 bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "point_analysis_summary",dataset = "piracy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE)
 
+cluster_boxes<-read_csv("processed_data/cluster_boxes.csv")
+# Create sql SELECT clauses for each hotspot cluster
+cluster_filters <- cluster_boxes %>%
+  mutate(cluster_filter = paste0("(CASE WHEN (lat < ",lat_max, " AND lat > ",lat_min, " AND lon < ",lon_max," AND lon > ",lon_min,") THEN 1 ELSE 0 END) ",cluster))
+
 cluster_filters <- paste0(cluster_filters$cluster_filter,collapse = ", ")
 
 # Pull in data we want
@@ -481,7 +480,10 @@ GROUP BY
 attack_reference,
 days_since_attack_bin)
 SELECT
-*
+*,
+EXTRACT(YEAR FROM date_attack) year_attack,
+EXTRACT(MONTH FROM date_attack) month_attack,
+EXTRACT(DAY FROM date_attack) day_attack
 FROM
 master
 LEFT JOIN
@@ -491,6 +493,14 @@ days_since_attack_bin)
 LEFT JOIN
 hotspots
 USING(attack_reference)
+LEFT JOIN (
+  SELECT
+    attack_reference,
+    ocean,
+    major_fao,
+    sovereign1_iso3 eez
+  FROM
+    `ucsb-gfw.piracy.asam_regions`) USING(attack_reference)
 ")
 
 bq_table(project = project,table = "point_analysis_cumulative",dataset = "piracy") %>% 
