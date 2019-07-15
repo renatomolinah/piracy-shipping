@@ -7,25 +7,136 @@ project <-  "ucsb-gfw"
 # Get region info
 # Will need to join attacks to closest region
 # https://stackoverflow.com/questions/53989172/sql-finding-the-closest-lat-lon-record-on-google-bigquery
-sql <-"#standardSQL
+sql <- "#standardSQL
   WITH region_points AS(
   SELECT
-    ST_GeogPoint(CAST(SUBSTR(gridcode, 5, 7) AS FLOAT64),
-      CAST(SUBSTR(gridcode, 17, 7) AS FLOAT64)) region_point,
-    NULL,
+    CAST(ROUND(FLOOR(CAST(SUBSTR(gridcode, 17, 7) AS FLOAT64) / 1) * 1 + 0.5,2) AS STRING) lat_bin,
+    CAST(ROUND(FLOOR(CAST(SUBSTR(gridcode, 5, 7) AS FLOAT64) / 1) * 1 + 0.5,2) AS STRING) lon_bin,
     IF(ARRAY_LENGTH(regions.ocean)=0,NULL,regions.ocean[ordinal(1)]) ocean,
     IF(ARRAY_LENGTH(regions.major_fao)=0,NULL,regions.major_fao[ordinal(1)]) major_fao,
     CAST(IF(ARRAY_LENGTH(regions.eez)=0,NULL,regions.eez[ordinal(1)]) AS INT64) eez_id
   FROM
     `world-fishing-827.pipe_reference.spatial_measures`),
-  region_points_filtered AS(
+  eez_count AS(
   SELECT
-    *
+    lat_bin,
+    lon_bin,
+    eez_id,
+    COUNT(*) count_eez_id
   FROM
     region_points
   WHERE
     NOT ocean IS NULL
-    AND NOT major_fao IS NULL),
+    AND NOT major_fao IS NULL
+  GROUP BY
+    eez_id,
+    lat_bin,
+    lon_bin),
+  major_fao_count AS(
+  SELECT
+    lat_bin,
+    lon_bin,
+    major_fao,
+    COUNT(*) count_major_fao
+  FROM
+    region_points
+  WHERE
+    NOT ocean IS NULL
+    AND NOT major_fao IS NULL
+  GROUP BY
+    major_fao,
+    lat_bin,
+    lon_bin),
+  ocean_count AS(
+  SELECT
+    lat_bin,
+    lon_bin,
+    ocean,
+    COUNT(*) count_ocean
+  FROM
+    region_points
+  WHERE
+    NOT ocean IS NULL
+    AND NOT major_fao IS NULL
+  GROUP BY
+    ocean,
+    lat_bin,
+    lon_bin),
+  ranked_eez_id AS(
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY lat_bin, lon_bin ORDER BY count_eez_id ASC) AS eez_id_rank
+  FROM
+    eez_count),
+  ranked_major_fao AS(
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY lat_bin, lon_bin ORDER BY count_major_fao ASC) AS major_fao_rank
+  FROM
+    major_fao_count),
+  ranked_ocean AS(
+  SELECT
+    *,
+    ROW_NUMBER() OVER (PARTITION BY lat_bin, lon_bin ORDER BY count_ocean ASC) AS ocean_rank
+  FROM
+    ocean_count)
+SELECT
+  *
+  EXCEPT(sovereign1_iso3,
+  lon_bin,
+  lat_bin,
+  eez_id,
+    eez_id_rank,
+    major_fao_rank,
+    ocean_rank,
+    count_eez_id,
+    count_major_fao,
+    count_ocean),
+      ST_GeogPoint(CAST(lon_bin AS FLOAT64),
+      CAST(lat_bin AS FLOAT64)) region_point,
+  IF(sovereign1_iso3 IS NULL,'high_seas',sovereign1_iso3) sovereign1_iso3
+FROM (
+  SELECT
+    *
+  FROM
+    ranked_eez_id
+  WHERE
+    eez_id_rank = 1)
+LEFT JOIN (
+  SELECT
+    *
+  FROM
+    ranked_major_fao
+  WHERE
+    major_fao_rank = 1) USING(lat_bin,
+    lon_bin)
+LEFT JOIN (
+  SELECT
+    *
+  FROM
+    ranked_ocean
+  WHERE
+    ocean_rank = 1) USING(lat_bin,
+    lon_bin)
+LEFT JOIN (
+  SELECT
+    eez_id,
+    sovereign1_iso3
+  FROM
+    `world-fishing-827.gfw_research.eez_info`) USING(eez_id)"
+
+bq_table(project = project,table = "gridded_region_info",dataset = "piracy") %>% 
+  bq_table_delete()
+bq_project_query(project,query = sql, destination_table =  bq_table(project = project,table = "gridded_region_info",dataset = "piracy"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE)
+
+
+sql <-"#standardSQL
+  WITH region_points AS(
+  SELECT
+    *
+  FROM
+    `ucsb-gfw.piracy.gridded_region_info`),
   attack_points AS(
   SELECT
     ST_GEOGFROMTEXT(point) attack_point,
@@ -36,36 +147,27 @@ sql <-"#standardSQL
   SELECT
     *,
     ST_Distance(attack_point,
-      region_point) distance__m
+      region_point) distance_m
   FROM
     attack_points
   CROSS JOIN
-    region_points_filtered),
+    region_points),
   ranked AS(
   SELECT
     *,
-    ROW_NUMBER() OVER (PARTITION BY attack_reference ORDER BY distance__m ASC) AS region_rank
+    ROW_NUMBER() OVER (PARTITION BY attack_reference ORDER BY distance_m ASC) AS region_rank
   FROM
-    joined),
-  filtered_ranked AS(
-  SELECT
-    *
-  FROM
-    ranked
-  WHERE
-    region_rank = 1)
+    joined)
 SELECT
-  * EXCEPT(sovereign1_iso3,
-    region_rank),
-  IF(sovereign1_iso3 IS NULL,'high_seas',sovereign1_iso3) sovereign1_iso3
+  *
+  EXCEPT(attack_point,
+  region_point,
+  region_rank,
+  distance_m)
 FROM
-  filtered_ranked
-LEFT JOIN (
-  SELECT
-    eez_id,
-    sovereign1_iso3
-  FROM
-    `world-fishing-827.gfw_research.eez_info`) USING(eez_id)"
+  ranked
+WHERE
+  region_rank = 1"
 
 bq_table(project = project,table = "asam_regions",dataset = "piracy") %>% 
   bq_table_delete()
