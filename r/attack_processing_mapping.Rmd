@@ -26,7 +26,8 @@ library(viridis)
 ## Global attack visualization
 ```{r attack_histogram}
 ASAM <- read_csv("../processed_data/attacks.csv") %>%
-  mutate(Hotspot = ifelse(Hotspot == "Outside of Hotspots","Rest of the world",Hotspot))
+  mutate(Hotspot = ifelse(Hotspot == "Outside of Hotspots","Rest of the world",Hotspot)) %>%
+  mutate(Hotspot = ifelse(Hotspot == "Southeast Asia","South East Asia",Hotspot))
 ASAM %>%
   group_by(attack_eez) %>%
   summarize(n = n()) %>%
@@ -146,18 +147,18 @@ world.land <- read_sf(dsn = "../raw_data/ne_110m_land", layer = "ne_110m_land", 
 
 ```{r cluster_map}
 library(scico)
-palette = setNames(c(scico(3, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Rest of the world"))
+palette = setNames(c(scico(3, palette = 'roma'),"darkgrey"),c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))
 
-palette_bw = setNames(c(gray.colors(3),"black"),c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Rest of the world"))
+palette_bw = setNames(c(gray.colors(3),"black"),c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))
 
-ASAM$Hotspot <- factor(ASAM$Hotspot, levels = c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Rest of the world"))
+ASAM$Hotspot <- factor(ASAM$Hotspot, levels = c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))
 
 
 attack_time_series <- ASAM %>%
   group_by(year,Hotspot) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
-  mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Rest of the world"))) %>%
+  mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))) %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_bar(stat="identity",aes(fill=Hotspot)) +
   scale_x_continuous(breaks=unique(ASAM$year)) +
@@ -172,7 +173,7 @@ attack_time_series_bw <- ASAM %>%
   group_by(year,Hotspot) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
-    mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","Southeast Asia","Rest of the world"))) %>%
+    mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))) %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_bar(stat="identity",aes(fill=Hotspot),color="black",size=0.25) +
   scale_fill_manual(values = palette_bw) +
@@ -185,7 +186,7 @@ attack_time_series_bw <- ASAM %>%
 cluster_boxes <- read_csv("../processed_data/cluster_boxes.csv") %>%
   mutate(Hotspot = case_when(cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
                              cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                             cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+                             cluster == "hotspot_southeast_asia" ~ "South East Asia",
                              cluster == "0" ~ "Outside of Hotspots"))%>%
   mutate(cluster_num=c(1,3,2))
 cluster_boxes_map <- cluster_boxes %>%
