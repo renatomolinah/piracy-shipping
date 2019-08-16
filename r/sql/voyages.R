@@ -1,5 +1,7 @@
 # Summarize gridded data into a single row for each voyage
 # Emissions info from here: https://www.sciencedirect.com/science/article/pii/S1361920909001072
+# Nox info: https://www.ipcc-nggip.iges.or.jp/public/gp/bgp/2_4_Water-borne_Navigation.pdf
+# SOX info: https://www3.epa.gov/ttnchie1/conference/ei19/session10/trozzi.pdf
 # Price info scraped from bunkerindex.com
 # Calculate fuel consumption at trip level using average speed
 
@@ -166,11 +168,11 @@ sql <-glue::glue(
 SELECT
   *,
   price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
-  3.17 * total_fuel_consumption_mt_voyage emissions_co2_kg_voyage,
+  3.17 * total_fuel_consumption_mt_voyage emissions_co2_mt_voyage,
   87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt_voyage emissions_nox_kg_voyage,
   20 * 3.3 * total_fuel_consumption_mt_voyage emissions_sox_kg_voyage,
   price_usd_mt * total_fuel_consumption_mt_inst total_fuel_cost_usd_inst,
-  3.17 * total_fuel_consumption_mt_inst emissions_co2_kg_inst,
+  3.17 * total_fuel_consumption_mt_inst emissions_co2_mt_inst,
   87 * main_fuel_consumption_mt_inst + 57 * aux_fuel_consumption_mt_inst emissions_nox_kg_inst,
   20 * 3.3 * total_fuel_consumption_mt_inst emissions_sox_kg_inst
 FROM
