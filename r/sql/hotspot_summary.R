@@ -4,9 +4,11 @@ sql <- "
   SELECT
     avg_distance_km,
     hours,
-    IF(hotspot_gulf_of_guinea = 1
-      OR hotspot_southeast_asia = 1
-      OR hotspot_gulf_of_aden = 1, TRUE,FALSE) hotspot,
+    (CASE
+        WHEN hotspot_gulf_of_guinea = 1 THEN 'hotspot_gulf_of_guinea'
+        WHEN hotspot_southeast_asia = 1 THEN 'hotspot_southeast_asia'
+        WHEN hotspot_gulf_of_aden = 1 THEN 'hotspot_gulf_of_aden'
+        ELSE 'none' END) hotspot,
     year
   FROM
     `ucsb-gfw.piracy.voyage_ais_positions`)
@@ -36,12 +38,23 @@ summary <- hotspot_summary %>%
             hours = sum(hours))
 
 percentage_distance <- (summary %>%
-  filter(hotspot) %>%
-  .$avg_distance_km) / (sum(summary$avg_distance_km)) * 100
+  filter(hotspot != "none") %>%
+  .$avg_distance_km %>% sum()) / (sum(summary$avg_distance_km)) * 100
 
 
 percentage_hours <- (summary %>%
-                          filter(hotspot) %>%
-                          .$hours) / (sum(summary$hours)) * 100
+                          filter(hotspot != "none") %>%
+                          .$hours %>% sum()) / (sum(summary$hours)) * 100
 percentage_distance
 percentage_hours
+
+percentage_distance_ga <- (summary %>%
+                          filter(hotspot == "hotspot_gulf_of_aden") %>%
+                          .$avg_distance_km %>% sum()) / (sum(summary$avg_distance_km)) * 100
+
+
+percentage_hours_ga <- (summary %>%
+                       filter(hotspot == "hotspot_gulf_of_aden") %>%
+                       .$hours %>% sum()) / (sum(summary$hours)) * 100
+percentage_distance_ga
+percentage_hours_ga
