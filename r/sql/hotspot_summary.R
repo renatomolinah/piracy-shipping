@@ -35,7 +35,11 @@ hotspot_summary <- bq_project_query(project, "SELECT * FROM `piracy.hotspot_summ
 summary <- hotspot_summary %>%
   group_by(hotspot) %>%
   summarize(avg_distance_km = sum(avg_distance_km),
-            hours = sum(hours))
+            hours = sum(hours),
+            avg_distance_km_fraction = sum(avg_distance_km) / sum(hotspot_summary$avg_distance_km) * 100,
+            hours_fraction = sum(hours) / sum(hotspot_summary$hours) * 100)
+
+summary 
 
 percentage_distance <- (summary %>%
   filter(hotspot != "none") %>%
@@ -47,14 +51,3 @@ percentage_hours <- (summary %>%
                           .$hours %>% sum()) / (sum(summary$hours)) * 100
 percentage_distance
 percentage_hours
-
-percentage_distance_ga <- (summary %>%
-                          filter(hotspot == "hotspot_gulf_of_aden") %>%
-                          .$avg_distance_km %>% sum()) / (sum(summary$avg_distance_km)) * 100
-
-
-percentage_hours_ga <- (summary %>%
-                       filter(hotspot == "hotspot_gulf_of_aden") %>%
-                       .$hours %>% sum()) / (sum(summary$hours)) * 100
-percentage_distance_ga
-percentage_hours_ga
