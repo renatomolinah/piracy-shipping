@@ -215,3 +215,4 @@ expanded_asam <- expand.grid(date = date_range,
 #source("sql/voyages_gridded.R")#
 #source("sql/voyages.R")
 #source("sql/gridded_shipping_hours.R")
+#source("sql/hotspot_summary.R")
