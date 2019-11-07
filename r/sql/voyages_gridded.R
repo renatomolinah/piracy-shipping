@@ -91,6 +91,13 @@ SELECT
   attacks_last_5_years,
   attacks_last_6_years,
   attacks_last_7_years,
+  attacks_next_1_year,
+  attacks_next_2_years,
+  attacks_next_3_years,
+  attacks_next_4_years,
+  attacks_next_5_years,
+  attacks_next_6_years,
+  attacks_next_7_years,
   speed_m_s,
   direction_degrees,
   # Wind vector relative to direction of travel
