@@ -144,6 +144,7 @@ write_csv(ASAM,"processed_data/attacks.csv")
 # Create expanded attack dataframe for every grid and date combination
 # To create summary stats for each combination
 # Will then join this to vessel track info in big query
+ASAM <- read_csv("processed_data/attacks.csv")
 date_range <- seq(ymd('2005-01-01'),ymd('2017-12-31'), by = '1 day')
 
 expanded_asam <- expand.grid(date = date_range,
@@ -164,31 +165,14 @@ expanded_asam <- expand.grid(date = date_range,
          attacks_last_5_years = rollapplyr(number_attacks, width = 365*5, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_6_years = rollapplyr(number_attacks, width = 365*6, FUN = sum, na.rm=TRUE, partial = TRUE),
          attacks_last_7_years = rollapplyr(number_attacks, width = 365*7, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_next_1_year =  rollapplyr(number_attacks, width = 365*1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_2_years = rollapplyr(number_attacks, width = 365*2, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_3_years = rollapplyr(number_attacks, width = 365*3, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_4_years = rollapplyr(number_attacks, width = 365*4, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_5_years = rollapplyr(number_attacks, width = 365*5, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_6_years = rollapplyr(number_attacks, width = 365*6, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_7_years = rollapplyr(number_attacks, width = 365*7, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left")) %>%
-  # mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
-  #        attacks_last_7_days = rollapplyr(number_attacks, width = 7, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_14_days = rollapplyr(number_attacks, width = 14, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_21_days = rollapplyr(number_attacks, width = 21, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_30_days = rollapplyr(number_attacks, width = 30, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_60_days = rollapplyr(number_attacks, width = 60, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_90_days = rollapplyr(number_attacks, width = 90, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_120_days = rollapplyr(number_attacks, width = 120, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_150_days = rollapplyr(number_attacks, width = 150, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_180_days = rollapplyr(number_attacks, width = 180, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_210_days = rollapplyr(number_attacks, width = 210, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_240_days = rollapplyr(number_attacks, width = 240, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_270_days = rollapplyr(number_attacks, width = 270, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_300_days = rollapplyr(number_attacks, width = 300, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_330_days = rollapplyr(number_attacks, width = 330, FUN = sum, na.rm=TRUE, partial = TRUE),
-  #        attacks_last_365_days = rollapplyr(number_attacks, width = 365, FUN = sum, na.rm=TRUE, partial = TRUE)) %>%
-  # Calculate elapsed time since last attack
-  # See https://stackoverflow.com/questions/26553638/calculate-elapsed-time-since-last-event/26554441
+         # For future attacks, ignore current day's attacks so we don't double count
+         attacks_next_1_year =  rollapplyr(number_attacks, width = 365*1 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
+         attacks_next_2_years = rollapplyr(number_attacks, width = 365*2 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
+         attacks_next_3_years = rollapplyr(number_attacks, width = 365*3 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
+         attacks_next_4_years = rollapplyr(number_attacks, width = 365*4 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
+         attacks_next_5_years = rollapplyr(number_attacks, width = 365*5 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
+         attacks_next_6_years = rollapplyr(number_attacks, width = 365*6 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
+         attacks_next_7_years = rollapplyr(number_attacks, width = 365*7 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left")) %>%
   group_by(grid_id) %>%
   mutate(tmpG = cumsum(c(FALSE, as.logical(diff(number_attacks))))) %>%
   mutate(tmp_a = c(1, diff(date)) * !number_attacks) %>%
