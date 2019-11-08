@@ -18,8 +18,8 @@ sql <-glue::glue("
   ais_info AS(
   SELECT
     mmsi,
-    FLOOR(lat/5) * 5 lat_bin,
-    FLOOR(lon/5) * 5 lon_bin,
+    FLOOR(lat/{cell_size}) * {cell_size} lat_bin,
+    FLOOR(lon/{cell_size}) * {cell_size} lon_bin,
     trip_id,
     SUM(hours) hours,
     SUM(avg_distance_km) distance_km,

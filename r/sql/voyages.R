@@ -243,13 +243,12 @@ SELECT
   IF(attacks_last_5_years IS NULL, 0, attacks_last_5_years) attacks_last_5_years,
   IF(attacks_last_6_years IS NULL, 0, attacks_last_6_years) attacks_last_6_years,
   IF(attacks_last_7_years IS NULL, 0, attacks_last_7_years) attacks_last_7_years,
-  IF(attacks_next_1_year IS NULL, 0, attacks_next_1_year) attacks_next_1_year,
-  IF(attacks_next_2_years IS NULL, 0, attacks_next_2_years) attacks_next_2_years,
-  IF(attacks_next_3_years IS NULL, 0, attacks_next_3_years) attacks_next_3_years,
-  IF(attacks_next_4_years IS NULL, 0, attacks_next_4_years) attacks_next_4_years,
-  IF(attacks_next_5_years IS NULL, 0, attacks_next_5_years) attacks_next_5_years,
-  IF(attacks_next_6_years IS NULL, 0, attacks_next_6_years) attacks_next_6_years,
-  IF(attacks_next_7_years IS NULL, 0, attacks_next_7_years) attacks_next_7_years
+  (CASE WHEN year > 2016 THEN NULL WHEN attacks_next_1_year IS NULL THEN 0 ELSE attacks_next_1_year END) attacks_next_1_year,
+  (CASE WHEN year > 2015 THEN NULL WHEN attacks_next_2_years IS NULL THEN 0 ELSE attacks_next_2_years END) attacks_next_2_years,
+  (CASE WHEN year > 2014 THEN NULL WHEN attacks_next_3_years IS NULL THEN 0 ELSE attacks_next_3_years END) attacks_next_3_years,
+  (CASE WHEN year > 2013 THEN NULL WHEN attacks_next_4_years IS NULL THEN 0 ELSE attacks_next_4_years END) attacks_next_4_years,
+  (CASE WHEN year > 2012 THEN NULL WHEN attacks_next_4_years IS NULL THEN 0 ELSE attacks_next_4_years END) attacks_next_4_years,
+  (CASE WHEN year > 2011 THEN NULL WHEN attacks_next_5_years IS NULL THEN 0 ELSE attacks_next_5_years END) attacks_next_5_years
 FROM
   `ucsb-gfw.piracy.voyages`
 LEFT JOIN
