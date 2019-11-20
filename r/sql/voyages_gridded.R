@@ -9,12 +9,12 @@ sql <-glue::glue("
   SELECT
     *
   FROM
-    `piracy.vessel_info` ),
+    `ucsb-gfw.piracy.vessel_info` ),
   voyage_info AS(
   SELECT
     *
   FROM
-    `piracy.voyages_with_anchorages` ),
+    `ucsb-gfw.piracy.voyages_with_anchorages` ),
   ais_info AS(
   SELECT
     mmsi,
@@ -29,7 +29,7 @@ sql <-glue::glue("
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
     {clusters_aggregated}
   FROM
-    `piracy.voyage_ais_positions`
+    `ucsb-gfw.piracy.voyage_ais_positions`
   GROUP BY
     mmsi,
     lat_bin,
@@ -48,12 +48,12 @@ sql <-glue::glue("
   SELECT
     *
   FROM
-    `piracy.wind`),
+    `ucsb-gfw.piracy.wind`),
   piracy_attacks AS(
   SELECT
     *
   FROM
-    `piracy.piracy_attacks_grid_{cell_size}`)
+    `ucsb-gfw.piracy.piracy_attacks_grid_{cell_size}`)
 SELECT
   joined.departure_date departure_date,
   joined.lat_bin lat_bin,
