@@ -13,8 +13,9 @@ library(fpc)
 library(fossil)
 
 # Set up bigquery
-project <-  "ucsb-gfw"
-
+#project <-  "ucsb-gfw"
+project <- "ucsb-gfw"
+billing_project <- "emlab-gcp"
 # Read in EEZ data
 # Marine Regions V9
 eez <- read_sf(dsn = "raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
