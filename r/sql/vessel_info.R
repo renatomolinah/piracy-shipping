@@ -42,3 +42,55 @@ bq_table(project = project,table = "vessel_info",dataset = "piracy") %>%
 bq_project_query(project,query = sql, 
                  destination_table = bq_table(project = project,table = "vessel_info",dataset = "piracy"),
                  allowLargeResults = TRUE)
+
+sql<-"
+WITH
+master_ais AS(
+ SELECT
+   CAST (ssvid AS INT64) mmsi,
+   year,
+   (CASE
+       WHEN ais_type.value IN ('AIS.1',  'AIS.2',  'AIS.3') THEN 'A'
+       WHEN ais_type.value IN ('AIS.18',
+       'AIS.19') THEN 'B'
+       ELSE NULL END) type,
+   ais_type.count count
+ FROM
+   `world-fishing-827.gfw_research.vi_ssvid_byyear_v20190430`
+ CROSS JOIN
+   UNNEST(activity.position_type) AS ais_type ),
+  grouped_ais AS(
+ SELECT
+   mmsi,
+   year,
+   type,
+   SUM(count) count,
+   ROW_NUMBER() OVER(PARTITION BY mmsi, year ORDER BY SUM(count) DESC) AS rank
+ FROM
+   master_ais
+ GROUP BY
+   mmsi,
+   year,
+   type),
+ final_ais AS(
+ SELECT
+   mmsi,
+   year,
+   type ais_type
+ FROM
+   grouped_ais
+ WHERE
+   rank = 1),
+ shipping_vessels AS(
+ SELECT
+ mmsi,
+ year
+ FROM
+ `ucsb-gfw.piracy.vessel_info`)
+ SELECT * FROM final_ais
+ JOIN
+ shipping_vessels
+ USING(mmsi,year)"
+
+bq_project_query(project,sql, 
+                 destination_table = bq_table(project = project,table = "vessel_info_ais_type",dataset = "piracy"),use_legacy_sql = FALSE, allowLargeResults = TRUE,write_disposition = "WRITE_TRUNCATE")

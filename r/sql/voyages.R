@@ -193,6 +193,8 @@ SELECT
   20 * 3.3 * total_fuel_consumption_mt_inst emissions_sox_kg_inst
 FROM
   master_2
+LEFT JOIN
+(SELECT * FROM `ucsb-gfw.piracy.vessel_info_ais_type`) USING(mmsi,year)
 "
 )
 
