@@ -23,6 +23,7 @@ sql <-glue::glue("
     trip_id,
     SUM(hours) hours,
     SUM(avg_distance_km) distance_km,
+    COUNT(*) ais_messages,
     AVG(heading) heading,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
@@ -52,7 +53,7 @@ sql <-glue::glue("
   SELECT
     *
   FROM
-    `piracy.piracy_attacks`)
+    `piracy.piracy_attacks_grid_{cell_size}`)
 SELECT
   joined.departure_date departure_date,
   joined.lat_bin lat_bin,
@@ -78,6 +79,7 @@ SELECT
   arrival_timestamp,
   distance_km,
   hours,
+  ais_messages,
   main_fuel_consumption_mt_inst,
   aux_fuel_consumption_mt_inst,
   (main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) total_fuel_consumption_mt_inst,
@@ -121,7 +123,10 @@ LEFT JOIN
   vessel_info USING(mmsi,
     year)
 ")
-bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
-  bq_table_delete()
-bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages_gridded",dataset = "piracy"),
-                 allowLargeResults = TRUE)
+# bq_table(project = project,table = "voyages_gridded",dataset = "piracy") %>% 
+#   bq_table_delete()
+# bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages_gridded",dataset = "piracy"),
+#                  allowLargeResults = TRUE)
+
+bq_project_query(billing_project,sql, 
+                 destination_table = bq_table(project = project,table = glue::glue("voyages_gridded_",cell_size),dataset = "piracy"),use_legacy_sql = FALSE, allowLargeResults = TRUE,write_disposition = "WRITE_TRUNCATE")

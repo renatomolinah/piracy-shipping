@@ -24,6 +24,7 @@ sql <-glue::glue(
     mmsi,
     trip_id,
     SUM(distance_km) total_distance_km,
+    COUNT(*) ais_messages,
 {clusters_aggregated},
     SUM(hours) total_hours,
     (SUM(distance_km) * 0.539957 / SUM(hours)) implied_speed_knots,
@@ -64,7 +65,7 @@ sql <-glue::glue(
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
     SUM(total_fuel_consumption_mt_inst) total_fuel_consumption_mt_inst
   FROM
-    `piracy.voyages_gridded`
+    `piracy.voyages_gridded_{cell_size}`
   GROUP BY
     mmsi,
     trip_id),
@@ -144,6 +145,7 @@ sql <-glue::glue(
     DATE(departure_timestamp) departure_date,
     DATE(arrival_timestamp) arrival_date,
     total_distance_km,
+    ais_messages,
     ST_DISTANCE(from_anchorage_position,
       to_anchorage_position)/1000 total_haversine_distance_km,
     total_hours,
@@ -194,11 +196,8 @@ FROM
 "
 )
 
-bq_table(project = project,table = "voyages",dataset = "piracy") %>% 
-  bq_table_delete()
-
-bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages",dataset = "piracy"),
-                 allowLargeResults = TRUE)
+bq_project_query(billing_project,sql, 
+                 destination_table = bq_table(project = project,table = glue::glue("voyages_",cell_size),dataset = "piracy"),use_legacy_sql = FALSE, allowLargeResults = TRUE,write_disposition = "WRITE_TRUNCATE")
 
 # Create table that defines port-to-port distance cutoff values
 # Based on all voyages, then add column for outliers
@@ -214,7 +213,7 @@ sql <- "#standardSQL
     GREATEST(AVG(total_distance_km) - 3 * STDDEV(total_distance_km),0) min_distance_cutoff_3sd,
     AVG(total_distance_km) + 3 * STDDEV(total_distance_km) max_distance_cutoff_3sd
   FROM
-    `ucsb-gfw.piracy.voyages`
+    `ucsb-gfw.piracy.voyages_{cell_size}`
   GROUP BY
     from_port,
     to_port)
@@ -250,13 +249,10 @@ SELECT
   (CASE WHEN year > 2012 THEN NULL WHEN attacks_next_4_years IS NULL THEN 0 ELSE attacks_next_4_years END) attacks_next_4_years,
   (CASE WHEN year > 2011 THEN NULL WHEN attacks_next_5_years IS NULL THEN 0 ELSE attacks_next_5_years END) attacks_next_5_years
 FROM
-  `ucsb-gfw.piracy.voyages`
+  `ucsb-gfw.piracy.voyages_{cell_size}`
 LEFT JOIN
   outlier_info USING(to_port,
     from_port)"
 
-bq_table(project = project,table = "voyages_with_outliers",dataset = "piracy") %>% 
-  bq_table_delete()
-
-bq_project_query(project,query = sql, destination_table = bq_table(project = project,table = "voyages_with_outliers",dataset = "piracy"),
-                 allowLargeResults = TRUE)
+bq_project_query(billing_project,sql, 
+                 destination_table = bq_table(project = project,table = glue::glue("voyages_with_outliers_",cell_size),dataset = "piracy"),use_legacy_sql = FALSE, allowLargeResults = TRUE,write_disposition = "WRITE_TRUNCATE")
