@@ -146,10 +146,34 @@ write_csv(ASAM,"processed_data/attacks.csv")
 # To create summary stats for each combination
 # Will then join this to vessel track info in big query
 ASAM <- read_csv("processed_data/attacks.csv")
-date_range <- seq(ymd('2005-01-01'),ymd('2017-12-31'), by = '1 day')
+
+# Define cell size for grid map
+cell_size <- 3 #degrees
+one_over_cellsize = 1/cell_size
+
+ASAM <- ASAM %>%
+  mutate(lon_bin = floor(lon*one_over_cellsize)/one_over_cellsize,
+         lat_bin = floor(lat*one_over_cellsize)/one_over_cellsize) 
+
+# Group by bins, summarize, and add grid id
+ASAM_binned <- ASAM %>%
+  group_by(year,lon_bin,lat_bin) %>%
+  summarize(number_attacks = n()) %>%
+  ungroup()
+
+grids <- distinct(ASAM_binned %>% dplyr::select(lon_bin,lat_bin)) %>%
+  mutate(grid_id = 1:n())
+
+
+ASAM_binned <- ASAM_binned %>%
+  left_join(grids, by = c("lat_bin","lon_bin"))
+
+
+date_range <- seq(ymd('2010-01-01'),ymd('2017-12-31'), by = '1 day')
 
 expanded_asam <- expand.grid(date = date_range,
-                             grid_id = unique(ASAM$grid_id)) %>%
+                             grid_id = grids$grid_id) %>%
+  as_tibble() %>%
   left_join(grids,by="grid_id") %>%
   left_join(ASAM %>%
               dplyr::select(date,
@@ -158,22 +182,21 @@ expanded_asam <- expand.grid(date = date_range,
                             attack_eez) %>%
               group_by(date,lon_bin,lat_bin) %>%
               summarize(number_attacks = n()),by=c("date","lon_bin","lat_bin")) %>%
-  mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks),
-         attacks_last_1_year = rollapplyr(number_attacks, width = 365*1, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_2_years = rollapplyr(number_attacks, width = 365*2, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_3_years = rollapplyr(number_attacks, width = 365*3, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_4_years = rollapplyr(number_attacks, width = 365*4, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_5_years = rollapplyr(number_attacks, width = 365*5, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_6_years = rollapplyr(number_attacks, width = 365*6, FUN = sum, na.rm=TRUE, partial = TRUE),
-         attacks_last_7_years = rollapplyr(number_attacks, width = 365*7, FUN = sum, na.rm=TRUE, partial = TRUE),
-         # For future attacks, ignore current day's attacks so we don't double count
-         attacks_next_1_year =  rollapplyr(number_attacks, width = 365*1 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_2_years = rollapplyr(number_attacks, width = 365*2 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_3_years = rollapplyr(number_attacks, width = 365*3 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_4_years = rollapplyr(number_attacks, width = 365*4 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_5_years = rollapplyr(number_attacks, width = 365*5 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_6_years = rollapplyr(number_attacks, width = 365*6 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"),
-         attacks_next_7_years = rollapplyr(number_attacks, width = 365*7 + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left")) %>%
+  mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks)) %>%
+  group_by(grid_id) %>%
+  nest() %>%
+  ungroup() %>%
+  crossing(month = c(seq(1,24))) %>% 
+  mutate(data = map2(data,month,function(.x,.y){
+    .x %>% 
+      mutate(attacks_window_last = rollapplyr(number_attacks, width = 30*abs(.y ), FUN = sum, na.rm=TRUE, partial = TRUE),
+             attacks_window_next = rollapplyr(number_attacks, width = 30*abs(.y ) + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"))
+  })) %>%
+  unnest(data) %>%
+  mutate(month = paste0(abs(month),"_month")) %>%
+  #mutate(month = ifelse(month>0,paste0("next_",month,"_month"),paste0("last_",abs(month),"_month"))) %>%
+  pivot_wider(names_from = "month",
+              values_from = c("attacks_window_next","attacks_window_last"))  %>%
   group_by(grid_id) %>%
   mutate(tmpG = cumsum(c(FALSE, as.logical(diff(number_attacks))))) %>%
   mutate(tmp_a = c(1, diff(date)) * !number_attacks) %>%
@@ -183,6 +206,45 @@ expanded_asam <- expand.grid(date = date_range,
   ungroup() %>%
   select(-c(tmp_a, tmpG, number_attacks)) %>%
   filter(date > ymd('2011-12-31'))
+
+write_csv(expanded_asam,glue::glue("processed_data/piracy_attacks_",cell_size,".csv"))
+
+expanded_asam <- read.csv(glue::glue("processed_data/piracy_attacks_",cell_size,".csv"),stringsAsFactors = FALSE) %>%
+  as_tibble()
+
+window_names <- tibble(names = colnames(expanded_asam)) %>%
+  filter(!(names %in% c("grid_id","date","lon_bin","lat_bin","days_since_attack","grid_has_previous_attacks"))) %>%
+  .$names
+
+window_names_select <- window_names%>%
+  paste(collapse = ",")
+
+
+window_names_sum <- paste0("SUM(",window_names,") ",window_names) %>%
+  paste(collapse = ",")
+
+window_names_last <- tibble(names = colnames(expanded_asam)) %>%
+  filter(str_detect(names,"last")) %>%
+  .$names
+
+window_names_null <-tibble(names = colnames(expanded_asam),
+                           month = as.numeric(str_extract(names, "(\\d)+"))) %>%
+  filter(str_detect(names,"last") | month <= 12) %>%
+  .$names
+
+window_names_null <- paste0("IF(",window_names_null," IS NULL,0,",window_names_null,") ",window_names_null) %>%
+  paste(collapse = ",")
+
+window_names_next <- tibble(names = colnames(expanded_asam),
+                            month = as.numeric(str_extract(names, "(\\d)+")),
+                            year = case_when(month > 12~"2015")) %>%
+  filter(month > 12) %>%
+  filter(str_detect(names,"next")) %>%
+  mutate(term = paste0("(CASE WHEN year > ",year," THEN NULL WHEN ",names," IS NULL THEN 0 ELSE ",names," END) ",names)) %>%
+  .$term %>%
+  paste(collapse = ",")
+
+
 ##########################################################################################
 # Run wind analysis to prep wind data for big query
 # Takes a super long time - need to run one year at a time, then stich them all together

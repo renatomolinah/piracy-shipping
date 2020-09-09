@@ -53,7 +53,7 @@ sql <-glue::glue("
   SELECT
     *
   FROM
-    `ucsb-gfw.piracy.piracy_attacks_grid_{cell_size}`)
+    `ucsb-gfw.piracy.piracy_attacks_{cell_size}`)
 SELECT
   joined.departure_date departure_date,
   joined.lat_bin lat_bin,
@@ -86,20 +86,7 @@ SELECT
   {clusters_aggregated_2},
   days_since_attack,
   grid_has_previous_attacks,
-  attacks_last_1_year,
-  attacks_last_2_years,
-  attacks_last_3_years,
-  attacks_last_4_years,
-  attacks_last_5_years,
-  attacks_last_6_years,
-  attacks_last_7_years,
-  attacks_next_1_year,
-  attacks_next_2_years,
-  attacks_next_3_years,
-  attacks_next_4_years,
-  attacks_next_5_years,
-  attacks_next_6_years,
-  attacks_next_7_years,
+  {window_names_select},
   speed_m_s,
   direction_degrees,
   # Wind vector relative to direction of travel
