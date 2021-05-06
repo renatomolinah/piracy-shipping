@@ -207,6 +207,35 @@ expanded_asam <- expand.grid(date = date_range,
   select(-c(tmp_a, tmpG, number_attacks)) %>%
   filter(date > ymd('2011-12-31'))
 
+# Make something similar, except for hotspots intsead of grids
+expanded_asam_hotspot <- expand.grid(date = date_range,
+                                     Hotspot = unique(ASAM$Hotspot)) %>%
+  as_tibble() %>%
+  left_join(ASAM %>%
+              group_by(date,Hotspot) %>%
+              summarize(number_attacks = n()),by=c("date","Hotspot")) %>%
+  mutate(number_attacks = ifelse(is.na(number_attacks),0,number_attacks)) %>%
+  group_by(Hotspot) %>%
+  nest() %>%
+  ungroup() %>%
+  crossing(month = c(seq(3,12,3))) %>%
+  mutate(data = map2(data,month,function(.x,.y){
+    .x %>% 
+      mutate(hotspot_attacks_window_last = rollapplyr(number_attacks, width = 30*abs(.y ), FUN = sum, na.rm=TRUE, partial = TRUE))#,
+    #hotspot_attacks_window_next = rollapplyr(number_attacks, width = 30*abs(.y ) + 1, FUN = function(x) sum(x[-1], na.rm = TRUE), partial = TRUE, align = "left"))
+  })) %>%
+  unnest(data) %>%
+  mutate(month = paste0(abs(month),"_month")) %>%
+  pivot_wider(names_from = "month",
+              #values_from = c("hotspot_attacks_window_next","hotspot_attacks_window_last")) 
+              values_from = c("hotspot_attacks_window_last"),
+              names_prefix = "hotspot_attacks_window_last") %>%
+  dplyr::select(-number_attacks)
+
+write_csv(expanded_asam_hotspot,"processed_data/piracy_attacks_hotspot.csv")
+
+
+
 write_csv(expanded_asam,glue::glue("processed_data/piracy_attacks_",cell_size,".csv"))
 
 expanded_asam <- read.csv(glue::glue("processed_data/piracy_attacks_",cell_size,".csv"),stringsAsFactors = FALSE) %>%
