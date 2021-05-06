@@ -291,6 +291,7 @@ window_names_next <- tibble(names = colnames(expanded_asam),
 # Only run if necessary!! Some of these are very large and expensive
 ##########################################################################################
 #source("r/sql/piracy_attacks.R") # Check - already run!
+#source("r/sql/piracy_attacks_hotspot.R")
 #source("r/sql/cluster_filters.R") # Check - already run!
 #source("sql/vessel_info.R") # Check - already run!
 #source("sql/voyages_with_anchorages.R") # Check - already run!
