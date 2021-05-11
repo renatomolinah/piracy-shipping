@@ -155,19 +155,47 @@ bq_project_query(billing_project, ("SELECT * FROM `ucsb-gfw.piracy.vessels_per_d
 
 vessels_per_date_hotspot <- read_csv(here::here("processed_data/vessels_per_date_hotspot.csv"))
 
+# Use the following if you want to run sequentially
+plan(sequential)
+# Use the following if you want to run in paralell
+# This takes a long time to run
+library(furrr)
+library(tictoc)
+library(progressr)
+#plan(multisession, workers = parallel::detectCores()-1)
+# Set up progress bar for running in parallel
+handlers(list(
+  handler_progress(
+    format   = ":spin :current/:total (:message) [:bar] :percent in :elapsed ETA: :eta",
+    width    = 60,
+    complete = "+"
+  )))
+
 date_range <- seq(ymd('2012-01-01'),ymd('2017-12-31'), by = '1 day')
 
 expanded_vessels_hotspot <- expand.grid(date = date_range) %>%
+  crossing(expand.grid(hotspot_gulf_of_guinea = c(0,1),
+                       hotspot_southeast_asia = c(0,1),
+                       hotspot_gulf_of_aden = c(0,1)) %>%
+             filter(!(hotspot_gulf_of_guinea==0 &
+                      hotspot_southeast_asia==0 &
+                      hotspot_gulf_of_aden==0))) %>%
   left_join(vessels_per_date_hotspot,by="date") %>%
   as_tibble() %>%
-  group_by(Hotspot) %>%
+  group_by(hotspot_gulf_of_guinea,hotspot_southeast_asia,hotspot_gulf_of_aden) %>%
   nest() %>%
   ungroup() %>%
   crossing(month = c(seq(3,12,3))) 
-
+tic()
+# here we train and predict probabilities of being an offender during cross-validation
+with_progress({
+  p <- progressor(steps = nrow(expanded_vessels_hotspot))
 expanded_vessels_hotspot_summary <-expanded_vessels_hotspot %>%
-  mutate(rolling_results = purrr::map2(data,month,function(data,month_temp){
-    purrr::map(date_range,function(date_temp){
+  mutate(rolling_results = future_pmap(.,function(data,month_temp,hotspot_gulf_of_guinea_temp,hotspot_southeast_asia_temp,hotspot_gulf_of_aden_temp){
+    tmp_summary <- purrr::map(date_range,function(date_temp){
+      if(hotspot_gulf_of_guinea_temp==0) data <- data %>% filter(Hotspot != "Gulf of Guinea")
+      if(hotspot_southeast_asia_temp==0) data <- data %>% filter(Hotspot != "Southeast Asia")
+      if(hotspot_gulf_of_aden_temp==0) data <- data %>% filter(Hotspot != "Gulf of Aden")
       date_min <- date_temp - days(month_temp*30-1)
       if(date_min < min(data$date)) return(tibble(unique_hotspot_vessels = NA_real_,
                                                   date = date_temp))
@@ -176,12 +204,15 @@ expanded_vessels_hotspot_summary <-expanded_vessels_hotspot %>%
                date >= date_min) %>%
         summarize(unique_hotspot_vessels = n_distinct(mmsi)) %>%
         mutate(date = date_temp)
-      
     }) %>%
       bind_rows()
-  })) %>%
+    p()
+    return(tmp_summary)
+  },.options=furrr_options(seed=101))) %>%
   dplyr::select(-data) %>%
   unnest(rolling_results)
+})
+toc()
 
 expanded_vessels_hotspot_summary_wide <- expanded_vessels_hotspot_summary %>%
   mutate(month = paste0(abs(month),"_month")) %>%
@@ -191,47 +222,56 @@ expanded_vessels_hotspot_summary_wide <- expanded_vessels_hotspot_summary %>%
               names_prefix = "unique_hotspot_vessels_last_") 
 
 write_csv(expanded_vessels_hotspot_summary_wide,here::here("processed_data/expanded_vessels_hotspot_summary.csv"))
-
+expanded_vessels_hotspot_summary_wide <- read.csv(here::here("processed_data/expanded_vessels_hotspot_summary.csv"),stringsAsFactors = FALSE) %>%
+  as_tibble() %>%
+  mutate(date = as_date(date))
 bq_table(project = project,table = "expanded_vessels_hotspot_summary",dataset = "piracy") %>% 
   bq_table_upload(values = expanded_vessels_hotspot_summary_wide,
                   fields = as_bq_fields(expanded_vessels_hotspot_summary_wide),
                   write_disposition = "WRITE_TRUNCATE")
 
-sql <-"WITH
-trip_hotspot_long AS(
+sql<-"WITH
+  main AS(
+  SELECT
+    trip_id,
+    departure_date date,
+    hotspot_gulf_of_guinea,
+    hotspot_southeast_asia,
+    hotspot_gulf_of_aden
+  FROM
+    `ucsb-gfw.piracy.voyages_5`),
+  vessels AS(
+  SELECT
+    *
+  FROM
+    `ucsb-gfw.piracy.expanded_vessels_hotspot_summary` ),
+  attacks AS(
+  SELECT
+    *
+  FROM
+    `ucsb-gfw.piracy.trip_hotspot_summary` )
 SELECT
-  trip_id,
-  departure_date date,
-  Hotspot
+  * EXCEPT(date,
+    hotspot_gulf_of_guinea,
+    hotspot_southeast_asia,
+    hotspot_gulf_of_aden)
 FROM
-  `ucsb-gfw.piracy.trip_hotspot_long`),
-  number_vessels_hotspot AS(
-      SELECT 
-      *
-      FROM
-      `ucsb-gfw.piracy.expanded_vessels_hotspot_summary`
-  ),
-joined AS(
-SELECT 
-*
-FROM 
-trip_hotspot_long
-LEFT JOIN 
-number_vessels_hotspot
-USING(Hotspot,date))
-SELECT 
-trip_id,
-SUM(unique_hotspot_vessels_last_3_month) unique_hotspot_vessels_last_3_month,
-SUM(unique_hotspot_vessels_last_6_month) unique_hotspot_vessels_last_6_month,
-SUM(unique_hotspot_vessels_last_9_month) unique_hotspot_vessels_last_9_month,
-SUM(unique_hotspot_vessels_last_12_month) unique_hotspot_vessels_last_12_month
-FROM joined
-GROUP BY
-trip_id"
+  main
+LEFT JOIN
+  attacks
+USING
+  (trip_id)
+LEFT JOIN
+  vessels
+USING
+  (date,
+    hotspot_gulf_of_guinea,
+    hotspot_southeast_asia,
+    hotspot_gulf_of_aden)"
 
 bq_project_query(billing_project,sql, 
-                 destination_table = bq_table(project = project,table = "trip_hotspot_vessel_summary",dataset = "piracy"),use_legacy_sql = FALSE, allowLargeResults = TRUE,write_disposition = "WRITE_TRUNCATE")
+                 destination_table = bq_table(project = project,table = "trip_hotspot_summary_full",dataset = "piracy"),use_legacy_sql = FALSE, allowLargeResults = TRUE,write_disposition = "WRITE_TRUNCATE")
 
-bq_project_query(billing_project, ("SELECT * FROM `ucsb-gfw.piracy.trip_hotspot_vessel_summary`")) %>%
+bq_project_query(billing_project, ("SELECT * FROM `ucsb-gfw.piracy.trip_hotspot_summary_full`")) %>%
   bq_table_download(max_results = Inf) %>%
-  write_csv(path=here::here("processed_data/trip_hotspot_vessel_summary.csv"))
+  write_csv(path=here::here("processed_data/trip_hotspot_summary_full.csv"))

@@ -16,6 +16,7 @@ library(fossil)
 #project <-  "ucsb-gfw"
 project <- "ucsb-gfw"
 billing_project <- "emlab-gcp"
+options(scipen = 20)
 # Read in EEZ data
 # Marine Regions V9
 eez <- read_sf(dsn = "raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
