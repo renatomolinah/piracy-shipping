@@ -14,17 +14,28 @@ wdb_m <- readRDS("~/Box Sync/Proyectos/piracy-shipping/Data sets/wdb.rds") %>%
                      ifelse(aden == 1, "Aden", 
                             ifelse(asia == 1, "Asia", "None"))),
     distance = total_distance_km,
-    time = total_hours/100,
+    time = total_hours,
     
     attacks_past_3 = attacks_window_last_3_month,
     attacks_past_6 = attacks_window_last_6_month,
     attacks_past_9 = attacks_window_last_9_month,
-    attacks_past_12 = attacks_window_last_12_month
+    attacks_past_12 = attacks_window_last_12_month,
+    
+    h_attacks_past_3 = hotspot_attacks_window_last3_month,
+    h_attacks_past_6 = hotspot_attacks_window_last6_month,
+    h_attacks_past_9 = hotspot_attacks_window_last9_month,
+    h_attacks_past_12 = hotspot_attacks_window_last12_month,
+    
+    odds_past_3 = h_attacks_past_3/unique_hotspot_vessels_last_3_month,
+    odds_past_6 = h_attacks_past_6/unique_hotspot_vessels_last_6_month,
+    odds_past_9 = h_attacks_past_9/unique_hotspot_vessels_last_9_month,
+    odds_past_12 = h_attacks_past_12/unique_hotspot_vessels_last_12_month
+    
   ) 
 
 # Sample data set to get quick estimations 
 
-wdb <- wdb_m %>% sample_frac(0.1) #%>% filter(aden == 1) # 
+wdb <- wdb_m #%>% sample_frac(0.1) #%>% filter(aden == 1) # 
 
 # Variation in the number of past attacks
 
@@ -226,19 +237,19 @@ plot_grid(p1, p2, p3, p4, ncol = 2, labels = "AUTO")
 # effect of past attacks on travel time
 
 m1 = feols(time ~ attacks_past_3 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 m2 = feols(time ~ attacks_past_6 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 m3 = feols(time ~ attacks_past_9 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 m4 = feols(time ~ attacks_past_12 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
@@ -246,19 +257,19 @@ etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
 # effect of past attacks on distance
 
 m1 = feols(distance ~ attacks_past_3 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country)
 
 m2 = feols(distance ~ attacks_past_6 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country)
 
 m3 = feols(distance ~ attacks_past_9 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country)
 
 m4 = feols(distance ~ attacks_past_12 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country)
 
 etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
@@ -266,19 +277,19 @@ etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
 # effect of past attacks on speed
 
 m1 = feols(speed ~ attacks_past_3 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 m2 = feols(speed ~ attacks_past_6 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 m3 = feols(speed ~ attacks_past_9 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 m4 = feols(speed ~ attacks_past_12 + wind + wind_vector
-           | vtype + size + country + month + year, wdb,
+           | hotspot + vtype + size + country + month + year, wdb,
            cluster = ~country + year)
 
 etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
