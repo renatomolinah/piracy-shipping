@@ -240,6 +240,30 @@ cluster_plot_bw <- cluster_plot +
 ggsave(filename = "../figs/attack_time_series_bw.eps", plot = attack_time_series_bw, device = cairo_ps, width = 8.5, height = 6)
 ```
 
+```{r}
+# Make figure for AERE summer presentation
+attacks_time_series_line <- ASAM %>%
+  group_by(year,Hotspot) %>%
+  summarize(number_attacks = n()) %>%
+  ungroup() %>%
+  mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))) %>%
+  ggplot(aes(x=year,y=number_attacks)) +
+  geom_line(size = 1.05) +
+  facet_wrap(~Hotspot,ncol=1) +
+  scale_x_continuous(breaks = seq(min(ASAM$year),max(ASAM$year),2)) +
+  theme_bw() +
+  labs(x="",
+       y="Annual\nattacks") +
+  theme(axis.title.y = element_text(angle=0,vjust=0.52),
+        text = element_text(size=20),
+        strip.background = element_blank(),
+        panel.grid.minor = element_blank())
+
+ggsave(filename = "figs/attacks_time_series_line.eps", device="eps",plot = attacks_time_series_line, width = 9, height = 9)
+
+```
+
+
 ```{r shipping_plot}
 # gridded_shipping_hours_processed <- read_csv("../processed_data/gridded_shipping_hours_processed.csv")
 # 
