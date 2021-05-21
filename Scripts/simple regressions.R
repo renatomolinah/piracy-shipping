@@ -1,6 +1,6 @@
 # Load packages
 library(tidyverse)
-library(cowplot)
+library(ggpubr)
 library(fixest)
 
 
@@ -35,269 +35,603 @@ wdb_m <- readRDS("~/Box Sync/Proyectos/piracy-shipping/Data sets/wdb.rds") %>%
 
 # Sample data set to get quick estimations 
 
-wdb <- wdb_m #%>% sample_frac(0.1) #%>% filter(aden == 1) # 
+wdb <- wdb_m #%>% filter(top_route == 1) # %>% sample_frac(0.1) #  %>% filter(top_route == 1) # 
 
 # Variation in the number of past attacks
 
 p1 <- wdb %>% 
-  ggplot(aes(x = attacks_past_3,
-             group = hotspot)) +
-  geom_density(aes(color = hotspot)) +
+  ggplot(aes(x = log(attacks_past_3),
+             group = hotspot,
+             fill = hotspot)) +
+  geom_density(aes(fill = hotspot), alpha = 0.5) +
   theme_bw() +
   ylab("Density") + 
-  xlab("Past attacks") +
-  labs(color = "Hotspot") +
+  xlab("log-Past attacks") +
+  labs(fill = "Hotspot") +
   ggtitle("Past 3 Months") 
 
 p2 <- wdb %>% 
-  ggplot(aes(x = attacks_past_6,
-             group = hotspot)) +
-  geom_density(aes(color = hotspot)) +
+  ggplot(aes(x = log(attacks_past_6),
+             group = hotspot,
+             fill = hotspot)) +
+  geom_density(aes(fill = hotspot), alpha = 0.5) +
   theme_bw() +
   ylab("Density") + 
-  xlab("Past attacks") +
-  labs(color = "Hotspot") +
+  xlab("log-Past attacks") +
+  labs(fill = "Hotspot") +
   ggtitle("Past 6 Months")
 
 p3 <- wdb %>% 
-  ggplot(aes(x = attacks_past_9,
-             group = hotspot)) +
-  geom_density(aes(color = hotspot)) +
+  ggplot(aes(x = log(attacks_past_9),
+             group = hotspot,
+             fill = hotspot)) +
+  geom_density(aes(fill = hotspot), alpha = 0.5) +
   theme_bw() +
   ylab("Density") + 
-  xlab("Past attacks") +
-  labs(color = "Hotspot") +
+  xlab("log-Past attacks") +
+  labs(fill = "Hotspot") +
   ggtitle("Past 9 Months")
 
 p4 <- wdb %>% 
-  ggplot(aes(x = attacks_past_12,
-             group = hotspot)) +
-  geom_density(aes(color = hotspot)) +
+  ggplot(aes(x = log(attacks_past_12),
+             group = hotspot,
+             fill = hotspot)) +
+  geom_density(aes(fill = hotspot), alpha = 0.5) +
   theme_bw() +
   ylab("Density") + 
-  xlab("Past attacks") +
-  labs(color = "Hotspot") +
+  xlab("log-Past attacks") +
+  labs(fill = "Hotspot") +
   ggtitle("Past 12 Months")
 
-plot_grid(p1, p2, p3, p4, ncol = 2, labels = "AUTO")
+# Generate plot illustrating that there's variation in the number of attacks across hotspots. Also, that there are fat tails.
 
-# Scatter plots of the effect of number of attacks
-
-# Time
-
-p1 <- wdb %>% sample_frac(0.1) %>% 
-  ggplot(aes(x = log(attacks_past_3),
-             y = log(time),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Time)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 3 Months")
-
-p2 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_6),
-             y = log(time),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Time)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 6 Months")
-
-p3 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_9),
-             y = log(time),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Time)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 9 Months")
-
-p4 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_12),
-             y = log(time),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Time)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 12 Months")
-
-plot_grid(p1, p2, p3, p4, ncol = 2, labels = "AUTO")
-
-# Distance 
-
-p1 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_3),
-             y = log(distance),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Distance)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 3 Months")
-
-p2 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_6),
-             y = log(distance),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Distance)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 6 Months")
-
-p3 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_9),
-             y = log(distance),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Distance)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 9 Months")
-
-p4 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_12),
-             y = log(distance),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Distance)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 12 Months")
-
-plot_grid(p1, p2, p3, p4, ncol = 2, labels = "AUTO")
-
-# Speed 
-
-p1 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_3),
-             y = log(speed),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Speed)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 3 Months")
-
-p2 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_6),
-             y = log(speed),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Speed)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 6 Months")
-
-p3 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_9),
-             y = log(speed),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Speed)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 9 Months")
-
-p4 <- wdb %>% sample_frac(0.1) %>%
-  ggplot(aes(x = log(attacks_past_12),
-             y = log(speed),
-             group = hotspot)) +
-  geom_point(aes(color = hotspot), alpha = 0.2) +
-  theme_bw() +
-  ylab("log(Speed)") + 
-  xlab("log(Past attacks)") +
-  labs(color = "Hotspot") +
-  ggtitle("Past 12 Months")
-
-plot_grid(p1, p2, p3, p4, ncol = 2, labels = "AUTO")
-
-
-# So, it appears traffic patterns differ across hotspost, which suggests results might be affected
-# by these patterns as well. Let's run some regressions to get insights on this
-
+ggarrange(p1, p2, p3, p4, common.legend = TRUE, legend = "bottom") + ggsave("attack_var.jpg", width = 10, height = 8)
 
 # Regressions
 
-# effect of past attacks on travel time
+# Setting a dictionary 
+setFixest_dict(c(time = "Total Time (hrs)", 
+                 distance = "Total Distance (km)", 
+                 speed = "Average Speed (km/hr)",
+                 
+                 attacks_past_3 = "Encounters (3 mo)",
+                 attacks_past_6 = "Encounters (6 mo)",
+                 attacks_past_9 = "Encounters (9 mo)",
+                 attacks_past_12 = "Encounters (12 mo)",
+                 
+                 hotspot = "Hotspot",
+                 vtype = "Vessel type",
+                 size = "Vesel size",
+                 country = "Country comb.",
+                 year = "Year",
+                 month = "Month",
+                 'month^year' = "month-by-year"
+                 ))
 
-m1 = feols(time ~ attacks_past_3 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+
+# Effect of past attacks on total travel distance
+
+m1 = feols(distance ~ attacks_past_3 + odds_past_3 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-m2 = feols(time ~ attacks_past_6 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m2 = feols(distance ~ attacks_past_6 + odds_past_6 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-m3 = feols(time ~ attacks_past_9 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m3 = feols(distance ~ attacks_past_9 + odds_past_9 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-m4 = feols(time ~ attacks_past_12 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m4 = feols(distance ~ attacks_past_12 + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
+etable(m1, m2, m3, m4, drop = c("odds_past_3",
+                                "odds_past_6",
+                                "odds_past_9",
+                                "odds_past_12",
+                                "wind",
+                                "wind_vector"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
 
-# effect of past attacks on distance
+# Effect of past attacks on total travel time
 
-m1 = feols(distance ~ attacks_past_3 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
-           cluster = ~country)
-
-m2 = feols(distance ~ attacks_past_6 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
-           cluster = ~country)
-
-m3 = feols(distance ~ attacks_past_9 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
-           cluster = ~country)
-
-m4 = feols(distance ~ attacks_past_12 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
-           cluster = ~country)
-
-etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
-
-# effect of past attacks on speed
-
-m1 = feols(speed ~ attacks_past_3 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m1 = feols(time ~ attacks_past_3 + odds_past_3 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-m2 = feols(speed ~ attacks_past_6 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m2 = feols(time ~ attacks_past_6 + odds_past_6 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-m3 = feols(speed ~ attacks_past_9 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m3 = feols(time ~ attacks_past_9 + odds_past_9 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-m4 = feols(speed ~ attacks_past_12 + wind + wind_vector
-           | hotspot + vtype + size + country + month + year, wdb,
+m4 = feols(time ~ attacks_past_12 + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
            cluster = ~country + year)
 
-etable(m1, m2, m3, m4, drop = c("wind", "wind_vector"))
+etable(m1, m2, m3, m4, drop = c("odds_past_3",
+                                "odds_past_6",
+                                "odds_past_9",
+                                "odds_past_12",
+                                "wind",
+                                "wind_vector"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+# Effect of past attacks on average travel speed
+
+m1 = feols(speed ~ attacks_past_3 + odds_past_3 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
+           cluster = ~country + year)
+
+m2 = feols(speed ~ attacks_past_6 + odds_past_6 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
+           cluster = ~country + year)
+
+m3 = feols(speed ~ attacks_past_9 + odds_past_9 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
+           cluster = ~country + year)
+
+m4 = feols(speed ~ attacks_past_12 + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year, wdb,
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_3",
+                                "odds_past_6",
+                                "odds_past_9",
+                                "odds_past_12",
+                                "wind",
+                                "wind_vector"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+
+################################
+# Linear estimation on distance
+
+m1 = feols(distance ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(distance ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(distance ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(distance ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
+
+# Quadratic estimation on time
+
+m1 = feols(time ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(time ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(time ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(time ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+# Linear estimation on speed
+
+m1 = feols(speed ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(speed ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(speed ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(speed ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+# Linear estimation on total cost
+
+# Fuel
+m1 = feols(total_fuel_cost ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(total_fuel_cost ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(total_fuel_cost ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(total_fuel_cost ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
+
+# Labor
+m1 = feols(labor_cost ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(labor_cost ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(labor_cost ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(labor_cost ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
+
+
+# total
+m1 = feols(total_cost ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(total_cost ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(total_cost ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(total_cost ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
+
+
+# Estimation on emissions
+
+# Carbon
+m1 = feols(total_co2 ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(total_co2 ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(total_co2 ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(total_co2 ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
+
+# NOX
+m1 = feols(total_nox ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(total_nox ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(total_nox ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(total_nox ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
+
+# SOX
+m1 = feols(total_sox ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb,
+           cluster = ~country + year)
+
+m2 = feols(total_sox ~ attacks_past_12
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Aden"),
+           cluster = ~country + year)
+
+m3 = feols(total_sox ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Guinea"),
+           cluster = ~country + year)
+
+m4 = feols(total_sox ~ attacks_past_12 
+           + odds_past_12 + wind + wind_vector
+           | hotspot + vtype + size + country + month^year,
+           wdb %>% filter(hotspot == "Asia"),
+           cluster = ~country + year)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12", "wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.df = style.df(depvar.title = "",
+                           fixef.title = " ",
+                           fixef.suffix = " FE", 
+                           yesNo = "X"),
+       fitstat = ~ r2 + n)
+
+etable(m1, m2, m3, m4, drop = c("odds_past_12","wind", "wind_vector"),
+       subtitles = c("Full Sample", "Aden", "Guinea", "SE Asia"),
+       style.tex = style.tex("aer",
+                             depvar.title = "",
+                             fixef.title = " ",
+                             fixef.suffix = " FE", 
+                             yesNo = "X"),
+       fitstat = ~ r2 + n, signifCode = c("***"=0.001, "**"=0.01, "*"=0.05), tex = TRUE)
 
 
 
+# Back of the envelope calculations
+
+# Annual cost (Run cost model first!)
+
+cost <- wdb %>% 
+  mutate(piracy_cost = m1$coefficients[1]*attacks_past_12
+         ) %>%
+  group_by(year
+           ) %>%
+  summarize(total_cost = sum(total_cost/1e6),
+            piracy_cost = sum(piracy_cost/1e6)
+            ) %>%
+  mutate(share = piracy_cost/total_cost*100)
+
+mean(cost$piracy_cost)
+mean(cost$share)
+
+# Emissions (Run the respective models first!)
+
+carbon <- wdb %>% 
+  mutate(piracy_co2 = m1$coefficients[1]*attacks_past_12
+  ) %>%
+  group_by(year
+  ) %>%
+  summarize(total_co2 = sum(total_co2/1e6),
+            piracy_co2 = sum(piracy_co2/1e6)
+  ) %>%
+  mutate(share = piracy_co2/total_co2*100)
+
+mean(carbon$piracy_co2)
+mean(carbon$share) 
 
 
+nox <- wdb %>% 
+  mutate(piracy_nox = m1$coefficients[1]*attacks_past_12
+  ) %>%
+  group_by(year
+  ) %>%
+  summarize(total_nox = sum(total_nox/1e3),
+            piracy_nox = sum(piracy_nox/1e3)
+  ) %>%
+  mutate(share = piracy_nox/total_nox*100)
 
+mean(nox$piracy_nox)
+mean(nox$share) 
+
+
+sox <- wdb %>% 
+  mutate(piracy_sox = m1$coefficients[1]*attacks_past_12
+  ) %>%
+  group_by(year
+  ) %>%
+  summarize(total_sox = sum(total_sox/1e3),
+            piracy_sox = sum(piracy_sox/1e3)
+  ) %>%
+  mutate(share = piracy_sox/total_sox*100)
+
+mean(sox$piracy_sox)
+mean(nox$share) 
 
 
