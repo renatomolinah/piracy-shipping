@@ -34,7 +34,7 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 .Rproj.user
-*.DS_Store
+.DS_Store
 data/.DS_Store
 *.zip
 *.DS_Store
@@ -46,3 +46,5 @@ Analysis/
 
 piracy_G/
 Data sets/cell_data.csv
+
+.Rproj.user/shared/notebooks/patch-chunk-names
