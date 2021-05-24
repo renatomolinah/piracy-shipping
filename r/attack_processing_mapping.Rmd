@@ -261,6 +261,8 @@ attacks_time_series_line <- ASAM %>%
 
 ggsave(filename = "figs/attacks_time_series_line.eps", device="eps",plot = attacks_time_series_line, width = 9, height = 9)
 
+ggsave(filename = here::here("figs/attacks_time_series_line.png"),plot = attacks_time_series_line, width = 8, height = 6)
+
 ```
 
 
