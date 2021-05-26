@@ -20,6 +20,7 @@ library(sf)
 library(lubridate)
 library(tidyverse)
 library(viridis)
+library(countrycode)
 ```
 
 
@@ -29,14 +30,18 @@ ASAM <- read_csv("../processed_data/attacks.csv") %>%
   mutate(Hotspot = ifelse(Hotspot == "Outside of Hotspots","Rest of the world",Hotspot)) %>%
   mutate(Hotspot = ifelse(Hotspot == "Southeast Asia","South East Asia",Hotspot))
 ASAM %>%
+  filter(year>=2011,year<=2017) %>%
   group_by(attack_eez) %>%
   summarize(n = n()) %>%
-  filter(n > 10) %>%
-  ggplot(aes(x=reorder(attack_eez,-n),y=n)) +
+  filter(n >= 10) %>%
+  mutate(eez = ifelse(attack_eez=="High Seas", attack_eez,
+                      countrycode(attack_eez,origin="iso3c",destination="country.name"))) %>%
+  ggplot(aes(x=reorder(eez,n),y=n)) +
            geom_histogram(stat="identity") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  xlab("Country") +
-  ylab("Number of attacks\n2010 - 2018")
+  xlab("") +
+  ylab("Number of attacks 2011 - 2017\nfilter to just EEZs with >=10 attacks") +
+  coord_flip() +
+  theme_bw()
 ```
 
 ## Plot locations of attacks
