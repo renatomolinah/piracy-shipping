@@ -258,15 +258,17 @@ attacks_time_series_line <- ASAM %>%
   scale_x_continuous(breaks = seq(min(ASAM$year),max(ASAM$year),2)) +
   theme_bw() +
   labs(x="",
-       y="Annual\nattacks") +
+       y="Annual\nnumber\npirate\nenounters") +
   theme(axis.title.y = element_text(angle=0,vjust=0.52),
         text = element_text(size=20),
         strip.background = element_blank(),
         panel.grid.minor = element_blank())
 
+attacks_time_series_line
+
 ggsave(filename = "figs/attacks_time_series_line.eps", device="eps",plot = attacks_time_series_line, width = 9, height = 9)
 
-ggsave(filename = here::here("figs/attacks_time_series_line.png"),plot = attacks_time_series_line, width = 8, height = 6)
+ggsave(filename = here::here("figs/attacks_time_series_line.png"),plot = attacks_time_series_line, width = 8, height = 7)
 
 ```
 
