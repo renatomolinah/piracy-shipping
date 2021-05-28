@@ -251,7 +251,7 @@ attacks_time_series_line <- ASAM %>%
   group_by(year,Hotspot) %>%
   summarize(number_attacks = n()) %>%
   ungroup() %>%
-  mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Guinea","Gulf of Aden","South East Asia","Rest of the world"))) %>%
+  mutate(Hotspot = fct_relevel(Hotspot,c("Gulf of Aden","Gulf of Guinea","South East Asia","Rest of the world"))) %>%
   ggplot(aes(x=year,y=number_attacks)) +
   geom_line(size = 1.05) +
   facet_wrap(~Hotspot,ncol=1) +
