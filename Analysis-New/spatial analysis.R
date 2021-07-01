@@ -120,6 +120,11 @@ head(db)
 
 # Establishing validity of first stage
 
+# icd_tot = Best estimate of total deaths due to internal conflict + internationalized internal conflict (data from UCDP/PRIO Armed Conflict Dataset)
+# icd_1000 = Deaths due to internal conflict per 1000 people. Calculated using World Bank population estimates 
+# ef_os = Overall score for the index of economic freedom 
+# ps = World Bank's indicator for political stability and absence of violence/terrorism (-2.5 to +2.5)
+# unem = Unemployment, percent of total labor force (World Bank modeled ILO estimate)
 
 m1 = feols(attacks ~ icd_1000, db)
 
