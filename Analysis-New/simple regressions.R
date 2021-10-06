@@ -1,12 +1,8 @@
 # Libraries ---------------------------------------------------------------
 
-library(fst)
-library(data.table)
-library(fixest)
-library(ggplot2)
-library(here)
-
-
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, tidylog, here, fst, data.table, 
+               fixest)
 # Data --------------------------------------------------------------------
 
 # Load dataset (takes a while)
@@ -59,8 +55,9 @@ ggplot(tmp, aes(attacks, group = hotspot, col = hotspot, fill = hotspot)) +
   labs(x = "Log past attacks", y = "Density") +
   scale_colour_discrete(name = "Hotspot", aesthetics = c("colour", "fill")) +
   theme_minimal() +
-  facet_wrap(~ paste("Past", months_prior, "month(s)"), scales = "free_y") +
-  ggsave(here("Analysis-New/attack.png"), width = 10, height = 6)
+  facet_wrap(~ paste("Past", months_prior, "month(s)"), scales = "free_y")
+
+ggsave("attack.png", width = 10, height = 6)
 
 # Manual version
 # tmp = tmp[, .(dens = list(density(attacks))), by = .(hotspot, months_prior)]
@@ -189,6 +186,8 @@ rm(nms, l)
 ## one, it'd be something like:
 ## costpoll_mods$`Full sample`$total_cost$coefficients[['attacks_past_12']]
 
+## RM: Correct, total cost.
+
 cost_coef = costpoll_mods$`Full sample`$total_cost$coefficients[['attacks_past_12']]
 
 co2_coef = costpoll_mods$`Full sample`$total_co2$coefficients[['attacks_past_12']]
@@ -206,6 +205,7 @@ tot_cols = paste0("total_", c('cost', 'co2', 'nox', 'sox'))
 
 
 ## Summarise
+
 piracy = 
   wdb[,
       lapply(.SD, function(x) sum(x)/1e6),
@@ -217,3 +217,11 @@ piracy = dcast(piracy, year + var~ type, value.var = 'value')
 piracy[, share := piracy/total*100][]
 
 piracy[, .(mean_share = mean(share)), by = var]
+
+## RM: Since most of these are basically the running time of the voyage 
+## multiplied by a factor, it's not surprising they are all about the same share
+
+
+
+
+

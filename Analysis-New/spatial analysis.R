@@ -1,15 +1,22 @@
+################################################################################
+# Pricing the effects of piracy on the shipping industry
+# Author: Renato Molina
+################################################################################
+
+################################################################################
 # Load packages
-library("tidyverse")
+################################################################################
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, tidylog, sp, sf, fixest, rnaturalearth,
+               rnaturalearthdata, smoothr, lubridate, fossil, here)
+options("tidylog.display" = NULL)
 theme_set(theme_bw())
-library(sp)
-library("sf")
-library("rnaturalearth")
-library("rnaturalearthdata")
-library(smoothr)
-library(lubridate)
-library(fossil)
-library(fixest)
 sf_use_s2(FALSE)
+
+################################################################################
+# Maps and assignments
+################################################################################
 
 # Load world shapefile
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -30,19 +37,25 @@ gulf_guinea <- world %>%
   st_transform("ESRI:54009") %>%
   summarise()
 
-# Plot just for checking
+# Plot guinea to make sure things look like they should
 gulf_guinea %>% 
   ggplot() + geom_sf()
 
 # Read in EEZ data
 # Marine Regions V9
-eez <- read_sf(dsn = "World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE) %>%
+eez <- read_sf(dsn = "World_EEZ_v9_20161021_LR", layer = "eez_lr", 
+               stringsAsFactors = FALSE) %>%
   st_make_valid()
 
-## load anti-shipping data
+################################################################################
+# Load and match data on pirate encounters
+################################################################################
+
 # Data from http://msi.nga.mil/NGAPortal/MSI.portal?_nfpb=true&_pageLabel=msi_portal_page_65
-## Process dates, and filter to only 2011 - 2017, to match GFW data
-# Join to eez data to figure out which eez each attack happens in
+
+# Process dates, and filter to only 2011 - 2017, to match GFW data
+
+# Join to eez data to figure out in which eez each attack happens
 
 attacks <- read_sf(dsn = "ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors = FALSE) %>%
   st_make_valid() %>%
@@ -58,20 +71,11 @@ attacks <- read_sf(dsn = "ASAM_shp", layer = "ASAM 20 MAR 18", stringsAsFactors 
   st_join(eez, join = st_intersects) %>%
   mutate(attack_eez = ifelse(is.na(ISO_Ter1),"High Seas",as.character(ISO_Ter1)))
 
+# Change entrances for Somalia
+
 attacks$Territory1[which(attacks$Territory1=="Federal Republic of Somalia")] = "Somalia"
 
-# Some plots
-
-attacks %>%
-  ggplot() + 
-  geom_sf() +
-  geom_sf(data = world) +
-  coord_sf(xlim = c(-25, 80),
-           clip = "on")
-  
-
-
-gulf_guinea %>% ggplot() + geom_sf()
+# Visualize Gulf of Guinea
 
 attacks %>% 
   filter(attack_eez == "LBR" |
@@ -86,11 +90,13 @@ attacks %>%
   ggplot() + geom_sf() + geom_sf(data = gulf_guinea)
 
 
+################################################################################
+# Load and match data on pirate encounters
+################################################################################
 
-# Match EEZ and attacks 
+# Load socio-economic indicators
 
-# Load indicators
-indicators <- read.csv("~/Box/Proyectos/piracy-shipping/Analysis-New/PiracyIndicatorsPanelData.csv") %>%
+indicators <- read.csv(here("PiracyIndicatorsPanelData.csv")) %>%
   transform(ef_os = as.numeric(ef_os),
             ps = as.numeric(ps))
 
@@ -98,16 +104,19 @@ indicators <- read.csv("~/Box/Proyectos/piracy-shipping/Analysis-New/PiracyIndic
 
 db <- attacks %>%
   as_tibble() %>%
-  select(Year, Aggressor, Victim,Territory1) %>%
+  select(Year, Aggressor, Victim, Territory1, attack_eez, ISO_Ter1) %>%
   rename(year = Year,
          agg = Aggressor,
          vic = Victim,
-         country = Territory1) %>%
+         country = Territory1,
+         iso_code = ISO_Ter1
+         ) %>%
   filter(!is.na(country)) %>%
   group_by(year, country) %>%
   summarise(attacks = n()) %>%
   ungroup() %>% 
   complete(year, country, fill = list(attacks = 0))
+  
   
 # Merge attacks/EEZ with socioeconomic indicators
 
@@ -115,8 +124,9 @@ db <- db %>% inner_join(indicators)
 
 head(db)
 
-###############################################################################################################################################################
-
+################################################################################
+# First stage - Socio-Political indicators and pirate encounters
+################################################################################
 
 # Establishing validity of first stage
 
@@ -125,6 +135,23 @@ head(db)
 # ef_os = Overall score for the index of economic freedom 
 # ps = World Bank's indicator for political stability and absence of violence/terrorism (-2.5 to +2.5)
 # unem = Unemployment, percent of total labor force (World Bank modeled ILO estimate)
+
+# Setting up a dictionary 
+setFixest_dict(c(attacks = "Encounters (#)",
+                 icd_1000 = "Conflict deaths PK", 
+                 
+                 ef_os = "Economic freedom",
+                 
+                 ps = "Political stability",
+                 
+                 unem = "Unemployemnt",
+
+                 country = "Country",
+                 
+                 year = "Year"
+
+))
+
 
 m1 = feols(attacks ~ icd_1000, db)
 
@@ -151,5 +178,21 @@ m4 = feols(attacks ~ ps + gulf | year, db)
 etable(m1, m2, m3, m4)
 
 
+asd <-  db %>% 
+  group_by(year, gulf) %>%
+  summarise(ps = mean(ps),
+            attacks = sum(attacks))
+  
+db %>% ggplot(aes(x = asinh(ps), y = asinh(attacks)))  +geom_point()
+  
+  
+
+################################################################################
+# Save first stage set-up
+################################################################################
+
+# National indicators and encounters
+
+write.csv(x = db, file = "NT_E.csv")
 
 ###############################################################################################################################################################
