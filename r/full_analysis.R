@@ -8,10 +8,9 @@ library(lubridate)
 library(tidyverse)
 library(bigrquery)
 library(zoo)
-library(bigrquery)
 library(fpc)
 library(fossil)
-
+library(readr)
 # Set up bigquery
 #project <-  "ucsb-gfw"
 project <- "ucsb-gfw"
@@ -301,3 +300,57 @@ window_names_next <- tibble(names = colnames(expanded_asam),
 #source("sql/voyages.R")
 #source("sql/gridded_shipping_hours.R")
 #source("sql/hotspot_summary.R")
+
+#### New table for Renato
+#### Renato will use this in an instrumental variable approach to determine
+#### causal effect of pirate attacks on shipping, using EEZ-level development instruments
+project <- "emlab-gcp"
+billing_project <- "emlab-gcp"
+
+# Table summarizes shipping activity by eez-year
+bq_project_query(billing_project,
+                 query = read_file(here::here("sql/shipping_activity_by_year_eez.sql")), 
+                 destination_table = bq_table(project = project,
+                                              table = "shipping_activity_by_year_eez",
+                                              dataset = "piracy"),
+                 use_legacy_sql = FALSE, 
+                 allowLargeResults = TRUE,
+                 write_disposition = "WRITE_TRUNCATE")
+
+#### New table for Grant
+#### Grant will use this to try an ML approach that predicts where vessels should be
+## Need to re-upload attack info to emlab-gcp
+condensed_attacks <- expanded_asam %>% 
+  dplyr::select(date,
+                lon_bin,
+                lat_bin,
+                days_since_attack,
+                attacks_window_last_1_month,
+                attacks_window_last_2_month,
+                attacks_window_last_3_month,
+                attacks_window_last_4_month,
+                attacks_window_last_5_month,
+                attacks_window_last_6_month,
+                attacks_window_last_7_month,
+                attacks_window_last_8_month,
+                attacks_window_last_9_month,
+                attacks_window_last_10_month,
+                attacks_window_last_11_month,
+                attacks_window_last_12_month)
+
+bq_table(project = project,
+         table = glue::glue("piracy_attacks_",cell_size),
+         dataset = "piracy") %>% 
+  bq_table_upload(values = condensed_attacks,
+                  fields = as_bq_fields(condensed_attacks),
+                  write_disposition = "WRITE_TRUNCATE")
+
+# Table summarizes shipping activity, voyage info, attacks, and wind by mmsi-voyage-day-lat_bin-lon_bin
+bq_project_query(billing_project,
+                 query = read_file(here::here("sql/gridded_data_ml.sql")), 
+                 destination_table = bq_table(project = project,
+                                              table = "gridded_data_test",
+                                              dataset = "piracy"),
+                 use_legacy_sql = FALSE, 
+                 allowLargeResults = TRUE,
+                 write_disposition = "WRITE_TRUNCATE")
