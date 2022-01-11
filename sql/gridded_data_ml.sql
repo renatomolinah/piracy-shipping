@@ -31,7 +31,7 @@ WITH
     # Only subset to a small date range for now
   WHERE
     _PARTITIONTIME BETWEEN TIMESTAMP('2016-01-01')
-    AND TIMESTAMP('2016-01-01')
+    AND TIMESTAMP('2016-01-31')
     # Only use good segments for AIS messages
     AND seg_id IN (
     SELECT
@@ -191,16 +191,21 @@ WITH
     attacks_window_last_6_month
   FROM
     `emlab-gcp.piracy.piracy_attacks_5` ),
-  # Select attack info - this was generated in wind_analysis.R in the GitHub repo
+  # Select wind info - this was generated in https://github.com/emlab-ucsb/bycatch-risk/blob/main/scripts/05-environmental-data/get_environmental_data.Rmd
+  # Comes from NOAA's Global Forecast System (GFS) (https://www.ncdc.noaa.gov/data-access/model-data/model-datasets/global-forcast-system-gfs)
   wind_info AS(
   SELECT
-    DATE(date) date,
-    lon_bin,
-    lat_bin,
-    wind_direction_degrees,
-    wind_speed_m_s
-  FROM
-    `emlab-gcp.piracy.wind` )
+  date,
+  FLOOR(lat_bin/5) * 5 lat_bin,
+  FLOOR(lon_bin/5) * 5 lon_bin,
+  AVG(direction_degrees) wind_direction_degrees,
+  AVG(speed_m_s) wind_speed_m_s
+FROM
+  `emlab-gcp.bycatch_risk.wind_data`
+GROUP BY
+  date,
+  lat_bin,
+  lon_bin)
   # Start with our binned activity info
 SELECT
   * EXCEPT(main_sfc,

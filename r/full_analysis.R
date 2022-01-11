@@ -308,14 +308,21 @@ project <- "emlab-gcp"
 billing_project <- "emlab-gcp"
 
 # Table summarizes shipping activity by eez-year
+table_name <- "shipping_activity_by_year_eez"
+
 bq_project_query(billing_project,
-                 query = read_file(here::here("sql/shipping_activity_by_year_eez.sql")), 
+                 query = read_file(here::here(glue::glue("sql/{table_name}.sql"))), 
                  destination_table = bq_table(project = project,
-                                              table = "shipping_activity_by_year_eez",
+                                              table = table_name,
                                               dataset = "piracy"),
                  use_legacy_sql = FALSE, 
                  allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
+
+
+bq_project_query(billing_project, glue::glue("SELECT * FROM `emlab-gcp.piracy.{table_name}`")) %>%
+  bq_table_download(n_max = Inf) %>%
+  write_csv(here::here(glue::glue("data/{table_name}.csv")))
 
 #### New table for Grant
 #### Grant will use this to try an ML approach that predicts where vessels should be
@@ -345,12 +352,19 @@ bq_table(project = project,
                   fields = as_bq_fields(condensed_attacks),
                   write_disposition = "WRITE_TRUNCATE")
 
+table_name <- "gridded_data_ml"
+
 # Table summarizes shipping activity, voyage info, attacks, and wind by mmsi-voyage-day-lat_bin-lon_bin
 bq_project_query(billing_project,
-                 query = read_file(here::here("sql/gridded_data_ml.sql")), 
+                 query = read_file(here::here(glue::glue("sql/{table_name}.sql"))), 
                  destination_table = bq_table(project = project,
-                                              table = "gridded_data_test",
+                                              table = table_name,
                                               dataset = "piracy"),
                  use_legacy_sql = FALSE, 
                  allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
+
+
+bq_project_query(billing_project, glue::glue("SELECT * FROM `emlab-gcp.piracy.{table_name}` WHERE DATE(departure_timestamp) = DATE('2016-01-01')")) %>%
+  bq_table_download(n_max = Inf) %>%
+  write_csv(here::here(glue::glue("data/{table_name}.csv")))
