@@ -193,9 +193,15 @@ shipping <- read_csv("shipping_activity_by_year_eez.csv") %>%
 
 db <- db %>% left_join(shipping)
 
+m1_naive <- feols(hours/1000 ~ attacks + gulf, db)
+
+m2_naive <- feols(hours/1000 ~ attacks + gulf | year, db)
+
 m1_iv <- feols(hours/1000 ~ gulf | attacks ~ ps, db)
 
 m2_iv <- feols(hours/1000 ~ gulf |year| attacks ~ ps, db)
 
-etable(m1_iv, m2_iv)
+
+
+table(m1_naive, m2_naive, m1_iv, m2_iv)
 
