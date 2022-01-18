@@ -116,7 +116,13 @@ db <- attacks %>%
   summarise(attacks = n()) %>%
   ungroup() %>% 
   complete(year, country, fill = list(attacks = 0))
-  
+
+db <- db %>% left_join(attacks %>% 
+                         as_tibble() %>%
+                         select(Territory1, ISO_Ter1) %>%
+                         rename(country = Territory1,
+                                eez = ISO_Ter1) %>%
+                         distinct())  
   
 # Merge attacks/EEZ with socioeconomic indicators
 
@@ -177,22 +183,25 @@ m4 = feols(attacks ~ ps + gulf | year, db)
 
 etable(m1, m2, m3, m4)
 
-
-asd <-  db %>% 
-  group_by(year, gulf) %>%
-  summarise(ps = mean(ps),
-            attacks = sum(attacks))
-  
-db %>% ggplot(aes(x = asinh(ps), y = asinh(attacks)))  +geom_point()
-  
-  
-
-################################################################################
-# Save first stage set-up
-################################################################################
-
-# National indicators and encounters
-
-write.csv(x = db, file = "NT_E.csv")
-
 ###############################################################################################################################################################
+# Establishing validity of second stage
+
+# Load shipping time within EEZ (2012 onwards)
+
+shipping <- read_csv("shipping_activity_by_year_eez.csv") %>%
+  rename(eez = iso3)
+
+db <- db %>% left_join(shipping)
+
+m1_naive <- feols(hours/1000 ~ attacks + gulf, db)
+
+m2_naive <- feols(hours/1000 ~ attacks + gulf | year, db)
+
+m1_iv <- feols(hours/1000 ~ gulf | attacks ~ ps, db)
+
+m2_iv <- feols(hours/1000 ~ gulf |year| attacks ~ ps, db)
+
+
+
+table(m1_naive, m2_naive, m1_iv, m2_iv)
+
