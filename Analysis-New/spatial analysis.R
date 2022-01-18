@@ -189,9 +189,13 @@ etable(m1, m2, m3, m4)
 # Load shipping time within EEZ (2012 onwards)
 
 shipping <- read_csv("shipping_activity_by_year_eez.csv") %>%
-  rename(eez = iso3)
+  rename(eez = iso3,
+         n_vessels = n_distinct_vessels) %>%
+  mutate(time_vessel = hours/n_vessels)
 
 db <- db %>% left_join(shipping)
+
+# IV estimation - Total time
 
 m1_naive <- feols(hours/1000 ~ attacks + gulf, db)
 
@@ -201,7 +205,32 @@ m1_iv <- feols(hours/1000 ~ gulf | attacks ~ ps, db)
 
 m2_iv <- feols(hours/1000 ~ gulf |year| attacks ~ ps, db)
 
+etable(m1_naive, m2_naive, m1_iv, m2_iv)
+
+# IV estimation - Total vessels
+
+m1_naive <- feols(n_vessels ~ attacks + gulf, db)
+
+m2_naive <- feols(n_vessels ~ attacks + gulf | year, db)
+
+m1_iv <- feols(n_vessels ~ gulf | attacks ~ ps, db)
+
+m2_iv <- feols(n_vessels ~ gulf |year| attacks ~ ps, db)
+
+etable(m1_naive, m2_naive, m1_iv, m2_iv)
 
 
-table(m1_naive, m2_naive, m1_iv, m2_iv)
+# IV estimation - time per vessel
+
+m1_naive <- feols(time_vessel ~ attacks + gulf, db)
+
+m2_naive <- feols(time_vessel ~ attacks + gulf | year, db)
+
+m1_iv <- feols(time_vessel ~ gulf | attacks ~ ps, db)
+
+m2_iv <- feols(time_vessel ~ gulf |year| attacks ~ ps, db)
+
+etable(m1_naive, m2_naive, m1_iv, m2_iv)
+
+
 
