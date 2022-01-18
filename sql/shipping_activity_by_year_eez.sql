@@ -4,7 +4,8 @@ WITH
   SELECT
     year,
     CAST(value AS int64) AS eez_id,
-    SUM(e.hours) hours
+    SUM(e.hours) hours,
+    COUNT(DISTINCT ssvid) n_distinct_vessels
   FROM
     `world-fishing-827.gfw_research.vi_ssvid_byyear_v20210913`
   LEFT JOIN
@@ -32,7 +33,8 @@ WITH
 SELECT
   year,
   iso3,
-  hours
+  hours,
+  n_distinct_vessels
 FROM
   summary_by_eez
 LEFT JOIN
