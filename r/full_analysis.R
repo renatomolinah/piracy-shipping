@@ -16,6 +16,8 @@ library(readr)
 project <- "ucsb-gfw"
 billing_project <- "emlab-gcp"
 options(scipen = 20)
+# This helps with st_join
+sf_use_s2(FALSE)
 # Read in EEZ data
 # Marine Regions V9
 eez <- read_sf(dsn = "raw_data/World_EEZ_v9_20161021_LR", layer = "eez_lr", stringsAsFactors = FALSE)
@@ -54,7 +56,7 @@ bq_table(project = project,table = "asam",dataset = "piracy") %>%
 
 # Define cell size for grid map
 cell_size <- 5 #degrees
-one_over_cellsize = 1/cell_size
+one_over_cellsize = 5/cell_size
 
 ASAM <- do.call(rbind, st_geometry(ASAM)) %>% 
   as_tibble() %>% 
@@ -148,7 +150,7 @@ write_csv(ASAM,"processed_data/attacks.csv")
 ASAM <- read_csv("processed_data/attacks.csv")
 
 # Define cell size for grid map
-cell_size <- 3 #degrees
+cell_size <- 0.5 #degrees
 one_over_cellsize = 1/cell_size
 
 ASAM <- ASAM %>%
@@ -346,11 +348,24 @@ condensed_attacks <- expanded_asam %>%
                 attacks_window_last_12_month)
 
 bq_table(project = project,
-         table = glue::glue("piracy_attacks_",cell_size),
+         table = glue::glue("piracy_attacks_",str_replace_all(cell_size,"\\.","_")),
          dataset = "piracy") %>% 
   bq_table_upload(values = condensed_attacks,
                   fields = as_bq_fields(condensed_attacks),
                   write_disposition = "WRITE_TRUNCATE")
+
+# New table for Grant on March 10, 2022
+table_name <- "ungridded_data_ml"
+
+# Table summarizes shipping activity, voyage info, attacks, and wind by mmsi-voyage-day
+bq_project_query(billing_project,
+                 query = read_file(here::here(glue::glue("sql/{table_name}.sql"))), 
+                 destination_table = bq_table(project = project,
+                                              table = table_name,
+                                              dataset = "piracy"),
+                 use_legacy_sql = FALSE, 
+                 allowLargeResults = TRUE,
+                 write_disposition = "WRITE_TRUNCATE")
 
 table_name <- "gridded_data_ml"
 
@@ -364,7 +379,21 @@ bq_project_query(billing_project,
                  allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 
+table_name <- "gridded_data_ml_top_route"
 
-bq_project_query(billing_project, glue::glue("SELECT * FROM `emlab-gcp.piracy.{table_name}` WHERE DATE(departure_timestamp) = DATE('2016-01-01')")) %>%
+# Table summarizes shipping activity, voyage info, attacks, and wind by mmsi-voyage-day-lat_bin-lon_bin
+# Only for the most traveled route
+# For each trip-lat_bin-lon_bin, just take first day
+bq_project_query(billing_project,
+                 query = read_file(here::here(glue::glue("sql/{table_name}.sql"))), 
+                 destination_table = bq_table(project = project,
+                                              table = table_name,
+                                              dataset = "piracy"),
+                 use_legacy_sql = FALSE, 
+                 allowLargeResults = TRUE,
+                 write_disposition = "WRITE_TRUNCATE")
+
+
+bq_project_query(billing_project, glue::glue("SELECT * FROM `emlab-gcp.piracy.{table_name}`")) %>%
   bq_table_download(n_max = Inf) %>%
   write_csv(here::here(glue::glue("data/{table_name}.csv")))
