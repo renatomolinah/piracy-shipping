@@ -81,7 +81,7 @@ track_info <- tbl(piracy, "gridded_data_ml") %>%
   summarize(hours = sum(hours, na.rm = T),
             distance_km = sum(distance_km, na.rm = T),
             n_vessels = n_distinct(mmsi),
-            n_trips = n_distinct(mmsi),
+            n_trips = n_distinct(trip_id),
             n_ais_messages = sum(ais_messages, na.rm = T),
             .groups = "drop") %>% 
   ungroup()
