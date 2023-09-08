@@ -13,7 +13,7 @@ library(fossil)
 library(readr)
 # Set up bigquery
 #project <-  "ucsb-gfw"
-project <- "ucsb-gfw"
+project <- "emlab-gcp"
 billing_project <- "emlab-gcp"
 options(scipen = 20)
 # This helps with st_join
@@ -384,6 +384,24 @@ table_name <- "gridded_data_ml_top_route"
 # Table summarizes shipping activity, voyage info, attacks, and wind by mmsi-voyage-day-lat_bin-lon_bin
 # Only for the most traveled route
 # For each trip-lat_bin-lon_bin, just take first day
+bq_project_query(billing_project,
+                 query = read_file(here::here(glue::glue("sql/{table_name}.sql"))), 
+                 destination_table = bq_table(project = project,
+                                              table = table_name,
+                                              dataset = "piracy"),
+                 use_legacy_sql = FALSE, 
+                 allowLargeResults = TRUE,
+                 write_disposition = "WRITE_TRUNCATE")
+
+
+bq_project_query(billing_project, glue::glue("SELECT * FROM `emlab-gcp.piracy.{table_name}`")) %>%
+  bq_table_download(n_max = Inf) %>%
+  write_csv(here::here(glue::glue("data/{table_name}.csv")))
+
+# For each voyage, figure out the average number of attacks per trip
+# that occurred along that port-to-port route in the proceding last 12 months
+table_name <- "voyage_average_route_attacks"
+
 bq_project_query(billing_project,
                  query = read_file(here::here(glue::glue("sql/{table_name}.sql"))), 
                  destination_table = bq_table(project = project,
