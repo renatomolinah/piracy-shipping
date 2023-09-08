@@ -24,6 +24,7 @@ WITH
     attack_info
   ON
     attack_info.departure_date < voyage_base.departure_date
+    AND attack_info.departure_date >= DATE_SUB(voyage_base.departure_date, INTERVAL 1 year)
     AND voyage_base.from_port = attack_info.from_port
     AND voyage_base.to_port = attack_info.to_port)
 SELECT
