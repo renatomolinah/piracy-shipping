@@ -17,6 +17,7 @@ pacman::p_load(
   here,
   fixest,
   kableExtra,
+  modelsummary,
   panelsummary,
   tidyverse
 )
@@ -89,20 +90,18 @@ reg_data <- grid_level_panel %>%
          ym = paste(year, month, sep = "-"))
   
 # Table of summary stats -------------------------------------------------------
-by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance_km + hours,
-                          data = reg_data %>% filter(!attack_cluster == "None"),
+by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance_km + hours + n_trips,
+                          data = reg_data %>% 
+                            mutate(attack_cluster = ifelse(attack_cluster == "None", "Rest of the world", attack_cluster),
+                                   attack_cluster = fct_relevel(attack_cluster, "GoA", "GoG", "SEA", "Rest of the world")),
                           output = "dataframe")
-global <- datasummary(Mean + SD + Median + Max ~ distance_km + hours,
-                      data = reg_data,
-                      output = "dataframe") %>% 
-  bind_cols(attack_cluster = c("Global", "", "", ""))
 
-bind_rows(by_cluster, global) %>% 
-  kbl(booktabs = T,
-      label = "grid_summary",
-      caption = "Summary statistics for ship transit on all grid cells contemplated in our analysis",
-      col.names = c("", "", "Distance (km)", "Time (hours)"),
-      format = "latex") %>% 
+kbl(x = by_cluster,
+    booktabs = T,
+    label = "grid_summary",
+    caption = "Summary statistics for daily ship transit by grid cell",
+    col.names = c("", "", "Distance (km)", "Occupancy (hours)", "Trips (#)"),
+    format = "latex") %>% 
   cat(file = here("tables", "grid_summary_stats.tex"))
 
 ## ESTIMATE ####################################################################
@@ -111,7 +110,8 @@ quad_mod <- feols(data = reg_data,
                   fml =
                     # Outcome varibles
                     c(distance_km,
-                      hours) ~
+                      hours,
+                      n_trips) ~
                     # Regressors
                     TNE + TNE ^ 2 | 
                     # Fixed effects
@@ -130,16 +130,18 @@ quad_mod <- feols(data = reg_data,
                   split.drop = "None",
                   lean = TRUE)
 
-panelsummary(quad_mod[c(1, 3, 5, 7)],
-             quad_mod[c(2, 4, 6, 8)],
-             caption = "\\label{grid_reg}Linear regression estimates for the average piracy effect on ship traffic",
+panelsummary(quad_mod[c(1, 4, 7, 10)],
+             quad_mod[c(2, 5, 8, 11)],
+             quad_mod[c(3, 6, 9, 12)],
+             caption = "\\label{grid_reg}Linear regression estimates for the average piracy effect on ship transit.",
              colnames = c(" ",
                           "Global",
                           "G. of Aden",
                           "G. of Guinea",
                           "South East Asia"),
              panel_labels = c("Panel A: Total Distance (km)",
-                              "Panel B: Total Time (hours)"),
+                              "Panel B: Occupancy (hours)",
+                              "Panel C: Number of trips"),
              stars = T,
              coef_map = c("TNE" = "One year ago",
                           "I(TNE^2)" = "(One year ago)2"),
