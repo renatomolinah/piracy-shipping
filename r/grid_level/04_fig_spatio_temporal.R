@@ -21,27 +21,25 @@ piracy <- dbConnect(
   allowLargeResults = TRUE
 )
 
-## PROCESSING ##################################################################
-
-
-
 coast <- rnaturalearth::ne_countries(scale = "large",
                                      country = c("Malaysia", "Indonesia", "Singapore"),
                                      returnclass = "sf")
 
-
-event_study_panel %>%
-  mutate(post = 1 * (event >= 0)) %>% 
-  group_by(attack_id, post) %>% 
-  summarize(distance_km = sum(n_trips)) %>% 
-  pivot_wider(names_from = post,
-              values_from = distance_km,
-              names_prefix = "d_") %>% 
-  mutate(d = d_1 - d_0) %>% 
-  arrange(d)
+## PROCESSING ##################################################################
 
 
+
+# event_study_panel %>%
+#   mutate(post = 1 * (event >= 0)) %>% 
+#   group_by(attack_id, post) %>% 
+#   summarize(distance_km = sum(n_trips)) %>% 
+#   pivot_wider(names_from = post,
+#               values_from = distance_km,
+#               names_prefix = "d_") %>% 
+#   mutate(d = d_1 - d_0) %>% 
+#   arrange(d)
 # 162 2013-06-19    343   130  -213
+
 
 focus_grid <- "162" #"124" 
 focus_date <- ymd("2013-06-19") #ymd("2017-10-17")
@@ -53,8 +51,15 @@ focus_grid_coords <- grid_level_panel %>%
 focus_lat <- focus_grid_coords$lat_bin
 focus_lon <- focus_grid_coords$lon_bin
 
+tracks <- tbl(piracy, "ungridded_data_ml") %>% 
+  filter(between(lat, focus_lat - 3, focus_lat + 3),
+         between(lon, focus_lon - 3, focus_lon + 3),
+         between(date, sql("date('2013-06-12')"), sql("date('2013-06-26')"))) %>%
+  mutate(post = ifelse(date > sql("date('2013-06-19')"), "After", "Before")) %>% 
+  arrange(trip_id, date) %>% 
+  collect()
 
-tracks <- tbl(piracy, "gridded_data_ml") %>% 
+g_tracks <- tbl(piracy, "gridded_data_ml") %>% 
   filter(between(lat_bin, focus_lat - 3, focus_lat + 3),
          between(lon_bin, focus_lon - 3, focus_lon + 3),
          between(date, sql("date('2013-06-12')"), sql("date('2013-06-26')"))) %>%
@@ -66,12 +71,9 @@ tracks <- tbl(piracy, "gridded_data_ml") %>%
   collect() %>% 
   ungroup()
 
-ts <- tracks %>% 
+ts <- g_tracks %>% 
   filter(lat_bin == focus_lat,
          lon_bin == focus_lon) %>% 
-  #grid_level_panel %>% 
-  # filter(grid_id == focus_grid,
-         # between(date, focus_date - 7, focus_date + 7)) %>% 
   group_by(post, date) %>% 
   summarize(distance_km = sum(n_trips)) %>% 
   group_by(post) %>% 
@@ -80,7 +82,7 @@ ts <- tracks %>%
          sd_dist = sd(distance_km)) %>% 
   ungroup() %>% 
   ggplot(aes(x = date, y = distance_km)) +
-  geom_vline(xintercept = focus_date) +
+  geom_vline(xintercept = focus_date, linetype = "dotted") +
   geom_ribbon(aes(ymin = mean_dist - sd_dist,
                   ymax = mean_dist + sd_dist,
                   group = post),
@@ -89,6 +91,8 @@ ts <- tracks %>%
             linetype = "dashed") +
   geom_line(linewidth = 1,
             color = "steelblue") +
+  scale_x_continuous(labels = c(focus_date -7, focus_date -3, focus_date, focus_date + 3, focus_date + 7),
+                     breaks = c(focus_date -7, focus_date -3, focus_date, focus_date + 3, focus_date + 7)) +
   theme_bw() +
   theme(panel.grid = element_blank(),
         legend.position = "top",
@@ -96,51 +100,75 @@ ts <- tracks %>%
   labs(x = "Date",
        y = "Number of trips")
 
-spat <- tracks %>% 
-  mutate(post = 1 * (date >= focus_date)) %>%
-  group_by(lat_bin, lon_bin, post) %>%
-  summarize(distance_km = mean(n_trips)) %>%
-  pivot_wider(names_from = post,
-              values_from = distance_km,
-              names_prefix = "d_") %>% 
-  mutate(d = (d_1 - d_0) / d_0) %>% 
-  ggplot(aes(x = lon_bin, y = lat_bin, fill = d)) + 
-  geom_raster() +
+colors <- c("#67001F", "#B1182B", "#D5604D", "#F3A481", "#FCDAC6", "#F6F6F6", "#D0E4EF", "#91C4DD", "#4392C2", "#2166AB")
+
+spat <- ggplot(tracks %>% 
+                 mutate(post = fct_relevel(post, "Before", "After")),
+               aes(x = lon, y = lat)) +
+  geom_density2d_filled(alpha = 0.75,
+                        bins = 10,
+                        contour_var = "ndensity") +
   geom_sf(data = coast, inherit.aes = F) +
-  geom_point(aes(x = focus_lon, y = focus_lat),
+  geom_point(aes(group = trip_id),
+             pch = ".",
              color = "black",
-             shape = "x",
-             size = 4) +
-  scale_fill_gradient2(mid = "white", labels = scales::percent) +
+             alpha = 0.1) +
+  facet_wrap(~post) +
+  geom_point(aes(x = 117.2, y = -1.18),
+             color = "black", shape = "X", size = 4) +
+  guides(fill = guide_legend(nrow = 1, title.position = "top")) +
+  scale_fill_discrete(type = rev(colors)) +
+  scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +
+  scale_y_continuous(limits = c(focus_lat - 3, focus_lat + 3), expand = expansion(0.01, 0)) +
   theme_bw() +
-  theme(panel.background = element_rect(fill = "lightblue1", color = "black"),
+  theme(panel.background = element_rect(fill = "#D0E4EF", color = "black"),
         panel.grid = element_line(color = "black",
                                   linewidth = 0.1,
                                   linetype = "dashed"),
-        legend.position = "top",
+        strip.background = element_blank(),
+        legend.position = "bottom",
         axis.title = element_blank(),
         text = element_text(size = 8)) +
-  guides(fill = guide_colorbar(frame.colour = "black",
-                               ticks.colour = "black",
-                               title.position = "top",
-                               title.hjust = 0.5,
-                               barwidth = 13,
-                               barheight = 0.5)) +
-  scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +
-  scale_y_continuous(limits = c(focus_lat -3, focus_lat + 3), expand = expansion(0.01, 0)) +
-  labs(fill = "% Change in daily trips")
+  labs(fill = "Normalized density")
+
+ref <- ggplot() +
+  geom_sf(data = coast,
+          fill = "black", color = "black") +
+  geom_rect(
+    aes(
+      xmin = focus_lon - 3,
+      xmax = focus_lon + 3,
+      ymin = focus_lat - 3,
+      ymax = focus_lat + 3
+    ),
+    fill = "transparent",
+    color = "red"
+  ) +
+  theme_void() + 
+  theme(panel.background = element_rect(fill = "white", colour = "black")) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) 
 
 p <- cowplot::plot_grid(spat, ts,
-                        rel_heights = c(3.5, 1),
+                        rel_heights = c(3, 1),
                         labels = "AUTO",
                         ncol = 1,
                         axis = "l",
                         align = "hv")
+map <- ggdraw() +
+  draw_plot(p) +
+  cowplot::draw_plot(
+    ref,
+    x = 0.0615,
+    y = 1,
+    hjust = 0,
+    vjust = 1,
+    width = 0.25,
+    height = 0.2168
+  )
 
-ggsave(plot = p,
+ggsave(plot = map,
        filename = here("figs", "spatio_temporal_figure.pdf"),
        height = 15,
-       width = 10,
+       width = 18,
        units = "cm")
-
-

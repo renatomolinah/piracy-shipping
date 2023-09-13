@@ -145,8 +145,11 @@ plot <- ggplot(data = plot_data,
              size = 1) +
   scale_x_continuous(breaks = c(-7, -4, 0, 4, 7), labels = c(-7, -4, 0, 4, 7)) +
   scale_shape_manual(values = c(21, 22, 24)) +
-  facet_wrap(sample ~ var, scales = "free_y", ncol = 3, labeller = function(x){x[1]}) +
+  facet_wrap(sample ~ var, scales = "free_y",
+             ncol = 3,
+             labeller = function(x){x[1]}) +
   theme_bw() +
+  guides(shape = guide_legend(title.position = "top")) +
   labs(x = "Days since attack",
        y = "Estimate (with SE)",
        shape = "Dependent variable") +
@@ -158,7 +161,7 @@ plot <- ggplot(data = plot_data,
 ggsave(plot = plot,
        filename = here("figs", "grid_level_event_study.pdf"),
        width = 9,
-       height = 10,
+       height = 11,
        units = "cm")  
 
 
