@@ -27,5 +27,6 @@ piracy-shipping
   |__ figures
   |__ r
   |__ renv
+  |__ sql
   |__ tables
 ```

@@ -1,1 +1,8 @@
 name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+gridded_data_0_5|stem|b781cb016feb276f|cb28ec53d76d225b|afd55d2070a9442c|619642043||t19649.8046499528s|41200f7f0df0ebd3|96|rds|local|vector|||14.39||
+gridded_data_sql|stem|4f49af98fa1879a0|bb4650cd043bef9e|ef46db3751d8e999|646668800|sql/gridded_data.sql|t19649.8014807769s|d60bdbdd48ecac60|3005|file|local|vector|||0.3||
+run_gfw_query|function|932686460fc1e6ad|||||||||||||||
+ungridded_data|stem|877941f1acc85d0c|e842edb4d87459f8|9e7eafaff7014d97|-571193413||t19649.8100199441s|41200f7f0df0ebd3|96|rds|local|vector|||25.137||
+ungridded_data_sql|stem|de8efd1ec81c39dc|37ce602a16252819|ef46db3751d8e999|1274739518|sql/ungridded_data.sql|t19649.7529148032s|9404cb26ab2b912f|4742|file|local|vector|||0.284||
+voyage_data|stem|ea054e3ba232ec68|cd7259e828092d36|04609ffaecedd04f|758703550||t19649.8467925878s|f5f17b42c03333b6|4984061|rds|local|vector|||18.033||
+voyage_data_sql|stem|d537e451f1d2e146|5775580f5eaf96a2|ef46db3751d8e999|-332583567|sql/voyage_data.sql|t19649.8464528198s|fe845104207202b0|3536|file|local|vector|||0.288||

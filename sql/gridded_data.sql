@@ -1,6 +1,7 @@
 #standardSQL
 CREATE TEMPORARY FUNCTION
-  pixel_size() AS (0.5);
+  pixel_size() AS ({pixel_size});
+CREATE TEMP FUNCTION RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
   voyages_ais_positions AS(
   SELECT
@@ -11,7 +12,7 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.ungridded_data_ml` ),
+    `emlab-gcp.piracy.ungridded_data` ),
   # Summarize by all columns except a few https://stackoverflow.com/questions/54792360/bigquery-group-by-all-columns-except-a-few
   binned AS(
   SELECT
@@ -51,7 +52,7 @@ WITH
     attacks_window_last_5_month,
     attacks_window_last_6_month
   FROM
-    `emlab-gcp.piracy.piracy_attacks_0_5` ),
+    `emlab-gcp.piracy.{attack_table_location}`),
   # Select wind info - this was generated in https://github.com/emlab-ucsb/bycatch-risk/blob/main/scripts/05-environmental-data/get_environmental_data.Rmd
   # Comes from NOAA's Global Forecast System (GFS) (https://www.ncdc.noaa.gov/data-access/model-data/model-datasets/global-forcast-system-gfs)
   wind_info AS(
@@ -66,6 +67,12 @@ WITH
 final AS (
 SELECT
   *
+  EXCEPT(direction_degrees,
+  speed_m_s,
+  heading),
+  # Wind vector relative to direction of travel
+  # Positive is tailwind, negative is headwind
+  COS(RADIANS(direction_degrees - heading)) * speed_m_s wind_vector
 FROM
   binned
 LEFT JOIN

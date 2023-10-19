@@ -5,7 +5,7 @@ WITH
   SELECT
     seg_id
   FROM
-    `world-fishing-827.gfw_research.pipe_v20201001_segs`
+    `world-fishing-827.pipe_production_v20201001.research_segs`
   WHERE
     good_seg
     AND NOT overlapping_and_short ),
@@ -27,10 +27,11 @@ WITH
     FROM
       timestamp) date
   FROM
-    `world-fishing-827.gfw_research.pipe_v20201001`
+    `world-fishing-827.pipe_production_v20201001.research_messages`
     # Only subset to a small date range for now
   WHERE
-    _partitiontime < '2017-12-31'
+    #_partitiontime < '2017-12-31'
+    _partitiontime = '2017-12-31'
     # Only use good segments for AIS messages
     AND seg_id IN (
     SELECT
@@ -101,7 +102,10 @@ WITH
     trip_end_anchorage_id to_anchorage_id,
     trip_id
   FROM
-    `world-fishing-827.pipe_production_v20201001.proto_voyages_c4`),
+    `world-fishing-827.pipe_production_v20201001.proto_voyages_c4`
+     WHERE
+    trip_start_confidence = 4
+    AND trip_end_confidence = 4),
   # Combine voyage info with anchorages, ports, and countries
   voyages AS(
   SELECT
@@ -130,7 +134,8 @@ WITH
     voyages.trip_id,
     # Calculate fuel consumption
     #main_sfc is always 206; aux_sfc is always 221
-    hours*(0.8 * POW(implied_speed_knots/design_speed, 3))*206*engine_power/1000000 main_fuel_consumption_mt_inst,
+    # Ensure implied speed never exceed design speed. If it does, set this to 1 for calculating fuel consumption
+    hours*(0.8 * POW(IF(implied_speed_knots/design_speed>1,1,implied_speed_knots/design_speed), 3))*206*engine_power/1000000 main_fuel_consumption_mt_inst,
     hours*0.5*221*aux_engine_power/1000000 aux_fuel_consumption_mt_inst,
     # Create grids, which we'll use to aggregate,
     lat,
