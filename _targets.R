@@ -15,8 +15,48 @@ tar_option_set(
 # Source all necessary functions
 tar_source("r/functions.R")
 
+# Set data directory on emLab's Google Shared Drive where targets interm rds objects will live
+# This path will need to be modified by each user, since everyone has a different path to this directory
+data_directory <- "/Users/gmcdonald/Library/CloudStorage/GoogleDrive-gmcdonald@ucsb.edu/Shared\ drives/emlab/Projects/current-projects/piracy/data"
+
+# Set directory where target objects will be saved
+tar_config_set(store = glue::glue("{data_directory}/_targets"))
+
+# Set up billing and project info for BigQuery
+# Not that this requires authentication, so not all users will be able to do this
+billing_project <- "emlab-gcp" # emLab's billing project
+bq_dataset <- "piracy" # The dataset name for this project
+query_path <- "sql" # Define directory where SQL queries live
+
+
 # Replace the target list below with your own:
 list(
+  # Process ASAM piracy data
+  tar_target(
+    name = asam_file,
+    glue::glue("{data_directory}/raw//asam_data_download/ASAM_events.shp"),
+    format = "file"
+  ),
+  tar_target(
+    name = asam_data,
+    sf::st_read(asam_file)
+  ),
+  tar_target(
+    name = asam_data_processed,
+    process_asam_data(asam_data)
+  ),
+  # Process wind data
+  tar_target(
+    name = wind_file,
+    glue::glue("{data_directory}/raw/wind/era5_monthly_average_wind.nc"),
+    format = "file"
+  ),
+  tar_target(
+    name = wind_data_processed_5,
+    process_wind_data(wind_file,
+                      pixel_size = 5,
+                      table_name = "wind_data_5")
+  ),
   tar_target(
     # Process ungridded, raw AIS messages
     name = ungridded_data_sql,
@@ -43,7 +83,8 @@ list(
   #                 bq_table_name = "gridded_data_0_5", 
   #                 download_data = FALSE, 
   #                 pixel_size = 0.5, 
-  #                 attack_table_location = "piracy_attacks_0_5")
+  #                 attack_table_location = "piracy_attacks_0_5",
+  #                 wind_table_location = "wind_data_0_5")
   # ),
   # Here we make a 5x5 degree gridded dataset
   tar_target(
@@ -66,6 +107,11 @@ list(
     run_gfw_query(query = voyage_data_sql,
                   bq_table_name = "voyage_data_5", 
                   download_data = TRUE, 
-                  gridded_data_table_location = "gridded_data_5")
+                  gridded_data_table_location = "gridded_data_5",
+                  wind_table_location = "wind_data_5")
+  ),
+  tar_target(
+    name = global_map_figure,
+    make_global_map_figure(asam_data_processed)
   )
 )

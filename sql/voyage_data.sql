@@ -1,12 +1,39 @@
+#standardSQL
+CREATE TEMP FUNCTION
+  RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
+  wind_info AS(
+  SELECT
+    EXTRACT(YEAR
+    FROM
+      date) year,
+    EXTRACT(MONTH
+    FROM
+      date) month,
+    lat_bin,
+    lon_bin,
+    wind_speed_ms,
+    wind_direction_degrees
+  FROM
+    `emlab-gcp.piracy.{wind_table_location}`),
   gridded_data AS(
   SELECT
-    *,
+    *
+    EXCEPT(wind_direction_degrees,heading,wind_speed_ms),
     IF(NOT days_since_attack IS NULL,TRUE,FALSE) grid_has_previous_attacks,
     IF(NOT days_since_attack IS NULL,distance_km,0) attack_grid_distance_km,
-    IF(NOT days_since_attack IS NULL,hours,0) attack_grid_hours
+    IF(NOT days_since_attack IS NULL,hours,0) attack_grid_hours,
+  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector
   FROM
     `emlab-gcp.piracy.{gridded_data_table_location}`
+      # Add wind info
+LEFT JOIN
+  wind_info
+USING
+  (month,
+    year,
+    lat_bin,
+    lon_bin)
     WHERE
     hours > 0
     AND distance_km >0),
@@ -63,7 +90,9 @@ WITH
   FROM
     aggregated )
 SELECT
-  * EXCEPT(main_fuel_consumption_mt_inst,
+  * EXCEPT(month,
+  year,
+  main_fuel_consumption_mt_inst,
     aux_fuel_consumption_mt_inst,
     main_fuel_consumption_mt_voyage,
     aux_fuel_consumption_mt_voyage,
