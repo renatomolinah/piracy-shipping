@@ -185,3 +185,35 @@ process_wind_data <- function(wind_file,
   
   return(Sys.time())
 }
+# The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide, 
+# covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
+# Downloaded from https://bunkerindex.com/prices/bix-world.php
+process_fuel_data <- function(fuel_file){
+  # Load fuel price data
+  fuel_price_data <- fuel_file %>%
+    read_csv() %>%
+    dplyr::select(date = Date,
+                  price_usd_mt = Price) %>%
+    dplyr::mutate(date = lubridate::mdy(date))
+  
+  # All dates
+  date_range <- tibble(date = seq(min(fuel_price_data$date),
+                    max(fuel_price_data$date), 
+                    by = 'day'))
+  
+  # Fill missing dates with last value
+  interpolated_fuel_price_data <- fuel_price_data%>%
+    right_join(date_range) %>%
+    arrange(date) %>% 
+    tidyr::fill(price_usd_mt,.direction ="down")
+  
+  # Upload table to BQ
+  bigrquery::bq_table(project = billing_project,
+                      table = "fuel_prices",
+                      dataset = bq_dataset) %>% 
+    bigrquery::bq_table_upload(values = interpolated_fuel_price_data,
+                               fields = bigrquery::as_bq_fields(interpolated_fuel_price_data),
+                               write_disposition = "WRITE_TRUNCATE")
+  
+  return(Sys.time())
+}

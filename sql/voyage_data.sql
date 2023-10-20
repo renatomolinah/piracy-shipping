@@ -41,9 +41,7 @@ USING
   SELECT
     *
   FROM
-    `emlab-gcp.ucsb_gfw_legacy_piracy.daily_fuel_prices`
-  WHERE
-    fuel_index = 'BIX 380 CST' ),
+    `emlab-gcp.piracy.fuel_prices`),
   aggregated AS(
   SELECT
     DISTINCT * EXCEPT(hours,
@@ -99,7 +97,6 @@ SELECT
     design_speed,
     main_sfc,
     aux_sfc,
-    fuel_index,
     price_usd_mt,
     departure_timestamp,
     arrival_timestamp),

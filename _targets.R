@@ -57,6 +57,16 @@ list(
                       pixel_size = 5,
                       table_name = "wind_data_5")
   ),
+  # Process fuel data
+  tar_target(
+    name = fuel_file,
+    glue::glue("{data_directory}/raw/bix_world_ifo_380_index.csv"),
+    format = "file"
+  ),
+  tar_target(
+    name = fuel_data,
+    process_fuel_data(fuel_file)
+  ),
   tar_target(
     # Process ungridded, raw AIS messages
     name = ungridded_data_sql,
