@@ -64,16 +64,19 @@ process_asam_data <- function(asam_data){
 # Make global map, which will include ASAM attacks and eventually shipping activity
 make_global_map_figure <- function(asam_data_processed,
                                    hotspots,
+                                   aggregate_spatial_shipping_activity,
                                    map_projection){
+
+  shipping_data_stars <- aggregate_spatial_shipping_activity %>%
+    stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
+    sf::st_set_crs(4326) %>%
+    sf::st_transform(map_projection)
   
   asam_data_processed_sf <- asam_data_processed %>%
     sf::st_as_sf(coords = c("lon","lat"),
                  crs = sf::st_crs(4326)) %>%
     sf::st_transform(map_projection)
-  # Set projection for mapping
-  # Use Mollweide
-  map_projection <- "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs"
-  
+
   # Load world land
   world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
     sf::st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"), quiet = TRUE) %>%
@@ -98,6 +101,9 @@ make_global_map_figure <- function(asam_data_processed,
     ggplot2::geom_sf(data = world_bbox_sf,
                      fill = NA,
                      color = "black") +
+    stars::geom_stars(data = shipping_data_stars,
+                      aes(fill = hours),
+                      alpha = 0.5) +
     ggplot2::geom_sf(data = world_land,
                      color = "darkgrey",
                      fill = "darkgrey") +
@@ -120,9 +126,14 @@ make_global_map_figure <- function(asam_data_processed,
     ggplot2::theme(panel.grid = element_blank(),
                    panel.background = element_blank(),
                    axis.text = element_blank(),
-                   axis.ticks = element_blank(),
-                   legend.position = "bottom",
-                   legend.direction="horizontal")
+                   axis.ticks = element_blank()) +
+    scale_fill_gradient2("Shipping hours",
+                          trans = "log10",
+                         labels = scales::comma,
+                         low = "white",
+                         high = "steelblue4")+
+    guides(fill  = guide_legend(order = 1),
+           color = guide_legend(order = 2))
   
   ggplot2::ggsave(filename = "figures/map.png",
                   plot,

@@ -99,15 +99,29 @@ list(
   ),
   # Here we make a 0.5x0.5 gridded dataset
   # We will wait to run this until we're sure
-  # tar_target(
-  #   name = gridded_data_0_5,
-  #   run_gfw_query(sql = gridded_data_sql,
-  #                 bq_table_name = "gridded_data_0_5", 
-  #                 download_data = FALSE, 
-  #                 pixel_size = 0.5, 
-  #                 attack_table_location = "piracy_attacks_0_5",
-  #                 wind_table_location = "wind_data_0_5")
-  # ),
+  tar_target(
+    name = gridded_data_0_5,
+    run_gfw_query(sql = gridded_data_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 0.5,
+                               hotspots = hotspots_sql),
+                  bq_table_name = "gridded_data_0_5", 
+                  download_data = FALSE)
+  ),
+  # Here we summarize aggregate spatial shipping activity
+  # We will wait to run this until we're sure
+  tar_target(
+    name = aggregate_spatial_shipping_activity_sql,
+    "sql/aggregate_spatial_shipping_activity.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = aggregate_spatial_shipping_activity,
+    run_gfw_query(sql = aggregate_spatial_shipping_activity_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "aggregate_spatial_shipping_activity", 
+                  download_data = TRUE)
+  ),
   # Here we make a 5x5 degree gridded dataset
   tar_target(
     name = gridded_data_5,
@@ -150,6 +164,7 @@ list(
     name = global_map_figure,
     make_global_map_figure(asam_data_processed,
                            hotspots,
+                           aggregate_spatial_shipping_activity,
                            map_projection = "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
   )
 )

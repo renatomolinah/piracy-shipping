@@ -1,6 +1,6 @@
 #standardSQL
 CREATE TEMPORARY FUNCTION
-  pixel_size() AS (5);
+  pixel_size() AS ({pixel_size});
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
