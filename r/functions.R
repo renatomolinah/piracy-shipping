@@ -242,7 +242,7 @@ process_fuel_data <- function(fuel_file){
 
 # Generate piracy attack hotspot boundaries
 # use dbscan to generate clusters, focusing on a specified year range
-generate_hotspot_boundaries <- function(asam_data_processed,
+generate_asam_with_hotspots <- function(asam_data_processed,
                                         year_min = 2010,
                                         years_to_include = 12){
   
@@ -256,17 +256,19 @@ generate_hotspot_boundaries <- function(asam_data_processed,
                                  eps = 10, #km
                                  MinPts = 200)
   
-  asam_filtered <- asam_filtered %>%
+  asam_filtered %>%
     dplyr::mutate(cluster = dbscan_clusters$cluster)%>%
     dplyr::mutate(cluster = dplyr::case_when(cluster == 1 ~ "hotspot_southeast_asia",
                                              cluster == 2 ~ "hotspot_gulf_of_aden",
                                              cluster == 3 ~ "hotspot_gulf_of_guinea",
                                              TRUE ~ "0"))
-  
-  # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
-  # Round this up or down to nearest 5 degrees, to match units of analysis
-  cluster_boxes <- purrr::map(unique(asam_filtered$cluster),function(x){
-    temp_df <- asam_filtered %>%
+}
+
+# Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
+# Round this up or down to nearest 5 degrees, to match units of analysis
+generate_hotspot_boundaries <- function(asam_with_clusters){
+  purrr::map(unique(asam_with_clusters$cluster),function(x){
+    temp_df <- asam_with_clusters %>%
       dplyr::filter(cluster == x)
     data.frame(cluster = x,
                lon_min = floor(min(temp_df$lon)/5)*5,
@@ -276,7 +278,6 @@ generate_hotspot_boundaries <- function(asam_data_processed,
   }) %>%
     dplyr::bind_rows() %>%
     dplyr::filter(cluster != "0")
-  
 }
 
 # Code to generate SQL for assigning lat/lon to hotspots
@@ -287,3 +288,34 @@ generate_hotspot_sql <- function(hotspots){
 }
 
 
+make_attack_time_series_figure <- function(asam_with_hotspots){
+  
+  plot <- asam_with_hotspots %>%
+    group_by(year = lubridate::year(date),
+             cluster) %>%
+    summarize(number_attacks = n_distinct(asam_reference)) %>%
+    ungroup() %>%
+    mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
+                               cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                               cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
+                               TRUE ~ "Rest of world")  %>%
+             fct_relevel(c("Gulf of Guinea",
+                           "Gulf of Aden",
+                           "Southeast asia"))) %>%
+    ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
+    geom_bar(position = "stack", stat="identity",color="black")  +
+    scale_fill_brewer("Hotspot",
+                       type ="qual",
+                       palette = "Dark2") +
+    labs(x = "",
+         y = "Number\nattacks") +
+    scale_x_continuous(breaks = seq(2010,2022,2))
+  
+  ggplot2::ggsave(filename = "figures/attack_time_series.png",
+                  plot,
+                  height = 4,
+                  width = 7,
+                  dpi = 300)
+  
+  return(plot)
+}

@@ -28,6 +28,15 @@ billing_project <- "emlab-gcp" # emLab's billing project
 bq_dataset <- "piracy" # The dataset name for this project
 query_path <- "sql" # Define directory where SQL queries live
 
+# Set ggplot theme for all plots
+ggplot2::theme_set(ggplot2::theme_bw() +
+            ggplot2::theme(axis.title.y = ggplot2::element_text(angle = 0,vjust=0.6),
+                  strip.background = ggplot2::element_rect(fill = NA),
+                  strip.text.y = ggplot2::element_text(angle=0),
+                  strip.text.y.right = ggplot2::element_text(angle=0),
+                  strip.text.y.left = ggplot2::element_text(angle=0),
+                  panel.background = ggplot2::element_blank(),
+                  panel.grid.minor = ggplot2::element_blank()))
 
 # Replace the target list below with your own:
 list(
@@ -45,12 +54,17 @@ list(
     name = asam_data_processed,
     process_asam_data(asam_data)
   ),
+  # Add clusters to ASAM data
+  tar_target(
+    name = asam_with_hotspots,
+    generate_asam_with_hotspots(asam_data_processed,
+                                year_min = 2010,
+                                years_to_include = 12)
+  ),
   # Create hotspot cluster bounding boxes
   tar_target(
     name = hotspots,
-    generate_hotspot_boundaries(asam_data_processed,
-                                year_min = 2010,
-                                years_to_include = 12)
+    generate_hotspot_boundaries(asam_with_hotspots)
   ),
   # Create SQL code for hotspot cluster bounding boxes
   tar_target(
@@ -166,5 +180,9 @@ list(
                            hotspots,
                            aggregate_spatial_shipping_activity,
                            map_projection = "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
+  ),
+  tar_target(
+    name = attack_time_series_figure,
+    make_attack_time_series_figure(asam_with_hotspots)
   )
 )
