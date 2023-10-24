@@ -52,7 +52,10 @@ USING
       lon_bin,
       grid_area_km2,
       number_previous_attacks_grid_all_time,
-      grid_has_previous_attacks),
+      grid_has_previous_attacks,
+      hotspot_southeast_asia,
+      hotspot_gulf_of_aden,
+      hotspot_gulf_of_guinea),
     SUM(hours) OVER(PARTITION BY trip_id) hours,
     SUM(distance_km) OVER(PARTITION BY trip_id) distance_km,
     SUM(ais_messages) OVER(PARTITION BY trip_id) ais_messages,
@@ -62,7 +65,10 @@ USING
     SUM(aux_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id) aux_fuel_consumption_mt_inst,
     SUM(main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id) total_fuel_consumption_mt_inst,
     SUM(number_previous_attacks_grid_all_time) OVER(PARTITION BY trip_id) number_previous_attacks_all_time,
-    MIN(days_since_attack) OVER(PARTITION BY trip_id) days_since_attack
+    MIN(days_since_attack) OVER(PARTITION BY trip_id) days_since_attack,
+    SUM(hotspot_southeast_asia) OVER(PARTITION BY trip_id) hotspot_southeast_asia,
+    SUM(hotspot_gulf_of_aden) OVER(PARTITION BY trip_id) hotspot_gulf_of_aden,
+    SUM(hotspot_gulf_of_guinea) OVER(PARTITION BY trip_id) hotspot_gulf_of_guinea
   FROM
     gridded_data),
   aggregated_with_voyage_fuel AS(
@@ -96,7 +102,10 @@ SELECT
     departure_timestamp,
     arrival_timestamp,
     from_anchorage_id,
-    to_anchorage_id),
+    to_anchorage_id,
+      hotspot_southeast_asia,
+      hotspot_gulf_of_aden,
+      hotspot_gulf_of_guinea),
   price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
   3.17 * total_fuel_consumption_mt_voyage emissions_co2_mt_voyage,
   87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt_voyage emissions_nox_kg_voyage,
@@ -104,7 +113,10 @@ SELECT
   price_usd_mt * total_fuel_consumption_mt_inst total_fuel_cost_usd_inst,
   3.17 * total_fuel_consumption_mt_inst emissions_co2_mt_inst,
   87 * main_fuel_consumption_mt_inst + 57 * aux_fuel_consumption_mt_inst emissions_nox_kg_inst,
-  20 * 3.3 * total_fuel_consumption_mt_inst emissions_sox_kg_inst
+  20 * 3.3 * total_fuel_consumption_mt_inst emissions_sox_kg_inst,
+  IF(hotspot_southeast_asia>0,TRUE,FALSE) hotspot_southeast_asia,
+  IF(hotspot_gulf_of_aden>0,TRUE,FALSE) hotspot_gulf_of_aden,
+  IF(hotspot_gulf_of_guinea>0,TRUE,FALSE) hotspot_gulf_of_guinea
 FROM
   aggregated_with_voyage_fuel
   JOIN

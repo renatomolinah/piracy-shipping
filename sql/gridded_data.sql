@@ -92,6 +92,7 @@ WITH
 SELECT
   *,
 IF
-  (number_previous_attacks_grid_all_time >0,TRUE,FALSE) grid_has_previous_attacks
+  (number_previous_attacks_grid_all_time >0,TRUE,FALSE) grid_has_previous_attacks,
+  {hotspots_sql}
 FROM
   by_voyage_grid

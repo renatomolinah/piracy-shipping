@@ -45,6 +45,18 @@ list(
     name = asam_data_processed,
     process_asam_data(asam_data)
   ),
+  # Create hotspot cluster bounding boxes
+  tar_target(
+    name = hotspots,
+    generate_hotspot_boundaries(asam_data_processed,
+                                year_min = 2010,
+                                years_to_include = 12)
+  ),
+  # Create SQL code for hotspot cluster bounding boxes
+  tar_target(
+    name = hotspots_sql,
+    generate_hotspot_sql(hotspots)
+  ),
   # Process wind data
   tar_target(
     name = wind_file,
@@ -75,7 +87,7 @@ list(
   ),
   tar_target(
     name = ungridded_data,
-    run_gfw_query(query = ungridded_data_sql,
+    run_gfw_query(sql = ungridded_data_sql,
                   bq_table_name = "ungridded_data", 
                   download_data = FALSE)
   ),
@@ -89,7 +101,7 @@ list(
   # We will wait to run this until we're sure
   # tar_target(
   #   name = gridded_data_0_5,
-  #   run_gfw_query(query = gridded_data_sql,
+  #   run_gfw_query(sql = gridded_data_sql,
   #                 bq_table_name = "gridded_data_0_5", 
   #                 download_data = FALSE, 
   #                 pixel_size = 0.5, 
@@ -98,11 +110,13 @@ list(
   # ),
   # Here we make a 5x5 degree gridded dataset
   tar_target(
-    name = gridded_data_0_5,
-    run_gfw_query(query = gridded_data_sql,
+    name = gridded_data_5,
+    run_gfw_query(sql = gridded_data_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 5,
+                               hotspots = hotspots_sql),
                   bq_table_name = "gridded_data_5", 
-                  download_data = FALSE, 
-                  pixel_size = 5)
+                  download_data = FALSE)
   ),
   # Process the average number of attacks that occurred along each route
   # by trip
@@ -113,7 +127,7 @@ list(
   ),
   tar_target(
     name = average_route_attacks_per_route_and_trip,
-    run_gfw_query(query = average_route_attacks_per_route_and_trip_sql,
+    run_gfw_query(sql = average_route_attacks_per_route_and_trip_sql,
                   bq_table_name = "average_route_attacks_per_route_and_trip", 
                   download_data = FALSE)
   ),
@@ -125,14 +139,17 @@ list(
   ),
   tar_target(
     name = voyage_data,
-    run_gfw_query(query = voyage_data_sql,
+    run_gfw_query(sql = voyage_data_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(gridded_data_table_location = "gridded_data_5",
+                               wind_table_location = "wind_data_5"),
                   bq_table_name = "voyage_data_5", 
-                  download_data = TRUE, 
-                  gridded_data_table_location = "gridded_data_5",
-                  wind_table_location = "wind_data_5")
+                  download_data = TRUE)
   ),
   tar_target(
     name = global_map_figure,
-    make_global_map_figure(asam_data_processed)
+    make_global_map_figure(asam_data_processed,
+                           hotspots,
+                           map_projection = "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
   )
 )

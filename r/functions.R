@@ -1,13 +1,7 @@
 # This function pulls the necessary GFW data and optionally saves it locally as a CSV
 # This requires special permissions, and is also very expensive to run, so will not be done often
 # You can add any additional arguments for glue to make substitutions to the query, as necessary
-run_gfw_query <- function(query, bq_table_name, download_data = FALSE, ...){
-  
-  # Load query
-  sql <- glue::glue("{query}") %>%
-    readr::read_file() %>%
-    # Then make any substitutions necessary
-    glue::glue(...)
+run_gfw_query <- function(sql, bq_table_name, download_data = FALSE, ...){
   
   
   # Run query and save on BQ. We don't pull this locally yet.
@@ -64,11 +58,18 @@ process_asam_data <- function(asam_data){
                                fields = bigrquery::as_bq_fields(processed_asam_data),
                                write_disposition = "WRITE_TRUNCATE")
   
-  return(Sys.time())
+  return(processed_asam_data)
 }
 
 # Make global map, which will include ASAM attacks and eventually shipping activity
-make_global_map_figure <- function(asam_data_processed){
+make_global_map_figure <- function(asam_data_processed,
+                                   hotspots,
+                                   map_projection){
+  
+  asam_data_processed_sf <- asam_data_processed %>%
+    sf::st_as_sf(coords = c("lon","lat"),
+                 crs = sf::st_crs(4326)) %>%
+    sf::st_transform(map_projection)
   # Set projection for mapping
   # Use Mollweide
   map_projection <- "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs"
@@ -76,12 +77,6 @@ make_global_map_figure <- function(asam_data_processed){
   # Load world land
   world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
     sf::st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"), quiet = TRUE) %>%
-    sf::st_transform(map_projection)
-  
-  # Load ASAM data
-  asam_data_processed_sf <- asam_data_processed %>%
-    sf::st_as_sf(coords = c("lon","lat"),
-                 crs = sf::st_crs(4326)) %>%
     sf::st_transform(map_projection)
   
   # Create bounding box of world, to use as outline in the projected maps
@@ -108,10 +103,26 @@ make_global_map_figure <- function(asam_data_processed){
                      fill = "darkgrey") +
     ggplot2::geom_sf(data = asam_data_processed_sf,
                      size = 0.01) + 
+    ggplot2::geom_sf(data = hotspots  %>%
+                       mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
+                                                  cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                                                  cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
+                                fct_relevel("Gulf of Guinea")) %>%
+                       dplyr::rowwise() %>%
+                       dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
+                       sf::st_as_sf(sf_column_name = "geometry", crs = 4326),
+                     fill = NA,
+                     linewidth = 1.025,
+                     aes(color = as.factor(cluster))) +
+    scale_color_brewer("Hotspot",
+                       type ="qual",
+                       palette = "Dark2")+ 
     ggplot2::theme(panel.grid = element_blank(),
                    panel.background = element_blank(),
                    axis.text = element_blank(),
-                   axis.ticks = element_blank())
+                   axis.ticks = element_blank(),
+                   legend.position = "bottom",
+                   legend.direction="horizontal")
   
   ggplot2::ggsave(filename = "figures/map.png",
                   plot,
@@ -198,8 +209,8 @@ process_fuel_data <- function(fuel_file){
   
   # All dates
   date_range <- tibble(date = seq(min(fuel_price_data$date),
-                    max(fuel_price_data$date), 
-                    by = 'day'))
+                                  max(fuel_price_data$date), 
+                                  by = 'day'))
   
   # Fill missing dates with last value
   interpolated_fuel_price_data <- fuel_price_data%>%
@@ -217,3 +228,51 @@ process_fuel_data <- function(fuel_file){
   
   return(Sys.time())
 }
+
+# Generate piracy attack hotspot boundaries
+# use dbscan to generate clusters, focusing on a specified year range
+generate_hotspot_boundaries <- function(asam_data_processed,
+                                        year_min = 2010,
+                                        years_to_include = 12){
+  
+  asam_filtered <- asam_data_processed %>%
+    filter(lubridate::year(date) >= year_min,
+           lubridate::year(date) <= year_min + years_to_include)
+  
+  # Find DBSCAN clusters for attacks occurring during this range
+  dbscan_clusters <- fpc::dbscan(asam_filtered %>%
+                                   dplyr::select(lon,lat),
+                                 eps = 10, #km
+                                 MinPts = 200)
+  
+  asam_filtered <- asam_filtered %>%
+    dplyr::mutate(cluster = dbscan_clusters$cluster)%>%
+    dplyr::mutate(cluster = dplyr::case_when(cluster == 1 ~ "hotspot_southeast_asia",
+                                             cluster == 2 ~ "hotspot_gulf_of_aden",
+                                             cluster == 3 ~ "hotspot_gulf_of_guinea",
+                                             TRUE ~ "0"))
+  
+  # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
+  # Round this up or down to nearest 5 degrees, to match units of analysis
+  cluster_boxes <- purrr::map(unique(asam_filtered$cluster),function(x){
+    temp_df <- asam_filtered %>%
+      dplyr::filter(cluster == x)
+    data.frame(cluster = x,
+               lon_min = floor(min(temp_df$lon)/5)*5,
+               lat_min = floor(min(temp_df$lat)/5)*5,
+               lon_max = ceiling(max(temp_df$lon)/5)*5,
+               lat_max = ceiling(max(temp_df$lat)/5)*5)
+  }) %>%
+    dplyr::bind_rows() %>%
+    dplyr::filter(cluster != "0")
+  
+}
+
+# Code to generate SQL for assigning lat/lon to hotspots
+generate_hotspot_sql <- function(hotspots){
+  hotspots %>%
+    mutate(cluster_filter = glue::glue("(CASE WHEN (lat_bin <= {lat_max} AND lat_bin >= {lat_min} AND lon_bin <= {lon_max} AND lon_bin >= {lon_min}) THEN 1 ELSE 0 END) {cluster}")) %>%
+    .$cluster_filter %>% paste0(.,collapse = ", ")
+}
+
+
