@@ -1,6 +1,8 @@
 #standardSQL
 CREATE TEMPORARY FUNCTION
-  pixel_size() AS ({pixel_size});
+  pixel_size() AS (5);
+CREATE TEMP FUNCTION
+  RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
   voyages_ais_positions AS(
   SELECT
@@ -23,42 +25,73 @@ WITH
       heading,
       main_fuel_consumption_mt_inst,
       aux_fuel_consumption_mt_inst),
-    SUM(hours) OVER(PARTITION BY mmsi, date, trip_id, CAST(lat_bin AS INT64),
+    SUM(hours) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) hours,
-    SUM(distance_km) OVER(PARTITION BY mmsi, date, trip_id, CAST(lat_bin AS INT64),
+    SUM(distance_km) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) distance_km,
-    COUNT(*) OVER(PARTITION BY mmsi, date, trip_id, CAST(lat_bin AS INT64),
+    COUNT(*) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) ais_messages,
-    AVG(heading) OVER(PARTITION BY mmsi, date, trip_id, CAST(lat_bin AS INT64),
+    AVG(heading) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) heading,
-    SUM(main_fuel_consumption_mt_inst) OVER(PARTITION BY mmsi, date, trip_id, CAST(lat_bin AS INT64),
+    SUM(main_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) main_fuel_consumption_mt_inst,
-    SUM(aux_fuel_consumption_mt_inst) OVER(PARTITION BY mmsi, date, trip_id, CAST(lat_bin AS INT64),
+    SUM(aux_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) aux_fuel_consumption_mt_inst
   FROM
     voyages_ais_positions),
-  # Select attack info - this was generated in full_analysis.R in the GitHub repo
-  attack_info AS(
+  # Select attack info
+  attack_info_base AS(
   SELECT
-    DATE(date) date,
-    lon_bin,
-    lat_bin,
-    days_since_attack,
-    attacks_window_last_1_month,
-    attacks_window_last_2_month,
-    attacks_window_last_3_month,
-    attacks_window_last_4_month,
-    attacks_window_last_5_month,
-    attacks_window_last_6_month
+    DATE(date) attack_date,
+    COUNT(DISTINCT(asam_reference)) number_attacks,
+    FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
+    FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.{attack_table_location}`)
+    `emlab-gcp.piracy.asam_data`
+  GROUP BY
+    attack_date,
+    attack_lat_bin,
+    attack_lon_bin),
+  # Each row will be a voyage and grid and days-since-attack
+  by_voyage_grid_attack AS(
+  SELECT
+    * EXCEPT(attack_lat_bin,
+      attack_lon_bin),
+    DATE_DIFF(date, attack_date, DAY) days_since_attack,
+    # From GFW: https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/blob/master/queries/fishing_hours_gridded.sql
+    # At the equator, a one degree cell is approximately 111 km2 on a side
+    # Moving away from the poles, the distance of one degree of longitude changes
+    # due to the shape of a globe. Thus, we need to adjust the distance in km of
+    # longitude based on latitude using the formula cos(radians(latitude)).
+    # We also multiply 111 by the final resolution of the grid cell
+    COS(RADIANS(binned.lat_bin)) * (111*pixel_size()) * (111*pixel_size()) grid_area_km2
+  FROM
+    binned
+  LEFT JOIN
+    attack_info_base
+  ON
+    binned.lat_bin = attack_info_base.attack_lat_bin
+    AND binned.lon_bin = attack_info_base.attack_lon_bin
+    AND binned.date >= attack_info_base.attack_date),
+  by_voyage_grid AS(
+    # Now summarize attack info by voyage and grid
+  SELECT
+    DISTINCT * EXCEPT(days_since_attack,
+      number_attacks,
+      attack_date),
+    SUM(IFNULL(number_attacks,0)) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
+      CAST(lon_bin AS INT64)) number_previous_attacks_grid_all_time,
+    MIN(days_since_attack) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
+      CAST(lon_bin AS INT64)) days_since_attack,
+    SUM(
+    IF
+      (days_since_attack <= 30*12,number_attacks,0)) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
+      CAST(lon_bin AS INT64)) number_previous_attacks_grid_12_months
+  FROM
+    by_voyage_grid_attack)
 SELECT
-  *
+  *,
+IF
+  (number_previous_attacks_grid_all_time >0,TRUE,FALSE) grid_has_previous_attacks
 FROM
-  binned
-LEFT JOIN
-  attack_info
-USING
-  (date,
-    lat_bin,
-    lon_bin)
+  by_voyage_grid

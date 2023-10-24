@@ -102,8 +102,20 @@ list(
     run_gfw_query(query = gridded_data_sql,
                   bq_table_name = "gridded_data_5", 
                   download_data = FALSE, 
-                  pixel_size = 5, 
-                  attack_table_location = "piracy_attacks_5")
+                  pixel_size = 5)
+  ),
+  # Process the average number of attacks that occurred along each route
+  # by trip
+  tar_target(
+    name = average_route_attacks_per_route_and_trip_sql,
+    "sql/average_route_attacks_per_route_and_trip.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = average_route_attacks_per_route_and_trip,
+    run_gfw_query(query = average_route_attacks_per_route_and_trip_sql,
+                  bq_table_name = "average_route_attacks_per_route_and_trip", 
+                  download_data = FALSE)
   ),
   # Process voyage-level data, which aggregates gridded data
   tar_target(
@@ -111,7 +123,6 @@ list(
     "sql/voyage_data.sql",
     format = "file"
   ),
-  # Here we make the voyage-level dataset, using the 5x5 degree dataset as the base
   tar_target(
     name = voyage_data,
     run_gfw_query(query = voyage_data_sql,

@@ -22,16 +22,13 @@ WITH
     meters_to_prev/1000 avg_distance_km,
     EXTRACT(YEAR
     FROM
-      timestamp) year,
-    EXTRACT(DATE
-    FROM
-      timestamp) date
+      timestamp) year
   FROM
     `world-fishing-827.pipe_production_v20201001.research_messages`
     # Only subset to a small date range for now
   WHERE
-    #_partitiontime < '2017-12-31'
-    _partitiontime = '2017-12-31'
+    _partitiontime BETWEEN '2017-01-01'
+    AND '2017-01-01'
     # Only use good segments for AIS messages
     AND seg_id IN (
     SELECT
@@ -73,8 +70,7 @@ WITH
       'reefer')
     # Ensure it's a reasonable vessel
     AND NOT activity.offsetting
-    AND activity.overlap_hours_multinames = 0
-    AND year < 2018),
+    AND activity.overlap_hours_multinames = 0),
   # Get anchorage, port, and country info for start of voyage
   from_anchorage_info AS(
   SELECT
@@ -130,7 +126,6 @@ WITH
     ais_info.heading,
     ais_info.avg_distance_km,
     ais_info.year,
-    ais_info.date,
     voyages.trip_id,
     # Calculate fuel consumption
     #main_sfc is always 206; aux_sfc is always 221
@@ -157,7 +152,8 @@ WITH
     AND ais_info.timestamp > voyages.departure_timestamp
     AND ais_info.timestamp < voyages.arrival_timestamp)
 SELECT
-  *
+  *,
+  DATE(departure_timestamp) date
 FROM
   voyages_ais_positions
 JOIN
