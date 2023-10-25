@@ -37,7 +37,7 @@ list(
   # Process ASAM piracy attack data
   tar_target(
     name = asam_file,
-    glue::glue("{data_directory}/raw//asam_data_download/ASAM_events.shp"),
+    glue::glue("{data_directory}/raw/asam_data_download/ASAM_events.shp"),
     format = "file"
   ),
   tar_target(
