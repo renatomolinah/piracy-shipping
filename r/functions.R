@@ -116,7 +116,8 @@ make_global_map_figure <- function(asam_data_processed,
                                 fct_relevel("Gulf of Guinea")) %>%
                        dplyr::rowwise() %>%
                        dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
-                       sf::st_as_sf(sf_column_name = "geometry", crs = 4326),
+                       sf::st_as_sf(sf_column_name = "geometry", crs = 4326) %>%
+                       sf::st_transform(map_projection),
                      fill = NA,
                      linewidth = 1.025,
                      aes(color = as.factor(cluster))) +
@@ -132,16 +133,103 @@ make_global_map_figure <- function(asam_data_processed,
                          labels = scales::comma,
                          low = "white",
                          high = "steelblue4")+
-    guides(fill  = guide_legend(order = 1),
+    guides(fill  = guide_legend(order = 1,
+                                reverse=TRUE),
            color = guide_legend(order = 2))
   
   ggplot2::ggsave(filename = "figures/map.png",
+                  plot,
+                  height = 3,
+                  width = 7,
+                  dpi = 300)
+  
+  return(plot)
+}
+
+make_hotspot_map_over_time <- function(asam_data_processed,
+                                       map_projection){
+  # For rolling time windows, subset attack data to window,
+  # Assign each attack to a cluster, then make the bounding box of the cluster
+  hotspots_over_time <- tibble(year_start = seq(2002,2010)) %>%
+    dplyr::mutate(cluster_data = purrr::map(year_start,function(year_start){
+      generate_asam_with_hotspots(asam_data_processed,
+                                  year_min = year_start,
+                                  years_to_include = 12) %>%
+        dplyr::select(-cluster) %>%
+        dplyr::rename(cluster = cluster_number)})) %>%
+    dplyr::mutate(cluster_boundaries = purrr::map(cluster_data,
+                                                  ~generate_hotspot_boundaries(.))) %>%
+    dplyr::mutate(cluster_data_sf = purrr::map(cluster_data, . %>%
+                                                 sf::st_as_sf(coords = c("lon","lat"),
+                                                              crs = sf::st_crs(4326)) %>%
+                                                 sf::st_transform(map_projection))) %>%
+    dplyr::mutate(cluster_boundaries_sf =  purrr::map(cluster_boundaries, .%>%
+                                                        dplyr::rowwise() %>%
+                                                        dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
+                                                        sf::st_as_sf(sf_column_name = "geometry", crs = 4326) %>%
+                                                        sf::st_transform(map_projection))) %>%
+    mutate(year_label = glue::glue("{year_start} - {year_start + 12}")) 
+  
+  # Load world land
+  world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
+    sf::st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"), quiet = TRUE) %>%
+    sf::st_transform(map_projection)
+  
+  # Create bounding box of world, to use as outline in the projected maps
+  # vectors of latitudes and longitudes that go once around the 
+  # globe in 1-degree steps
+  lats <- c(90:-90, -90:90, 90)
+  longs <- c(rep(c(180, -180), each = 181), 180)
+  
+  world_bbox_sf <- 
+    list(cbind(longs, lats)) %>%
+    sf::st_polygon() %>%
+    sf::st_sfc( # create sf geometry list column
+      crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+    ) %>% 
+    sf::st_sf() %>%
+    sf::st_transform(map_projection)
+  
+  # Turn windowed attack data into sf
+  attack_data <- hotspots_over_time %>%
+    dplyr::select(year_label,cluster_data_sf) %>%
+    tidyr::unnest(cluster_data_sf) %>%
+    sf::st_as_sf()
+  
+  # Turn windowed hotspot boundaries into sf
+  hotspot_boundaries <- hotspots_over_time %>%
+    dplyr::select(year_label,cluster_boundaries_sf) %>%
+    tidyr::unnest(cluster_boundaries_sf) %>%
+    sf::st_as_sf()
+  
+  plot <- ggplot2::ggplot() +
+    ggplot2::geom_sf(data = world_bbox_sf,
+                     fill = NA,
+                     color = "black") +
+    ggplot2::geom_sf(data = world_land,
+                     color = "darkgrey",
+                     fill = "darkgrey") +
+    ggplot2::geom_sf(data = attack_data,
+                     size = 0.01) + 
+    ggplot2::geom_sf(data = hotspot_boundaries,
+                     fill = NA,
+                     color = "red",
+                     linewidth = 1.0001) +
+    ggplot2::theme(panel.grid = element_blank(),
+                   panel.background = element_blank(),
+                   axis.text = element_blank(),
+                   axis.ticks = element_blank()) +
+    ggplot2::facet_wrap(year_label~.) +
+    ggplot2::theme(strip.background = ggplot2::element_blank())
+  
+  ggplot2::ggsave(filename = "figures/map_hotspots_over_time.png",
                   plot,
                   height = 4,
                   width = 7,
                   dpi = 300)
   
   return(plot)
+  
 }
 
 process_wind_data <- function(wind_file,
@@ -257,10 +345,10 @@ generate_asam_with_hotspots <- function(asam_data_processed,
                                  MinPts = 200)
   
   asam_filtered %>%
-    dplyr::mutate(cluster = dbscan_clusters$cluster)%>%
-    dplyr::mutate(cluster = dplyr::case_when(cluster == 1 ~ "hotspot_southeast_asia",
-                                             cluster == 2 ~ "hotspot_gulf_of_aden",
-                                             cluster == 3 ~ "hotspot_gulf_of_guinea",
+    dplyr::mutate(cluster_number = dbscan_clusters$cluster)%>%
+    dplyr::mutate(cluster = dplyr::case_when(cluster_number == 1 ~ "hotspot_southeast_asia",
+                                             cluster_number == 2 ~ "hotspot_gulf_of_aden",
+                                             cluster_number == 3 ~ "hotspot_gulf_of_guinea",
                                              TRUE ~ "0"))
 }
 

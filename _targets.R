@@ -31,11 +31,12 @@ query_path <- "sql" # Define directory where SQL queries live
 # Set ggplot theme for all plots
 ggplot2::theme_set(ggplot2::theme_bw() +
             ggplot2::theme(axis.title.y = ggplot2::element_text(angle = 0,vjust=0.6),
-                  strip.background = ggplot2::element_rect(fill = NA),
+                  strip.background = ggplot2::element_blank(),
                   strip.text.y = ggplot2::element_text(angle=0),
                   strip.text.y.right = ggplot2::element_text(angle=0),
                   strip.text.y.left = ggplot2::element_text(angle=0),
                   panel.background = ggplot2::element_blank(),
+                  panel.border = ggplot2::element_blank(),
                   panel.grid.minor = ggplot2::element_blank()))
 
 # Replace the target list below with your own:
@@ -176,9 +177,14 @@ list(
   ),
   tar_target(
     name = global_map_figure,
-    make_global_map_figure(asam_data_processed,
+    make_global_map_figure(asam_with_hotspots,
                            hotspots,
                            aggregate_spatial_shipping_activity,
+                           map_projection = "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
+  ),
+  tar_target(
+    name = map_hotspots_over_time_figure,
+    make_hotspot_map_over_time(asam_data_processed,
                            map_projection = "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
   ),
   tar_target(
