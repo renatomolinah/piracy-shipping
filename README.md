@@ -25,7 +25,7 @@ In order to see what the targets pipeline looks like, you can run `targets::tar_
 
 When you run `targets::tar_visnetwork`, it should look something like this:
 
-(target_network.png)
+![](target_network.png)
 
 # Repository Structure 
 
