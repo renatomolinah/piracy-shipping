@@ -12,13 +12,20 @@ To manage package dependencies, we use the `renv` package. When you first clone 
 
 To ensure reproducibility in the data processing and analysis pipeline, we use the `targets` package. Targets is a Make-like pipeline tool. Using targets means that anytime an upstream change is made to the data or models, all downstream components of the data processing and analysis will be re-run automatically when the `targets::tar_make()` command is run. It also means that once components of the analysis have already been run and are up-to-date, they will not need to be re-run. All objects are cached in a `_targets` directory. Please see the [targets website](https://github.com/ropensci/targets) for more information.
 
-For targets to function correctly, the user only needs to make one change to update the cache directory. First run `targets::tar_edit()`, which will open the `_targets.R` file for editing. Next change the path stored to `targets_data_directory` to a local directory path where you wish to store the interim `targets` files. For now, we will use a shared folder on the emLab Shared Google Drive. Your path should look something like: 
-
-> /Users/gmcdonald/Library/CloudStorage/GoogleDrive-gmcdonald@ucsb.edu/Shared\ drives/emlab/Projects/current-projects/arnhold-bwmpa-redistribution/data
+For targets to function correctly, the user only needs to make one change to update the cache directory. In the file `_targets.R`, change the `data_directory` object to match the location location for the `piracy/data` folder on the shared folder on the emLab Shared Google Drive. Then run `tar_config_set(store = glue::glue("{data_directory}/_targets"))` to set the cache directory to that location.
 
 Once this has been done, you can simply run `targets::tar_make()` to reproduce the analysis. 
 
-In order to see what the targets pipeline looks like, you can run `targets::tar_manifest()` or `targets::tar_visnetwork()`, which also shows which targets are current or out-of-date. In overview, the pipeline: 1) processes the raw data; 2) performs analyses on those data; 3) generates final figures and tables.
+In order to see what the targets pipeline looks like, you can run `targets::tar_manifest()` or `targets::tar_visnetwork()`, which also shows which targets are current or out-of-date. In overview, the pipeline:
+
+1. Processes the raw piracy attack, wind, and fuel data in R.  
+2. Using those processed data, GFW queries are performed to generated ungridded, gridded, and voyage-level versions of the dataset with all necessary piracy attack, wind, and fuel columns. Note that this step requires special permissions to acces the GFW data on Google BigQuery. I've included this in the pipeline for now, but we may eventually need to somehow take this out of the pipeline so that the analysis can be fully reproducible by others.  
+3. Performs analyses on those data.  
+4. Generates final figures and tables.  
+
+When you run `targets::tar_visnetwork`, it should look something like this:
+
+(target_network.png)
 
 # Repository Structure 
 

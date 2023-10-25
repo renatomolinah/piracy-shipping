@@ -146,6 +146,7 @@ make_global_map_figure <- function(asam_data_processed,
   return(plot)
 }
 
+# Makes maps of hotspots over time
 make_hotspot_map_over_time <- function(asam_data_processed,
                                        map_projection){
   # For rolling time windows, subset attack data to window,
@@ -379,25 +380,25 @@ generate_hotspot_sql <- function(hotspots){
 make_attack_time_series_figure <- function(asam_with_hotspots){
   
   plot <- asam_with_hotspots %>%
-    group_by(year = lubridate::year(date),
+    dplyr::group_by(year = lubridate::year(date),
              cluster) %>%
-    summarize(number_attacks = n_distinct(asam_reference)) %>%
-    ungroup() %>%
-    mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
+    dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
                                cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
                                cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
                                TRUE ~ "Rest of world")  %>%
-             fct_relevel(c("Gulf of Guinea",
+                    forcats::fct_relevel(c("Gulf of Guinea",
                            "Gulf of Aden",
                            "Southeast asia"))) %>%
-    ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
-    geom_bar(position = "stack", stat="identity",color="black")  +
-    scale_fill_brewer("Hotspot",
+    ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
+    ggplot2::geom_bar(position = "stack", stat="identity",color="black")  +
+    ggplot2::scale_fill_brewer("Hotspot",
                        type ="qual",
                        palette = "Dark2") +
-    labs(x = "",
+    ggplot2::labs(x = "",
          y = "Number\nattacks") +
-    scale_x_continuous(breaks = seq(2010,2022,2))
+    ggplot2::scale_x_continuous(breaks = seq(2010,2022,2))
   
   ggplot2::ggsave(filename = "figures/attack_time_series.png",
                   plot,
