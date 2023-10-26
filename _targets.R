@@ -1,6 +1,6 @@
 # Load packages required to define the pipeline:
 library(targets)
-
+library(tidyverse)
 # Set target options:
 tar_option_set(
   # Load necessary packages
@@ -9,12 +9,15 @@ tar_option_set(
 # Source all necessary functions
 tar_source("r/functions.R")
 
-# Set data directory on emLab's Google Shared Drive where targets interm rds objects will live
-# This path will need to be modified by each user, since everyone has a different path to this directory
-data_directory <- "/Users/gmcdonald/Library/CloudStorage/GoogleDrive-gmcdonald@ucsb.edu/Shared\ drives/emlab/Projects/current-projects/piracy/data"
-
 # Set directory where target objects will be saved
-tar_config_set(store = glue::glue("{data_directory}/_targets"))
+# emLab's Google Shared Drive where targets interm rds objects will live
+# This path will need to be modified by each user, since everyone has a different path to this directory
+# Uncomment this line, and run it for your personal machine
+# tar_config_set(store = glue::glue("/Users/gmcdonald/Library/CloudStorage/GoogleDrive-gmcdonald@ucsb.edu/Shared\ drives/emlab/Projects/current-projects/piracy/data/_targets"))
+
+# The data directory for raw data is set in relation to the targets directory
+data_directory <- targets::tar_config_get("store") %>%
+  stringr::str_remove_all("/_targets")
 
 # Set up billing and project info for BigQuery
 # Not that this requires authentication, so not all users will be able to do this

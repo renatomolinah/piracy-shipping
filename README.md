@@ -12,9 +12,9 @@ To manage package dependencies, we use the `renv` package. When you first clone 
 
 To ensure reproducibility in the data processing and analysis pipeline, we use the `targets` package. Targets is a Make-like pipeline tool. Using targets means that anytime an upstream change is made to the data or models, all downstream components of the data processing and analysis will be re-run automatically when the `targets::tar_make()` command is run. It also means that once components of the analysis have already been run and are up-to-date, they will not need to be re-run. All objects are cached in a `_targets` directory. Please see the [targets website](https://github.com/ropensci/targets) for more information.
 
-For targets to function correctly, the user only needs to make one change to update the cache directory. In the file `_targets.R`, change the `data_directory` object to match the location location for the `piracy/data` folder on the shared folder on the emLab Shared Google Drive. Then run `tar_config_set(store = glue::glue("{data_directory}/_targets"))` to set the cache directory to that location. Setting this data directory will also provide the necessary pointer to the raw data, which are also current stored on the Shared Drive.
+For targets to function correctly, the user only needs to make one change to update the cache directory by running the command `targets::tar_config_set(store = ...)`, where `...` is the `piracy/data/_targets` data directory in the emLab Shared Google Drive on your personal machine. For example, on Gavin's machine, he runs `tar_config_set(store = glue::glue("/Users/gmcdonald/Library/CloudStorage/GoogleDrive-gmcdonald@ucsb.edu/Shared\ drives/emlab/Projects/current-projects/piracy/data/_targets"))`.Setting this data directory will also provide the necessary pointer to the raw data, which are also current stored on the Shared Drive.
 
-Once this has been done, you can simply run `targets::tar_make()` to reproduce the analysis. 
+Once this has been done, you can simply run `targets::tar_make()` to reproduce the full data processing and analysis pipeline. 
 
 In order to see what the targets pipeline looks like, you can run `targets::tar_manifest()` or `targets::tar_visnetwork()`, which also shows which targets are current or out-of-date. In overview, the pipeline:
 
