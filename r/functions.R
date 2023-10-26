@@ -131,8 +131,9 @@ make_global_map_figure <- function(asam_data_processed,
     scale_fill_gradient2("Shipping hours",
                           trans = "log10",
                          labels = scales::comma,
+                         breaks = c(100,1000,10000,100000,1e6),
                          low = "white",
-                         high = "steelblue4")+
+                         high = "dodgerblue4")+
     guides(fill  = guide_legend(order = 1,
                                 reverse=TRUE),
            color = guide_legend(order = 2))
