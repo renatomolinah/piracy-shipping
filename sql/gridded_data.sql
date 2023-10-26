@@ -4,19 +4,39 @@ CREATE TEMPORARY FUNCTION
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
+vessel_info AS(
+  SELECT
+    *
+  FROM
+    `emlab-gcp.piracy.vessel_info` ),
+  voyage_info AS(
+  SELECT
+    * EXCEPT(voyage_mmsi,
+    departure_timestamp,
+    arrival_timestamp,
+    to_anchorage_id,
+    from_anchorage_id),
+    DATE(departure_timestamp) date,
+    EXTRACT(MONTH
+    FROM
+      departure_timestamp) month,
+    EXTRACT(YEAR
+    FROM
+      departure_timestamp) year
+  FROM
+    `emlab-gcp.piracy.voyage_info` ),
   voyages_ais_positions AS(
   SELECT
     * EXCEPT(lat,
-      lon,
-      avg_distance_km),
-    avg_distance_km distance_km,
+      lon),
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
-    FLOOR(lon/pixel_size()) * pixel_size() lon_bin,
-    EXTRACT(MONTH
-    FROM
-      departure_timestamp) month
+    FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.ungridded_data` ),
+    `emlab-gcp.piracy.ungridded_data`
+  JOIN
+    voyage_info
+  USING
+    (trip_id)),
   # Summarize by all columns except a few https://stackoverflow.com/questions/54792360/bigquery-group-by-all-columns-except-a-few
   binned AS(
   SELECT
@@ -96,3 +116,6 @@ IF
   {hotspots_sql}
 FROM
   by_voyage_grid
+JOIN
+vessel_info
+USING(mmsi,year)

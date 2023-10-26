@@ -55,7 +55,8 @@ USING
       grid_has_previous_attacks,
       hotspot_southeast_asia,
       hotspot_gulf_of_aden,
-      hotspot_gulf_of_guinea),
+      hotspot_gulf_of_guinea,
+      implied_speed_knots),
     SUM(hours) OVER(PARTITION BY trip_id) hours,
     SUM(distance_km) OVER(PARTITION BY trip_id) distance_km,
     SUM(ais_messages) OVER(PARTITION BY trip_id) ais_messages,
@@ -74,13 +75,15 @@ USING
   aggregated_with_voyage_fuel AS(
   SELECT
     *,
+    # main_sfc is always 206; aux_sfc is always 221
+  # sfc from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
     hours*(0.8 * POW(
       IF
-        ((distance_km * 0.539957 / hours)/design_speed>1,1,(distance_km * 0.539957 / hours)/design_speed), 3))*main_sfc*engine_power/1000000 main_fuel_consumption_mt_voyage,
-    hours*0.5*aux_sfc*aux_engine_power/1000000 aux_fuel_consumption_mt_voyage,
+        ((distance_km * 0.539957 / hours)/design_speed>1,1,(distance_km * 0.539957 / hours)/design_speed), 3))*206*engine_power/1000000 main_fuel_consumption_mt_voyage,
+    hours*0.5*221*aux_engine_power/1000000 aux_fuel_consumption_mt_voyage,
     (hours*(0.8 * POW(
         IF
-          ((distance_km * 0.539957 / hours)/design_speed>1,1,(distance_km * 0.539957 / hours)/design_speed), 3))*main_sfc*engine_power/1000000 + hours*0.5*aux_sfc*aux_engine_power/1000000) total_fuel_consumption_mt_voyage
+          ((distance_km * 0.539957 / hours)/design_speed>1,1,(distance_km * 0.539957 / hours)/design_speed), 3))*206*engine_power/1000000 + hours*0.5*221*aux_engine_power/1000000) total_fuel_consumption_mt_voyage
   FROM
     aggregated ),
 average_route_attacks_per_route_and_trip AS(
@@ -96,13 +99,7 @@ SELECT
     aux_fuel_consumption_mt_inst,
     main_fuel_consumption_mt_voyage,
     aux_fuel_consumption_mt_voyage,
-    main_sfc,
-    aux_sfc,
     price_usd_mt,
-    departure_timestamp,
-    arrival_timestamp,
-    from_anchorage_id,
-    to_anchorage_id,
       hotspot_southeast_asia,
       hotspot_gulf_of_aden,
       hotspot_gulf_of_guinea),

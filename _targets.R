@@ -99,7 +99,33 @@ list(
     name = ungridded_data,
     run_gfw_query(sql = ungridded_data_sql %>%
                     readr::read_file(),
-                  bq_table_name = "ungridded_data", 
+                  bq_table_name = "ungridded_data",
+                  download_data = FALSE)
+  ),
+  # Get vessel info for shipping vessels in BigQuery
+  tar_target(
+    name = vessel_info_sql,
+    "sql/vessel_info.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = vessel_info,
+    run_gfw_query(sql = vessel_info_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "vessel_info", 
+                  download_data = FALSE)
+  ),
+  # Get voyage info in BigQuery
+  tar_target(
+    name = voyage_info_sql,
+    "sql/voyage_info.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = voyage_info,
+    run_gfw_query(sql = voyage_info_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "voyage_info", 
                   download_data = FALSE)
   ),
   # Process gridded data, which aggregates ungridded data to different pixel resolutions
