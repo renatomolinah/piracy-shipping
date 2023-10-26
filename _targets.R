@@ -1,6 +1,5 @@
 # Load packages required to define the pipeline:
 library(targets)
-library(tidyverse)
 # Set target options:
 tar_option_set(
   # Load necessary packages
@@ -16,7 +15,7 @@ tar_source("r/functions.R")
 # tar_config_set(store = glue::glue("/Users/gmcdonald/Library/CloudStorage/GoogleDrive-gmcdonald@ucsb.edu/Shared\ drives/emlab/Projects/current-projects/piracy/data/_targets"))
 
 # The data directory for raw data is set in relation to the targets directory
-data_directory <- targets::tar_config_get("store") %>%
+data_directory <- targets::tar_config_get("store") |>
   stringr::str_remove_all("/_targets")
 
 # Set up billing and project info for BigQuery
