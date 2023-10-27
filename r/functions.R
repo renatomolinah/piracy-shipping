@@ -66,7 +66,7 @@ make_global_map_figure <- function(asam_data_processed,
                                    hotspots,
                                    aggregate_spatial_shipping_activity,
                                    map_projection){
-
+  
   shipping_data_stars <- aggregate_spatial_shipping_activity %>%
     stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
     sf::st_set_crs(4326) %>%
@@ -77,7 +77,7 @@ make_global_map_figure <- function(asam_data_processed,
     sf::st_as_sf(coords = c("lon","lat"),
                  crs = sf::st_crs(4326)) %>%
     sf::st_transform(map_projection)
-
+  
   # Load world land
   world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
     sf::st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"), quiet = TRUE) %>%
@@ -103,8 +103,19 @@ make_global_map_figure <- function(asam_data_processed,
                      fill = NA,
                      color = "black") +
     ggplot2::geom_sf(data = shipping_data_stars,
-                      aes(fill = hours),
-                     color=NA) +
+                     aes(fill = hours,
+                         color = hours)) +
+    scale_fill_gradient2("Shipping hours",
+                         trans = "log10",
+                         labels = scales::comma,
+                         breaks = c(100,1000,10000,100000,1e6),
+                         low = "white",
+                         high = "dodgerblue4") +
+    scale_color_gradient2(trans = "log10",
+                          low = "white",
+                          high = "dodgerblue4",
+                          guide = 'none') +
+    ggnewscale::new_scale_color() +
     ggplot2::geom_sf(data = world_land,
                      color = "darkgrey",
                      fill = "darkgrey") +
@@ -128,13 +139,7 @@ make_global_map_figure <- function(asam_data_processed,
     ggplot2::theme(panel.grid = element_blank(),
                    panel.background = element_blank(),
                    axis.text = element_blank(),
-                   axis.ticks = element_blank()) +
-    scale_fill_gradient2("Shipping hours",
-                          trans = "log10",
-                         labels = scales::comma,
-                         breaks = c(100,1000,10000,100000,1e6),
-                         low = "white",
-                         high = "dodgerblue4")+
+                   axis.ticks = element_blank())+
     guides(fill  = guide_legend(order = 1,
                                 reverse=TRUE),
            color = guide_legend(order = 2))
@@ -383,23 +388,23 @@ make_attack_time_series_figure <- function(asam_with_hotspots){
   
   plot <- asam_with_hotspots %>%
     dplyr::group_by(year = lubridate::year(date),
-             cluster) %>%
+                    cluster) %>%
     dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
-                               cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                               cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
-                               TRUE ~ "Rest of world")  %>%
+                                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
+                                             TRUE ~ "Rest of world")  %>%
                     forcats::fct_relevel(c("Gulf of Guinea",
-                           "Gulf of Aden",
-                           "Southeast asia"))) %>%
+                                           "Gulf of Aden",
+                                           "Southeast asia"))) %>%
     ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
     ggplot2::geom_bar(position = "stack", stat="identity",color="black")  +
     ggplot2::scale_fill_brewer("Hotspot",
-                       type ="qual",
-                       palette = "Dark2") +
+                               type ="qual",
+                               palette = "Dark2") +
     ggplot2::labs(x = "",
-         y = "Number\nattacks") +
+                  y = "Number\nattacks") +
     ggplot2::scale_x_continuous(breaks = seq(2010,2022,2))
   
   ggplot2::ggsave(filename = "figures/attack_time_series.png",
