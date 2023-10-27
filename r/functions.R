@@ -70,6 +70,7 @@ make_global_map_figure <- function(asam_data_processed,
   shipping_data_stars <- aggregate_spatial_shipping_activity %>%
     stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
     sf::st_set_crs(4326) %>%
+    sf::st_as_sf()%>%
     sf::st_transform(map_projection)
   
   asam_data_processed_sf <- asam_data_processed %>%
@@ -101,9 +102,9 @@ make_global_map_figure <- function(asam_data_processed,
     ggplot2::geom_sf(data = world_bbox_sf,
                      fill = NA,
                      color = "black") +
-    stars::geom_stars(data = shipping_data_stars,
+    ggplot2::geom_sf(data = shipping_data_stars,
                       aes(fill = hours),
-                      alpha = 0.5) +
+                     color=NA) +
     ggplot2::geom_sf(data = world_land,
                      color = "darkgrey",
                      fill = "darkgrey") +
