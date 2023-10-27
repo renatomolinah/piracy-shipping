@@ -98,10 +98,7 @@ make_global_map_figure <- function(asam_data_processed,
     sf::st_sf() %>%
     sf::st_transform(map_projection)
   
-  plot <- ggplot2::ggplot() +
-    ggplot2::geom_sf(data = world_bbox_sf,
-                     fill = NA,
-                     color = "black") +
+  plot <- ggplot2::ggplot()  +
     ggplot2::geom_sf(data = shipping_data_stars,
                      aes(fill = hours,
                          color = hours)) +
@@ -132,7 +129,10 @@ make_global_map_figure <- function(asam_data_processed,
                        sf::st_transform(map_projection),
                      fill = NA,
                      linewidth = 1.025,
-                     aes(color = as.factor(cluster))) +
+                     aes(color = as.factor(cluster)))+
+    ggplot2::geom_sf(data = world_bbox_sf,
+                     fill = NA,
+                     color = "black") +
     scale_color_brewer("Hotspot",
                        type ="qual",
                        palette = "Dark2")+ 
