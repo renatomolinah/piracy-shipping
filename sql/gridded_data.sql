@@ -72,6 +72,20 @@ vessel_info AS(
     attack_date,
     attack_lat_bin,
     attack_lon_bin),
+attack_info_base_in_study_period AS(
+SELECT
+  attack_lat_bin lat_bin,
+  attack_lon_bin lon_bin,
+  TRUE grid_attacked_in_study_period
+FROM
+  attack_info_base
+WHERE
+  number_attacks >0
+  AND attack_date >= '2013-01-01'
+  AND attack_date <= '2022-12-31'
+GROUP BY
+  lat_bin,
+  lon_bin),
   # Each row will be a voyage and grid and days-since-attack
   by_voyage_grid_attack AS(
   SELECT
@@ -110,7 +124,9 @@ vessel_info AS(
   FROM
     by_voyage_grid_attack)
 SELECT
-  *,
+  *
+  EXCEPT(grid_attacked_in_study_period),
+  IFNULL(grid_attacked_in_study_period,FALSE) grid_attacked_in_study_period,
 IF
   (number_previous_attacks_grid_all_time >0,TRUE,FALSE) grid_has_previous_attacks,
   {hotspots_sql}
@@ -119,3 +135,6 @@ FROM
 JOIN
 vessel_info
 USING(mmsi,year)
+LEFT JOIN
+attack_info_base_in_study_period
+USING(lon_bin,lat_bin)
