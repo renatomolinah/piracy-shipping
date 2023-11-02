@@ -149,6 +149,21 @@ list(
                   # Trigger re-run of this if timestamp for when ungridded_data was generated changes
                   ungridded_data)
   ),
+  tar_target(
+    name = gridded_pirate_attacks_sql,
+    "sql/gridded_pirate_attacks.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = gridded_pirate_attacks_0_5,
+    run_gfw_query(sql = gridded_pirate_attacks_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 0.5),
+                  bq_table_name = "gridded_pirate_attacks_0_5", 
+                  download_data = FALSE,
+                  # Trigger re-run of this if timestamp for when process_asam_data was generated changes
+                  process_asam_data)
+  ),
   # Here we summarize aggregate spatial shipping activity at 0.5x0.5 degrees, for making a global map
   tar_target(
     name = aggregate_spatial_shipping_activity_sql,
