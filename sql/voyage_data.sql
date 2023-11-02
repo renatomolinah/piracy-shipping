@@ -19,7 +19,7 @@ WITH
   gridded_data AS(
   SELECT
     *
-    EXCEPT(wind_direction_degrees,heading,wind_speed_ms),
+    EXCEPT(wind_direction_degrees,heading),
   COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector
   FROM
     `emlab-gcp.piracy.{gridded_data_table_location}`
@@ -47,6 +47,7 @@ USING
       aux_fuel_consumption_mt_inst,
       ais_messages,
       wind_vector,
+      wind_speed_ms,
       days_since_attack,
       lat_bin,
       lon_bin,
@@ -60,6 +61,7 @@ USING
     SUM(hours) OVER(PARTITION BY trip_id) hours,
     SUM(distance_km) OVER(PARTITION BY trip_id) distance_km,
     SUM(ais_messages) OVER(PARTITION BY trip_id) ais_messages,
+    AVG(wind_speed_ms) OVER(PARTITION BY trip_id) wind_speed_ms,
     AVG(wind_vector) OVER(PARTITION BY trip_id) wind_vector,
     SUM(grid_area_km2) OVER(PARTITION BY trip_id) voyage_grid_area_km2,
     SUM(main_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id) main_fuel_consumption_mt_inst,
