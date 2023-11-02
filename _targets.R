@@ -158,7 +158,8 @@ list(
     name = gridded_pirate_attacks_0_5,
     run_gfw_query(sql = gridded_pirate_attacks_sql %>%
                     readr::read_file() %>%
-                    glue::glue(pixel_size = 0.5),
+                    glue::glue(pixel_size = 0.5,
+                               hotspots = hotspots_sql),
                   bq_table_name = "gridded_pirate_attacks_0_5", 
                   download_data = FALSE,
                   # Trigger re-run of this if timestamp for when process_asam_data was generated changes

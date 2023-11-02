@@ -70,7 +70,8 @@ SELECT
   lon_bin,
   MIN(days_since_attack) days_since_attack,
   SUM(number_attacks) number_previous_attacks_all_time,
-  SUM(IF(days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months
+  SUM(IF(days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months,
+  {hotspots_sql}
 FROM
   joined
 GROUP BY
