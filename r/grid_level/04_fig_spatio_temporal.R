@@ -25,23 +25,28 @@ coast <- rnaturalearth::ne_countries(scale = "large",
                                      country = c("Malaysia", "Indonesia", "Singapore"),
                                      returnclass = "sf")
 
+# Load data --------------------------------------------------------------------
+grid_level_panel <- readRDS(file = here("processed_data",
+                                        "attacks_and_activity_by_grid.rds"))
+
 ## PROCESSING ##################################################################
 
 
 
-# event_study_panel %>%
-#   mutate(post = 1 * (event >= 0)) %>% 
-#   group_by(attack_id, post) %>% 
-#   summarize(distance_km = sum(n_trips)) %>% 
-#   pivot_wider(names_from = post,
-#               values_from = distance_km,
-#               names_prefix = "d_") %>% 
-#   mutate(d = d_1 - d_0) %>% 
-#   arrange(d)
+event_study_panel %>%
+  mutate(post = 1 * (event >= 0)) %>%
+  group_by(attack_id, post) %>%
+  summarize(distance_km = sum(distance_km)) %>%
+  pivot_wider(names_from = post,
+              values_from = distance_km,
+              names_prefix = "d_") %>%
+  mutate(d = d_1 - d_0) %>%
+  arrange(d) %>% 
+  View()
 # 162 2013-06-19    343   130  -213
 
 
-focus_grid <- "162" #"124" 
+focus_grid <- "-1.5_117" #"124" 
 focus_date <- ymd("2013-06-19") #ymd("2017-10-17")
 focus_grid_coords <- grid_level_panel %>% 
   filter(grid_id == focus_grid) %>% 
@@ -51,7 +56,7 @@ focus_grid_coords <- grid_level_panel %>%
 focus_lat <- focus_grid_coords$lat_bin
 focus_lon <- focus_grid_coords$lon_bin
 
-tracks <- tbl(piracy, "ungridded_data_ml") %>% 
+tracks <- tbl(piracy, "ungridded_data") %>% 
   filter(between(lat, focus_lat - 3, focus_lat + 3),
          between(lon, focus_lon - 3, focus_lon + 3),
          between(date, sql("date('2013-06-12')"), sql("date('2013-06-26')"))) %>%
