@@ -389,7 +389,9 @@ make_attack_time_series_figure <- function(asam_data_processed,
                                            hotspots){
   
   # Assign all 2005+ attacks to a hotspot cluster
-  plot_data<-asam_data_processed %>%
+  plot_data<-asam_data_processed  %>%
+    # Only include pirate attacks when making hotspots
+    dplyr::filter(encounter_type == "Pirate Assault") %>%
     dplyr::mutate(year = lubridate::year(date)) %>%
     dplyr::filter(year >= 2005) %>%
     dplyr::cross_join(hotspots) %>%
