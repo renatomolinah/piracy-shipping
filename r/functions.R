@@ -344,15 +344,15 @@ generate_asam_with_hotspots <- function(asam_data_processed,
   asam_filtered <- asam_data_processed %>%
     dplyr::filter(lubridate::year(date) >= year_min,
            lubridate::year(date) <= year_min + years_to_include) %>%
-    # Only include pirate attacks when making hotspots
-    dplyr::filter(encounter_type == "Pirate Assault")
+    # Only include encounters that are not suspicious approaches
+    dplyr::filter(encounter_type != 'Suspicious Approach')
   
   # Find DBSCAN clusters for attacks occurring during this range
   dbscan_clusters <- fpc::dbscan(asam_filtered %>%
                                    dplyr::select(lon,lat),
                                  eps = 10, #km
-                                 MinPts = 200)
-  
+                                 MinPts = 300)
+
   asam_filtered %>%
     dplyr::mutate(cluster_number = dbscan_clusters$cluster)%>%
     dplyr::mutate(cluster = dplyr::case_when(cluster_number == 1 ~ "hotspot_southeast_asia",
@@ -390,8 +390,8 @@ make_attack_time_series_figure <- function(asam_data_processed,
   
   # Assign all 2005+ attacks to a hotspot cluster
   plot_data<-asam_data_processed  %>%
-    # Only include pirate attacks when making hotspots
-    dplyr::filter(encounter_type == "Pirate Assault") %>%
+    # Only include encounters that are not suspicious approaches
+    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
     dplyr::mutate(year = lubridate::year(date)) %>%
     dplyr::filter(year >= 2005) %>%
     dplyr::cross_join(hotspots) %>%

@@ -25,17 +25,23 @@ vessel_info AS(
       departure_timestamp) year
   FROM
     `emlab-gcp.piracy.voyage_info` ),
-  voyages_ais_positions AS(
+  ais_positions AS(
   SELECT
     * EXCEPT(lat,
       lon,
       departure_timestamp,
       arrival_timestamp,
       timestamp,
+      date),
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.ungridded_data`
+    `emlab-gcp.piracy.ungridded_data`),
+  voyages_ais_positions AS(
+  SELECT
+    * 
+    FROM
+    ais_positions
   JOIN
     voyage_info
   USING
@@ -63,7 +69,7 @@ vessel_info AS(
   FROM
     voyages_ais_positions),
   # Select attack info
-  # Only select rows that correspond to Pirate Assaults
+  # Only select rows that correspond to anything except suspicious approaches
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
@@ -73,7 +79,7 @@ vessel_info AS(
   FROM
     `emlab-gcp.piracy.asam_data`
   WHERE
-    encounter_type = 'Pirate Assault'
+    encounter_type != 'Suspicious Approach'
   GROUP BY
     attack_date,
     attack_lat_bin,
