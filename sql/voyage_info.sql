@@ -5,7 +5,9 @@ WITH
   SELECT
     s2id from_anchorage_id,
     label from_port,
-    iso3 from_country
+    iso3 from_country,
+    ST_GEOGPOINT(lon,
+      lat) from_anchorage_position
   FROM
     `world-fishing-827.gfw_research.named_anchorages`),
   # Get anchorage, port, and country info for end of voyage
@@ -13,7 +15,9 @@ WITH
   SELECT
     s2id to_anchorage_id,
     label to_port,
-    iso3 to_country
+    iso3 to_country,
+    ST_GEOGPOINT(lon,
+      lat) to_anchorage_position
   FROM
     `world-fishing-827.gfw_research.named_anchorages`),
   # Get voyage info
@@ -33,7 +37,9 @@ WITH
     AND trip_end_confidence = 4)
   # Combine voyage info with anchorages, ports, and countries
 SELECT
-  *
+  * EXCEPT(from_anchorage_position,to_anchorage_position),
+    ST_DISTANCE(from_anchorage_position,
+      to_anchorage_position)/1000 total_haversine_distance_km
 FROM
   voyages_base
 LEFT JOIN

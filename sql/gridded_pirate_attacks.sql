@@ -4,6 +4,7 @@ CREATE TEMPORARY FUNCTION
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
+  # Only select rows that correspond to Pirate Assaults
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
@@ -12,6 +13,8 @@ WITH
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
     `emlab-gcp.piracy.asam_data`
+  WHERE
+  encounter_type = 'Pirate Assault'
   GROUP BY
     attack_date,
     attack_lat_bin,

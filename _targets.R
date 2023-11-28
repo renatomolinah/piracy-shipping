@@ -248,6 +248,7 @@ list(
   # Make barplot that shows attacks over time, by hotspot
   tar_target(
     name = attack_time_series_figure,
-    make_attack_time_series_figure(asam_with_hotspots)
+    make_attack_time_series_figure(asam_data_processed,
+                                   hotspots)
   )
 )

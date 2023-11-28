@@ -60,10 +60,26 @@ vessel_info AS(
   FROM
     voyages_ais_positions),
   # Select attack info
+  # Only select rows that correspond to Pirate Assaults
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
     COUNT(DISTINCT(asam_reference)) number_attacks,
+    FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
+    FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
+  FROM
+    `emlab-gcp.piracy.asam_data`
+  WHERE
+    encounter_type = 'Pirate Assault'
+  GROUP BY
+    attack_date,
+    attack_lat_bin,
+    attack_lon_bin),
+  # Select attack info, this time using all encounter types as robustness check
+  attack_info_base_all_encounter_types AS(
+  SELECT
+    DATE(date) attack_date,
+    COUNT(DISTINCT(asam_reference)) number_attacks_all_encounter_types,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
@@ -107,8 +123,22 @@ GROUP BY
     binned.lat_bin = attack_info_base.attack_lat_bin
     AND binned.lon_bin = attack_info_base.attack_lon_bin
     AND binned.date >= attack_info_base.attack_date),
+  # Each row will be a voyage and grid and days-since-attack, this time using all encounter types as robustness check
+  by_voyage_grid_attack_all_encounter_types AS(
+  SELECT
+    * EXCEPT(attack_lat_bin,
+      attack_lon_bin),
+    DATE_DIFF(date, attack_date, DAY) days_since_attack
+  FROM
+    binned
+  LEFT JOIN
+    attack_info_base_all_encounter_types
+  ON
+    binned.lat_bin = attack_info_base_all_encounter_types.attack_lat_bin
+    AND binned.lon_bin = attack_info_base_all_encounter_types.attack_lon_bin
+    AND binned.date >= attack_info_base_all_encounter_types.attack_date),
+  # Now summarize attack info by voyage and grid
   by_voyage_grid AS(
-    # Now summarize attack info by voyage and grid
   SELECT
     DISTINCT * EXCEPT(days_since_attack,
       number_attacks,
@@ -122,7 +152,22 @@ GROUP BY
       (days_since_attack <= 30*12,number_attacks,0)) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
       CAST(lon_bin AS INT64)) number_previous_attacks_grid_12_months
   FROM
-    by_voyage_grid_attack)
+    by_voyage_grid_attack),
+  # Now summarize attack info by voyage and grid, this time using all encounter types as robustness check
+  by_voyage_grid_all_encounter_types AS(
+  SELECT
+    trip_id,
+    lat_bin,
+    lon_bin,
+    SUM(
+    IF
+      (days_since_attack <= 30*12,number_attacks_all_encounter_types,0)) number_previous_attacks_grid_12_months_all_encounter_types
+  FROM
+    by_voyage_grid_attack_all_encounter_types
+  GROUP BY
+    trip_id,
+    lat_bin,
+    lon_bin)
 SELECT
   *
   EXCEPT(grid_attacked_in_study_period),
@@ -132,6 +177,9 @@ IF
   {hotspots_sql}
 FROM
   by_voyage_grid
+LEFT JOIN
+  by_voyage_grid_all_encounter_types
+USING(trip_id,lat_bin,lon_bin)
 JOIN
 vessel_info
 USING(mmsi,year)

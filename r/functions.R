@@ -36,8 +36,6 @@ process_asam_data <- function(asam_data){
     # Remove duplicates
     dplyr::filter(row_number() == 1) %>%
     dplyr::ungroup() %>%
-    # Only include pirate assaults
-    dplyr::filter(hostilit_D == "Pirate Assault") %>%
     # Only include attacks in 2022 or before
     dplyr::filter(lubridate::year(date) <= 2022) %>%
     # Extract lat and lon columns
@@ -45,6 +43,7 @@ process_asam_data <- function(asam_data){
                   lat = sf::st_coordinates(.)[,2]) %>%
     # Only extract necessary columns
     dplyr::select(asam_reference = reference,
+                  encounter_type = hostilit_D,
                   date,
                   lon,
                   lat) %>%
@@ -343,8 +342,10 @@ generate_asam_with_hotspots <- function(asam_data_processed,
                                         years_to_include = 12){
   
   asam_filtered <- asam_data_processed %>%
-    filter(lubridate::year(date) >= year_min,
-           lubridate::year(date) <= year_min + years_to_include)
+    dplyr::filter(lubridate::year(date) >= year_min,
+           lubridate::year(date) <= year_min + years_to_include) %>%
+    # Only include pirate attacks when making hotspots
+    dplyr::filter(encounter_type == "Pirate Assault")
   
   # Find DBSCAN clusters for attacks occurring during this range
   dbscan_clusters <- fpc::dbscan(asam_filtered %>%
@@ -384,11 +385,36 @@ generate_hotspot_sql <- function(hotspots){
 }
 
 
-make_attack_time_series_figure <- function(asam_with_hotspots){
+make_attack_time_series_figure <- function(asam_data_processed,
+                                           hotspots){
   
-  plot <- asam_with_hotspots %>%
-    dplyr::group_by(year = lubridate::year(date),
-                    cluster) %>%
+  # Assign all 2005+ attacks to a hotspot cluster
+  plot_data<-asam_data_processed %>%
+    dplyr::mutate(year = lubridate::year(date)) %>%
+    dplyr::filter(year >= 2005) %>%
+    dplyr::cross_join(hotspots) %>%
+    dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
+    dplyr::select(asam_reference,
+                  year,
+                  cluster,
+                  attack_in_hotspot) %>%
+    tidyr::pivot_wider(names_from = cluster,
+                       values_from = attack_in_hotspot) %>%
+    dplyr::mutate(rest_of_world = ifelse(!hotspot_southeast_asia &
+                                           !hotspot_gulf_of_aden &
+                                           !hotspot_gulf_of_guinea,
+                                         TRUE,
+                                         FALSE)) %>%
+    tidyr::pivot_longer(cols = c(hotspot_southeast_asia,
+                                 hotspot_gulf_of_aden,
+                                 hotspot_gulf_of_guinea,
+                                 rest_of_world),
+                        names_to = "cluster",
+                        values_to = "attack_in_hotspot") %>%
+    dplyr::filter(attack_in_hotspot)
+  
+  plot <- plot_data %>%
+    dplyr::group_by(year,cluster) %>%
     dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
@@ -399,13 +425,13 @@ make_attack_time_series_figure <- function(asam_with_hotspots){
                                            "Gulf of Aden",
                                            "Southeast asia"))) %>%
     ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
-    ggplot2::geom_bar(position = "stack", stat="identity",color="black")  +
+    ggplot2::geom_bar(position = "stack", stat="identity",color="black", linewidth = 0.25)  +
     ggplot2::scale_fill_brewer("Hotspot",
                                type ="qual",
                                palette = "Dark2") +
     ggplot2::labs(x = "",
                   y = "Number\nattacks") +
-    ggplot2::scale_x_continuous(breaks = seq(2010,2022,2))
+    ggplot2::scale_x_continuous(breaks = seq(2005,2022,2))
   
   ggplot2::ggsave(filename = "figures/attack_time_series.png",
                   plot,
