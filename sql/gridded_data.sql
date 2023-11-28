@@ -28,7 +28,10 @@ vessel_info AS(
   voyages_ais_positions AS(
   SELECT
     * EXCEPT(lat,
-      lon),
+      lon,
+      departure_timestamp,
+      arrival_timestamp,
+      timestamp,
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM

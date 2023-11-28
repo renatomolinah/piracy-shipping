@@ -64,10 +64,7 @@ WITH
       year)),
   shipping_ais_info_with_voyages AS(
   SELECT
-    * EXCEPT(voyage_mmsi,
-      departure_timestamp,
-      arrival_timestamp,
-      timestamp)
+    * EXCEPT(voyage_mmsi)
   FROM
     shipping_ais_info
   JOIN
@@ -82,6 +79,7 @@ SELECT
     design_speed,
     year,
     implied_speed_knots),
+    DATE(timestamp) date,
   # Calculate fuel consumption
   # main_sfc is always 206; aux_sfc is always 221
   # sfc from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
