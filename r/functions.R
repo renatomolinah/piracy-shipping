@@ -385,7 +385,7 @@ generate_hotspot_sql <- function(hotspots){
 }
 
 
-make_attack_time_series_figure <- function(asam_data_processed,
+make_encounter_time_series_figure <- function(asam_data_processed,
                                            hotspots){
   
   # Assign all 2005+ attacks to a hotspot cluster
@@ -432,10 +432,10 @@ make_attack_time_series_figure <- function(asam_data_processed,
                                type ="qual",
                                palette = "Dark2") +
     ggplot2::labs(x = "",
-                  y = "Number\nattacks") +
+                  y = "Number of encounters\n") +
     ggplot2::scale_x_continuous(breaks = seq(2005,2022,2))
   
-  ggplot2::ggsave(filename = "figures/attack_time_series.png",
+  ggplot2::ggsave(filename = "figures/encounter_time_series.png",
                   plot,
                   height = 4,
                   width = 7,

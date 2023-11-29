@@ -25,18 +25,15 @@ bq_dataset <- "piracy" # The dataset name for this project
 
 # Set ggplot theme for all plots
 ggplot2::theme_set(ggplot2::theme_bw() +
-            ggplot2::theme(axis.title.y = ggplot2::element_text(angle = 0,vjust=0.6),
+            ggplot2::theme(axis.title.y = ggplot2::element_text(vjust=0.6),
                   strip.background = ggplot2::element_blank(),
-                  strip.text.y = ggplot2::element_text(angle=0),
-                  strip.text.y.right = ggplot2::element_text(angle=0),
-                  strip.text.y.left = ggplot2::element_text(angle=0),
                   panel.background = ggplot2::element_blank(),
                   panel.border = ggplot2::element_blank(),
                   panel.grid.minor = ggplot2::element_blank()))
 
 # Replace the target list below with your own:
 list(
-  # Process ASAM piracy attack data
+  # Process ASAM encounter data
   tar_target(
     name = asam_file,
     glue::glue("{data_directory}/raw/asam_data_download/ASAM_events.shp"),
@@ -50,7 +47,7 @@ list(
     name = asam_data_processed,
     process_asam_data(asam_data)
   ),
-  # Add clusters to attack data
+  # Add clusters to encounter data
   tar_target(
     name = asam_with_hotspots,
     generate_asam_with_hotspots(asam_data_processed,
@@ -247,8 +244,8 @@ list(
   ),
   # Make barplot that shows attacks over time, by hotspot
   tar_target(
-    name = attack_time_series_figure,
-    make_attack_time_series_figure(asam_data_processed,
+    name = encounter_time_series_figure,
+    make_encounter_time_series_figure(asam_data_processed,
                                    hotspots)
   )
 )
