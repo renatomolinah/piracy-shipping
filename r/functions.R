@@ -419,13 +419,13 @@ make_encounter_time_series_figure <- function(asam_data_processed,
     dplyr::group_by(year,cluster) %>%
     dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
+    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
                                              cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
                                              cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
                                              TRUE ~ "Rest of world")  %>%
                     forcats::fct_relevel(c("Gulf of Guinea",
                                            "Gulf of Aden",
-                                           "Southeast asia"))) %>%
+                                           "Southeast Asia"))) %>%
     ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
     ggplot2::geom_bar(position = "stack", stat="identity",color="black", linewidth = 0.25)  +
     ggplot2::scale_fill_brewer("Hotspot",
