@@ -118,7 +118,7 @@ make_global_map_figure <- function(asam_data_processed,
     ggplot2::geom_sf(data = asam_data_processed_sf,
                      size = 0.01) + 
     ggplot2::geom_sf(data = hotspots  %>%
-                       mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast asia",
+                       mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
                                                   cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
                                                   cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
                                 fct_relevel("Gulf of Guinea")) %>%
