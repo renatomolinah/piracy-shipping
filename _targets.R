@@ -247,5 +247,10 @@ list(
     name = encounter_time_series_figure,
     make_encounter_time_series_figure(asam_data_processed,
                                    hotspots)
+  ),
+  # Make timeseries of fuel cost over time
+  tar_target(
+    name = fuel_price_figure,
+    make_fuel_price_figure(fuel_data)
   )
 )

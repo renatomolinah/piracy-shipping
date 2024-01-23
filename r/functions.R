@@ -332,7 +332,7 @@ process_fuel_data <- function(fuel_file){
                                fields = bigrquery::as_bq_fields(interpolated_fuel_price_data),
                                write_disposition = "WRITE_TRUNCATE")
   
-  return(Sys.time())
+  return(interpolated_fuel_price_data)
 }
 
 # Generate piracy attack hotspot boundaries
@@ -436,6 +436,25 @@ make_encounter_time_series_figure <- function(asam_data_processed,
     ggplot2::scale_x_continuous(breaks = seq(2005,2022,2))
   
   ggplot2::ggsave(filename = "figures/encounter_time_series.png",
+                  plot,
+                  height = 4,
+                  width = 7,
+                  dpi = 300)
+  
+  return(plot)
+}
+
+make_fuel_price_figure <- function(fuel_data){
+  plot <- fuel_data %>%
+    dplyr::filter(lubridate::year(date) >= 2013,
+                  lubridate::year(date) <=2022) %>%
+    ggplot2::ggplot(aes(x = date, y = price_usd_mt)) +
+    ggplot2::geom_line() +
+    ggplot2::ylim(c(0,NA)) +
+    labs(x = "",
+         y = "Global fuel price (USD/MT)\n")
+  
+  ggplot2::ggsave(filename = "figures/fuel_price_time_series.png",
                   plot,
                   height = 4,
                   width = 7,
