@@ -248,9 +248,17 @@ list(
     make_encounter_time_series_figure(asam_data_processed,
                                    hotspots)
   ),
-  # Make timeseries of fuel cost over time
+  # Summarize annual shipping activity by EEZ
   tar_target(
-    name = fuel_price_figure,
-    make_fuel_price_figure(fuel_data)
+    name = shipping_activity_by_year_eez_sql,
+    "sql/shipping_activity_by_year_eez.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = shipping_activity_by_year_eez,
+    run_gfw_query(sql = shipping_activity_by_year_eez_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "shipping_activity_by_year_eez", 
+                  download_data = TRUE)
   )
 )
