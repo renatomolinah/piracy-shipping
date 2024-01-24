@@ -64,7 +64,9 @@ process_asam_data <- function(asam_data){
 make_global_map_figure <- function(asam_data_processed,
                                    hotspots,
                                    aggregate_spatial_shipping_activity,
-                                   map_projection){
+                                   map_projection,
+                                   attack_year_min = 2013,
+                                   attack_year_max = 2021){
   
   shipping_data_stars <- aggregate_spatial_shipping_activity %>%
     stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
@@ -75,7 +77,9 @@ make_global_map_figure <- function(asam_data_processed,
   asam_data_processed_sf <- asam_data_processed %>%
     sf::st_as_sf(coords = c("lon","lat"),
                  crs = sf::st_crs(4326)) %>%
-    sf::st_transform(map_projection)
+    sf::st_transform(map_projection) %>%
+    dplyr::filter(lubridate::year(date) >= attack_year_min,
+                  lubridate::year(date) <= attack_year_max)
   
   # Load world land
   world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
@@ -386,14 +390,17 @@ generate_hotspot_sql <- function(hotspots){
 
 
 make_encounter_time_series_figure <- function(asam_data_processed,
-                                           hotspots){
+                                           hotspots,
+                                           attack_year_min = 2005,
+                                           attack_year_max = 2021){
   
   # Assign all 2005+ attacks to a hotspot cluster
   plot_data<-asam_data_processed  %>%
     # Only include encounters that are not suspicious approaches
     dplyr::filter(encounter_type != 'Suspicious Approach') %>%
     dplyr::mutate(year = lubridate::year(date)) %>%
-    dplyr::filter(year >= 2005) %>%
+    dplyr::filter(year >= attack_year_min) %>%
+    dplyr::filter(year <= attack_year_max) %>%
     dplyr::cross_join(hotspots) %>%
     dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
     dplyr::select(asam_reference,

@@ -259,6 +259,8 @@ list(
     run_gfw_query(sql = shipping_activity_by_year_eez_sql %>%
                     readr::read_file(),
                   bq_table_name = "shipping_activity_by_year_eez", 
-                  download_data = TRUE)
+                  download_data = TRUE,
+                  # Trigger re-run of this if timestamp for when ungridded_data was generated changes
+                  ungridded_data)
   )
 )
