@@ -4,70 +4,48 @@ CREATE TEMPORARY FUNCTION
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
-vessel_info AS(
-  SELECT
-    *
-  FROM
-    `emlab-gcp.piracy.vessel_info` ),
-  voyage_info AS(
-  SELECT
-    * EXCEPT(voyage_mmsi,
-    departure_timestamp,
-    arrival_timestamp,
-    to_anchorage_id,
-    from_anchorage_id),
-    DATE(departure_timestamp) date,
-    EXTRACT(MONTH
-    FROM
-      departure_timestamp) month,
-    EXTRACT(YEAR
-    FROM
-      departure_timestamp) year
-  FROM
-    `emlab-gcp.piracy.voyage_info` ),
   ais_positions AS(
   SELECT
-    * EXCEPT(lat,
-      lon,
-      departure_timestamp,
-      arrival_timestamp,
-      timestamp,
-      date),
+    mmsi,
+    trip_id,
+    # For voyage-level analysis, we use trip deparature date for determining which attacks occurred before that
+    # for grid-level analysis, we use actual activity date for determining which attacks occurred before that
+    {ifelse(voyage_level,
+      'DATE(departure_timestamp)',
+      'DATE(timestamp)')} date,
+    DATE(departure_timestamp) departure_date,
+    hours,
+    distance_km,
+    heading,
+    main_fuel_consumption_mt_inst,
+    aux_fuel_consumption_mt_inst,
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
     `emlab-gcp.piracy.ungridded_data`),
-  voyages_ais_positions AS(
-  SELECT
-    * 
-    FROM
-    ais_positions
-  JOIN
-    voyage_info
-  USING
-    (trip_id)),
-  # Summarize by all columns except a few https://stackoverflow.com/questions/54792360/bigquery-group-by-all-columns-except-a-few
+  # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
   binned AS(
   SELECT
-    DISTINCT * EXCEPT(hours,
-      distance_km,
-      heading,
-      main_fuel_consumption_mt_inst,
-      aux_fuel_consumption_mt_inst),
-    SUM(hours) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) hours,
-    SUM(distance_km) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) distance_km,
-    COUNT(*) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) ais_messages,
-    AVG(heading) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) heading,
-    SUM(main_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) main_fuel_consumption_mt_inst,
-    SUM(aux_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) aux_fuel_consumption_mt_inst
+    mmsi,
+    trip_id,
+    CAST(lat_bin AS INT64) lat_bin,
+    CAST(lon_bin AS INT64) lon_bin,
+    date,
+    SUM(hours) hours,
+    SUM(distance_km) distance_km,
+    COUNT(*) ais_messages,
+    AVG(heading) heading,
+    SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
+    SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst
   FROM
-    voyages_ais_positions),
+    ais_positions
+    WHERE date <= '2022-12-31'
+  GROUP BY
+    mmsi,
+    trip_id,
+    lat_bin,
+    lon_bin,
+    date),
   # Select attack info
   # Only select rows that correspond to anything except suspicious approaches
   attack_info_base AS(
@@ -84,11 +62,13 @@ vessel_info AS(
     attack_date,
     attack_lat_bin,
     attack_lon_bin),
-  # Select attack info, this time using all encounter types as robustness check
-  attack_info_base_all_encounter_types AS(
+  # Select attack info
+  # Only select rows that correspond to anything except suspicious approaches
+  # For all encounter types
+  attack_info_base_all_encounters AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks_all_encounter_types,
+    COUNT(DISTINCT(asam_reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
@@ -97,25 +77,29 @@ vessel_info AS(
     attack_date,
     attack_lat_bin,
     attack_lon_bin),
-attack_info_base_in_study_period AS(
-SELECT
-  attack_lat_bin lat_bin,
-  attack_lon_bin lon_bin,
-  TRUE grid_attacked_in_study_period
-FROM
-  attack_info_base
-WHERE
-  number_attacks >0
-  AND attack_date >= '2013-01-01'
-  AND attack_date <= '2022-12-31'
-GROUP BY
-  lat_bin,
-  lon_bin),
-  # Each row will be a voyage and grid and days-since-attack
-  by_voyage_grid_attack AS(
+  attack_info_base_in_study_period AS(
   SELECT
-    * EXCEPT(attack_lat_bin,
-      attack_lon_bin),
+    attack_lat_bin lat_bin,
+    attack_lon_bin lon_bin,
+    TRUE grid_attacked_in_study_period
+  FROM
+    attack_info_base
+  WHERE
+    number_attacks >0
+    AND attack_date >= '2013-01-01'
+    AND attack_date <= '2022-12-31'
+  GROUP BY
+    lat_bin,
+    lon_bin),
+  # Each row will be a vessel-by-trip-by-date-by-grid-by-attack
+  by_voyage_date_grid_attack AS(
+  SELECT
+    mmsi,
+    trip_id,
+    lat_bin,
+    lon_bin,
+    date,
+    number_attacks,
     DATE_DIFF(date, attack_date, DAY) days_since_attack,
     # From GFW: https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/blob/master/queries/fishing_hours_gridded.sql
     # At the equator, a one degree cell is approximately 111 km2 on a side
@@ -131,67 +115,103 @@ GROUP BY
   ON
     binned.lat_bin = attack_info_base.attack_lat_bin
     AND binned.lon_bin = attack_info_base.attack_lon_bin
-    AND binned.date >= attack_info_base.attack_date),
-  # Each row will be a voyage and grid and days-since-attack, this time using all encounter types as robustness check
-  by_voyage_grid_attack_all_encounter_types AS(
+    AND binned.date > attack_info_base.attack_date),
+  # Each row will be a vessel-by-trip-by-date-by-grid-by-attack
+  # For all encounter types
+  by_voyage_date_grid_attack_all_encounters AS(
   SELECT
-    * EXCEPT(attack_lat_bin,
-      attack_lon_bin),
-    DATE_DIFF(date, attack_date, DAY) days_since_attack
+    mmsi,
+    trip_id,
+    lat_bin,
+    lon_bin,
+    date,
+    number_attacks,
+    DATE_DIFF(date, attack_date, DAY) days_since_attack,
+    # From GFW: https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/blob/master/queries/fishing_hours_gridded.sql
+    # At the equator, a one degree cell is approximately 111 km2 on a side
+    # Moving away from the poles, the distance of one degree of longitude changes
+    # due to the shape of a globe. Thus, we need to adjust the distance in km of
+    # longitude based on latitude using the formula cos(radians(latitude)).
+    # We also multiply 111 by the final resolution of the grid cell
+    COS(RADIANS(binned.lat_bin)) * (111*pixel_size()) * (111*pixel_size()) grid_area_km2
   FROM
     binned
   LEFT JOIN
-    attack_info_base_all_encounter_types
+    attack_info_base_all_encounters
   ON
-    binned.lat_bin = attack_info_base_all_encounter_types.attack_lat_bin
-    AND binned.lon_bin = attack_info_base_all_encounter_types.attack_lon_bin
-    AND binned.date >= attack_info_base_all_encounter_types.attack_date),
-  # Now summarize attack info by voyage and grid
-  by_voyage_grid AS(
+    binned.lat_bin = attack_info_base_all_encounters.attack_lat_bin
+    AND binned.lon_bin = attack_info_base_all_encounters.attack_lon_bin
+    AND binned.date > attack_info_base_all_encounters.attack_date),
+  # Now summarize attacks where each row is vessel-by-trip-by-date-by-grid
+  by_voyage_date_grid AS(
   SELECT
-    DISTINCT * EXCEPT(days_since_attack,
-      number_attacks,
-      attack_date),
-    SUM(IFNULL(number_attacks,0)) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) number_previous_attacks_grid_all_time,
-    MIN(days_since_attack) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) days_since_attack,
+    mmsi,
+    trip_id,
+    date,
+    lat_bin,
+    lon_bin,
+    grid_area_km2,
+    SUM(IFNULL(number_attacks,0)) number_previous_attacks_grid_all_time,
+    MIN(days_since_attack) days_since_attack,
     SUM(
     IF
-      (days_since_attack <= 30*12,number_attacks,0)) OVER(PARTITION BY trip_id, CAST(lat_bin AS INT64),
-      CAST(lon_bin AS INT64)) number_previous_attacks_grid_12_months
+      (days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months
   FROM
-    by_voyage_grid_attack),
-  # Now summarize attack info by voyage and grid, this time using all encounter types as robustness check
-  by_voyage_grid_all_encounter_types AS(
-  SELECT
+    by_voyage_date_grid_attack
+  GROUP BY
+    mmsi,
     trip_id,
+    date,
+    lat_bin,
+    lon_bin,
+    grid_area_km2),
+  # Now summarize attacks where each row is vessel-by-trip-by-date-by-grid
+  # For all encounter types
+  by_voyage_date_grid_all_encounters AS(
+  SELECT
+    mmsi,
+    trip_id,
+    date,
     lat_bin,
     lon_bin,
     SUM(
     IF
-      (days_since_attack <= 30*12,number_attacks_all_encounter_types,0)) number_previous_attacks_grid_12_months_all_encounter_types
+      (days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months_all_encounters
   FROM
-    by_voyage_grid_attack_all_encounter_types
+    by_voyage_date_grid_attack_all_encounters
   GROUP BY
+    mmsi,
     trip_id,
+    date,
     lat_bin,
     lon_bin)
 SELECT
-  *
-  EXCEPT(grid_attacked_in_study_period),
+  * EXCEPT(grid_attacked_in_study_period),
+  EXTRACT(YEAR from date) AS year,
   IFNULL(grid_attacked_in_study_period,FALSE) grid_attacked_in_study_period,
 IF
   (number_previous_attacks_grid_all_time >0,TRUE,FALSE) grid_has_previous_attacks,
   {hotspots_sql}
 FROM
-  by_voyage_grid
+binned
 LEFT JOIN
-  by_voyage_grid_all_encounter_types
-USING(trip_id,lat_bin,lon_bin)
-JOIN
-vessel_info
-USING(mmsi,year)
+  by_voyage_date_grid
+USING
+  (mmsi,
+    trip_id,
+    date,
+    lat_bin,
+    lon_bin)
+    LEFT JOIN
+  by_voyage_date_grid_all_encounters
+USING
+  (mmsi,
+    trip_id,
+    date,
+    lat_bin,
+    lon_bin)
 LEFT JOIN
-attack_info_base_in_study_period
-USING(lon_bin,lat_bin)
+  attack_info_base_in_study_period
+USING
+  (lon_bin,
+    lat_bin)

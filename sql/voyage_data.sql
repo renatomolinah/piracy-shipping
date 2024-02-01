@@ -2,6 +2,20 @@
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
+vessel_info AS(
+  SELECT
+    *
+  FROM
+    `emlab-gcp.piracy.vessel_info` ),
+  voyage_info AS(
+  SELECT
+    * EXCEPT(voyage_mmsi,
+    departure_timestamp,
+    arrival_timestamp,
+    to_anchorage_id,
+    from_anchorage_id),
+  FROM
+    `emlab-gcp.piracy.voyage_info` ),
   wind_info AS(
   SELECT
     EXTRACT(YEAR
@@ -18,11 +32,24 @@ WITH
     `emlab-gcp.piracy.{wind_table_location}`),
   gridded_data AS(
   SELECT
-    *
-    EXCEPT(wind_direction_degrees,heading),
-  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector
+    *,
+  EXTRACT(MONTH
+    FROM
+      date) month
   FROM
     `emlab-gcp.piracy.{gridded_data_table_location}`
+    WHERE
+    hours > 0
+    AND distance_km >0
+    # Restrict analysis to 2022 and before
+    AND year <= 2022),
+    gridded_data_with_wind AS(
+    SELECT 
+    *
+    EXCEPT(wind_direction_degrees,heading),
+  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector,
+    FROM
+    gridded_data
       # Add wind info
 LEFT JOIN
   wind_info
@@ -30,10 +57,7 @@ USING
   (month,
     year,
     lat_bin,
-    lon_bin)
-    WHERE
-    hours > 0
-    AND distance_km >0),
+    lon_bin)),
   fuel_prices AS(
   SELECT
     *
@@ -41,43 +65,35 @@ USING
     `emlab-gcp.piracy.fuel_prices`),
   aggregated AS(
   SELECT
-    DISTINCT * EXCEPT(hours,
-      distance_km,
-      main_fuel_consumption_mt_inst,
-      aux_fuel_consumption_mt_inst,
-      ais_messages,
-      wind_vector,
-      wind_speed_ms,
-      days_since_attack,
-      lat_bin,
-      lon_bin,
-      grid_area_km2,
-      number_previous_attacks_grid_all_time,
-      number_previous_attacks_grid_12_months,
-      number_previous_attacks_grid_12_months_all_encounter_types,
-      grid_has_previous_attacks,
-      hotspot_southeast_asia,
-      hotspot_gulf_of_aden,
-      hotspot_gulf_of_guinea,
-      grid_attacked_in_study_period),
-    SUM(hours) OVER(PARTITION BY trip_id) hours,
-    SUM(distance_km) OVER(PARTITION BY trip_id) distance_km,
-    SUM(ais_messages) OVER(PARTITION BY trip_id) ais_messages,
-    AVG(wind_speed_ms) OVER(PARTITION BY trip_id) wind_speed_ms,
-    AVG(wind_vector) OVER(PARTITION BY trip_id) wind_vector,
-    SUM(grid_area_km2) OVER(PARTITION BY trip_id) voyage_grid_area_km2,
-    SUM(main_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id) main_fuel_consumption_mt_inst,
-    SUM(aux_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id) aux_fuel_consumption_mt_inst,
-    SUM(main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) OVER(PARTITION BY trip_id) total_fuel_consumption_mt_inst,
-    SUM(number_previous_attacks_grid_all_time) OVER(PARTITION BY trip_id) number_previous_attacks_all_time,
-    SUM(number_previous_attacks_grid_12_months) OVER(PARTITION BY trip_id) number_previous_attacks_12_months,
-    SUM(number_previous_attacks_grid_12_months_all_encounter_types) OVER(PARTITION BY trip_id) number_previous_attacks_12_months_all_encounter_types,
-    MIN(days_since_attack) OVER(PARTITION BY trip_id) days_since_attack,
-    SUM(hotspot_southeast_asia) OVER(PARTITION BY trip_id) hotspot_southeast_asia,
-    SUM(hotspot_gulf_of_aden) OVER(PARTITION BY trip_id) hotspot_gulf_of_aden,
-    SUM(hotspot_gulf_of_guinea) OVER(PARTITION BY trip_id) hotspot_gulf_of_guinea
+    mmsi,
+    trip_id,
+    date,
+    month,
+    year,
+    SUM(hours) hours,
+    SUM(distance_km) distance_km,
+    SUM(ais_messages) ais_messages,
+    AVG(wind_speed_ms) wind_speed_ms,
+    AVG(wind_vector) wind_vector,
+    SUM(grid_area_km2) voyage_grid_area_km2,
+    SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
+    SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
+    SUM(main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) total_fuel_consumption_mt_inst,
+    SUM(number_previous_attacks_grid_all_time) number_previous_attacks_all_time,
+    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months,
+    SUM(number_previous_attacks_grid_12_months_all_encounters) number_previous_attacks_12_months_all_encounter_types,
+    MIN(days_since_attack) days_since_attack,
+    SUM(hotspot_southeast_asia) hotspot_southeast_asia,
+    SUM(hotspot_gulf_of_aden) hotspot_gulf_of_aden,
+    SUM(hotspot_gulf_of_guinea) hotspot_gulf_of_guinea
   FROM
-    gridded_data),
+    gridded_data_with_wind
+  GROUP BY
+    mmsi,
+    trip_id,
+    date,
+    month,
+    year),
   aggregated_with_voyage_fuel AS(
   SELECT
     *,
@@ -91,7 +107,11 @@ USING
         IF
           ((distance_km * 0.539957 / hours)/design_speed>1,1,(distance_km * 0.539957 / hours)/design_speed), 3))*206*engine_power/1000000 + hours*0.5*221*aux_engine_power/1000000) total_fuel_consumption_mt_voyage
   FROM
-    aggregated ),
+    aggregated 
+     LEFT JOIN
+  vessel_info
+USING
+  (mmsi)),
 average_route_attacks_per_route_and_trip AS(
 SELECT
 *
@@ -100,15 +120,26 @@ FROM
 )
 SELECT
   * EXCEPT(month,
-  year,
-  main_fuel_consumption_mt_inst,
-    aux_fuel_consumption_mt_inst,
-    main_fuel_consumption_mt_voyage,
-    aux_fuel_consumption_mt_voyage,
-    price_usd_mt,
+      main_fuel_consumption_mt_inst,
+      aux_fuel_consumption_mt_inst,
+      main_fuel_consumption_mt_voyage,
+      aux_fuel_consumption_mt_voyage,
+      price_usd_mt,
       hotspot_southeast_asia,
       hotspot_gulf_of_aden,
-      hotspot_gulf_of_guinea),
+      hotspot_gulf_of_guinea,
+  average_route_attacks_last_3_months,
+  average_route_attacks_last_6_months,
+  average_route_attacks_last_9_months,
+  average_route_attacks_last_12_months,
+  average_route_attacks_last_24_months,
+  average_route_attacks_last_3_months_all_encounter_types),
+  IFNULL(average_route_attacks_last_3_months,0) average_route_attacks_last_3_months,
+  IFNULL(average_route_attacks_last_6_months,0) average_route_attacks_last_6_months,
+  IFNULL(average_route_attacks_last_9_months,0) average_route_attacks_last_9_months,
+  IFNULL(average_route_attacks_last_12_months,0) average_route_attacks_last_12_months,
+  IFNULL(average_route_attacks_last_24_months,0) average_route_attacks_last_24_months,
+  IFNULL(average_route_attacks_last_3_months_all_encounter_types,0) average_route_attacks_last_3_months_all_encounter_types,
   price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
   3.17 * total_fuel_consumption_mt_voyage emissions_co2_mt_voyage,
   87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt_voyage emissions_nox_kg_voyage,
@@ -122,7 +153,7 @@ SELECT
   IF(hotspot_gulf_of_guinea>0,TRUE,FALSE) hotspot_gulf_of_guinea
 FROM
   aggregated_with_voyage_fuel
-  JOIN
+LEFT  JOIN
 average_route_attacks_per_route_and_trip
 USING
 (trip_id)
@@ -130,3 +161,7 @@ LEFT JOIN
   fuel_prices
 USING
   (date)
+    LEFT JOIN
+  voyage_info
+USING
+  (trip_id)

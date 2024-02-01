@@ -3,7 +3,6 @@ WITH
   vessel_info AS(
   SELECT
     mmsi,
-    year,
     engine_power,
     aux_engine_power,
     design_speed
@@ -36,16 +35,12 @@ WITH
     hours,
     implied_speed_knots,
     heading,
-    meters_to_prev/1000 distance_km,
-    EXTRACT(YEAR
-    FROM
-      timestamp) year
+    meters_to_prev/1000 distance_km
   FROM
     `world-fishing-827.pipe_production_v20201001.research_messages`
-    # Only subset to a small date range for now
+    # Get all data for 2013 and beyond
   WHERE
-    _partitiontime BETWEEN '2013-01-01'
-    AND '2022-12-31'
+    _partitiontime >= '2013-01-01'
     # Only use good segments for AIS messages
     AND seg_id IN (
     SELECT
@@ -60,8 +55,7 @@ WITH
   JOIN
     vessel_info
   USING
-    (mmsi,
-      year)),
+    (mmsi)),
   shipping_ais_info_with_voyages AS(
   SELECT
     * EXCEPT(voyage_mmsi)
@@ -72,14 +66,13 @@ WITH
   ON
     shipping_ais_info.mmsi = voyage_info.voyage_mmsi
     AND shipping_ais_info.timestamp > voyage_info.departure_timestamp
-    AND shipping_ais_info.timestamp < voyage_info.arrival_timestamp)
+    AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
 SELECT
   * EXCEPT(engine_power,
     aux_engine_power,
     design_speed,
-    year,
-    implied_speed_knots),
-    DATE(timestamp) date,
+    implied_speed_knots,
+    arrival_timestamp),
   # Calculate fuel consumption
   # main_sfc is always 206; aux_sfc is always 221
   # sfc from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18

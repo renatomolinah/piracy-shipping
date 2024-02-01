@@ -87,20 +87,6 @@ list(
     name = fuel_data,
     process_fuel_data(fuel_file)
   ),
-  # Process ungridded, raw AIS messages
-  # This ungridded dataset will serve as the basis of all gridded and voyage-level datasets
-  tar_target(
-    name = ungridded_data_sql,
-    "sql/ungridded_data.sql",
-    format = "file"
-  ),
-  tar_target(
-    name = ungridded_data,
-    run_gfw_query(sql = ungridded_data_sql %>%
-                    readr::read_file(),
-                  bq_table_name = "ungridded_data",
-                  download_data = FALSE)
-  ),
   # Get vessel info for shipping vessels in BigQuery
   tar_target(
     name = vessel_info_sql,
@@ -125,23 +111,44 @@ list(
     run_gfw_query(sql = voyage_info_sql %>%
                     readr::read_file(),
                   bq_table_name = "voyage_info", 
-                  download_data = FALSE)
+                  download_data = FALSE,
+                  # Trigger re-run of this if timestamp for when vessel_info was generated changes
+                  vessel_info)
   ),
-  # Process gridded data, which aggregates ungridded data to different pixel resolutions
-  # This loads the general SQL query, which can then be modified for different pixel sizes and hotspots
+  # Process ungridded, raw AIS messages
+  # This ungridded dataset will serve as the basis of all gridded and voyage-level datasets
+  tar_target(
+    name = ungridded_data_sql,
+    "sql/ungridded_data.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = ungridded_data,
+    run_gfw_query(sql = ungridded_data_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "ungridded_data",
+                  download_data = FALSE,
+                  # Trigger re-run of this if timestamp for when vessel_info was generated changes
+                  vessel_info,
+                  # Trigger re-run of this if timestamp for when voyage_info was generated changes
+                  voyage_info)
+  ),
+  # Process gridded data for 5x5 degree voyage-level analysis, which aggregates ungridded data to different pixel resolutions
+  # This loads the SQL query
   tar_target(
     name = gridded_data_sql,
     "sql/gridded_data.sql",
     format = "file"
   ),
-  # Here we make a 0.5x0.5 gridded dataset. This will serve as the basis of the grid-level analysis
+  # Here we make a 5x5 degree gridded dataset. This will serve as the basis of the voyage-level analysis
   tar_target(
-    name = gridded_data_0_5,
+    name = gridded_data_5,
     run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
-                    glue::glue(pixel_size = 0.5,
+                    glue::glue(pixel_size = 5,
+                               voyage_level = TRUE,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_0_5", 
+                  bq_table_name = "gridded_data_5", 
                   download_data = FALSE,
                   # Trigger re-run of this if timestamp for when ungridded_data was generated changes
                   ungridded_data)
@@ -177,14 +184,15 @@ list(
                   # Trigger re-run of this if timestamp for when gridded_data_0_5 was generated changes
                   gridded_data_0_5)
   ),
-  # Here we make a 5x5 degree gridded dataset. This will serve as the basis of the voyages dataset and analysis
+  # Here we make a 0.5x0.5 degree gridded dataset. This will serve as the basis of the grid-level analysis
   tar_target(
-    name = gridded_data_5,
+    name = gridded_data_0_5,
     run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
-                    glue::glue(pixel_size = 5,
+                    glue::glue(pixel_size = 0.5,
+                               voyage_level = FALSE,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_5", 
+                  bq_table_name = "gridded_data_0_5", 
                   download_data = FALSE,
                   # Trigger re-run of this if timestamp for when ungridded_data was generated changes
                   ungridded_data)
@@ -234,12 +242,6 @@ list(
     make_global_map_figure(asam_with_hotspots,
                            hotspots,
                            aggregate_spatial_shipping_activity,
-                           map_projection = global_map_projection)
-  ),
-  # Map global maps that show how attacks and hotspots have evolved over time
-  tar_target(
-    name = map_hotspots_over_time_figure,
-    make_hotspot_map_over_time(asam_data_processed,
                            map_projection = global_map_projection)
   ),
   # Make barplot that shows attacks over time, by hotspot

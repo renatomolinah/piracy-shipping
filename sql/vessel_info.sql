@@ -4,7 +4,6 @@ WITH
   vessel_info AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
-    year,
     best.best_flag flag,
     best.best_vessel_class vessel_type,
     best.best_length_m length,
@@ -21,7 +20,7 @@ WITH
     # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
     3.39*POW(10,-4)*best.best_engine_power_kw+2.151*POW(10,-5)*best.best_tonnage_gt-2.742*POW(10,-9)*best.best_engine_power_kw*best.best_tonnage_gt+12.93 design_speed
   FROM
-    `world-fishing-827.gfw_research.vi_ssvid_byyear_v20220101`
+    `world-fishing-827.gfw_research.vi_ssvid_v20231201`
   WHERE
     best.best_vessel_class IN('cargo',
       'cargo_or_tanker',
@@ -34,9 +33,7 @@ WITH
       'bunker')
     # Ensure it's a reasonable vessel
     AND NOT activity.offsetting
-    AND activity.overlap_hours_multinames = 0
-    AND year <= 2022
-    AND year >= 2013)
+    AND activity.overlap_hours_multinames = 0)
 SELECT
 *
 FROM
