@@ -26,7 +26,8 @@ WITH
     good_seg
     AND NOT overlapping_and_short ),
   # Select the AIS messages
-  ais_info AS(
+  # Get all data for 2014 and beyond
+  ais_info_current AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
     lat,
@@ -38,15 +39,41 @@ WITH
     meters_to_prev/1000 distance_km
   FROM
     `world-fishing-827.pipe_production_v20201001.research_messages`
-    # Get all data for 2013 and beyond
-  WHERE
-    _partitiontime >= '2013-01-01'
     # Only use good segments for AIS messages
-    AND seg_id IN (
+    WHERE seg_id IN (
     SELECT
       seg_id
     FROM
       good_segments)),
+        # Select the AIS messages
+  # Get all data for 2014 and beyond
+  ais_info_archive AS(
+  SELECT
+    CAST(ssvid AS INT64) mmsi,
+    lat,
+    lon,
+    timestamp,
+    hours,
+    implied_speed_knots,
+    heading,
+    meters_to_prev/1000 distance_km
+  FROM
+    `world-fishing-827.pipe_production_v20201001.archive_research_messages`
+    # Only use good segments for AIS messages
+    WHERE seg_id IN (
+    SELECT
+      seg_id
+    FROM
+      good_segments)),
+  ais_info AS(
+    SELECT
+    *
+    FROM
+    ais_info_current
+    UNION ALL(
+      SELECT * FROM ais_info_archive
+    )
+  ),
   shipping_ais_info AS(
   SELECT
     *
