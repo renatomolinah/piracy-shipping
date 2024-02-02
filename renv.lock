@@ -376,6 +376,13 @@
       ],
       "Hash": "3f038e5ac7f41d4ac41ce658c85e3042"
     },
+    "clisymbols": {
+      "Package": "clisymbols",
+      "Version": "1.2.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "96c01552bfd5661b9bbdefbc762f4bcd"
+    },
     "cluster": {
       "Package": "cluster",
       "Version": "2.1.4",
@@ -766,6 +773,29 @@
         "methods"
       ],
       "Hash": "94af08e0aa9675a16fadbb3aaaa90d2a"
+    },
+    "fst": {
+      "Package": "fst",
+      "Version": "0.9.8",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "Rcpp",
+        "fstcore"
+      ],
+      "Hash": "34637e000c63c3de8d8aafceb82fd082"
+    },
+    "fstcore": {
+      "Package": "fstcore",
+      "Version": "0.9.18",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "Rcpp"
+      ],
+      "Hash": "4c33c7202fcfe741cdea205570305630"
     },
     "gargle": {
       "Package": "gargle",
@@ -1322,6 +1352,20 @@
       ],
       "Hash": "2a0dc8c6adfb6f032e4d4af82d258ab5"
     },
+    "pacman": {
+      "Package": "pacman",
+      "Version": "0.5.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "methods",
+        "remotes",
+        "stats",
+        "utils"
+      ],
+      "Hash": "b37932b67288bc62bb81686b2f337a7d"
+    },
     "pillar": {
       "Package": "pillar",
       "Version": "1.9.0",
@@ -1533,6 +1577,20 @@
       ],
       "Hash": "76c9e04c712a05848ae7a23d2f170a40"
     },
+    "remotes": {
+      "Package": "remotes",
+      "Version": "2.4.2.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "methods",
+        "stats",
+        "tools",
+        "utils"
+      ],
+      "Hash": "63d15047eb239f95160112bcadc4fcb9"
+    },
     "renv": {
       "Package": "renv",
       "Version": "0.17.3",
@@ -1614,6 +1672,17 @@
         "utils"
       ],
       "Hash": "c97d05220a4112f461eb940f2633d091"
+    },
+    "rnaturalearthdata": {
+      "Package": "rnaturalearthdata",
+      "Version": "0.1.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "sp"
+      ],
+      "Hash": "0d34b89b43e900467e60f5449226f3e3"
     },
     "robustbase": {
       "Package": "robustbase",
@@ -1771,6 +1840,20 @@
       ],
       "Hash": "3dd518413caef24b6d865a1a18477390"
     },
+    "smoothr": {
+      "Package": "smoothr",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "sf",
+        "stats",
+        "terra",
+        "units"
+      ],
+      "Hash": "b73468a7f92d388ca6ddf763f2d8228b"
+    },
     "sp": {
       "Package": "sp",
       "Version": "1.6-0",
@@ -1923,6 +2006,19 @@
         "vctrs"
       ],
       "Hash": "a84e2cc86d07289b3b6f5069df7a004c"
+    },
+    "tidylog": {
+      "Package": "tidylog",
+      "Version": "1.0.2",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "clisymbols",
+        "dplyr",
+        "glue",
+        "tidyr"
+      ],
+      "Hash": "a55d41e241dbe858d1456d952ce3301f"
     },
     "tidyr": {
       "Package": "tidyr",
