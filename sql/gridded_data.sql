@@ -19,8 +19,8 @@ WITH
     heading,
     main_fuel_consumption_mt_inst,
     aux_fuel_consumption_mt_inst,
-    FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
-    FLOOR(lon/pixel_size()) * pixel_size() lon_bin
+    FLOOR(lat/pixel_size() * pixel_size() lat_bin,
+    FLOOR(lon/pixel_size() * pixel_size() lon_bin
   FROM
     `emlab-gcp.piracy.ungridded_data`),
   # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
@@ -28,8 +28,8 @@ WITH
   SELECT
     mmsi,
     trip_id,
-    CAST(lat_bin AS INT64) lat_bin,
-    CAST(lon_bin AS INT64) lon_bin,
+    lat_bin,
+    lon_bin,
     date,
     SUM(hours) hours,
     SUM(distance_km) distance_km,
@@ -39,7 +39,7 @@ WITH
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst
   FROM
     ais_positions
-    WHERE date <= '2022-12-31'
+    WHERE date <= '2022-12-31' AND date >= '2013-01-01'
   GROUP BY
     mmsi,
     trip_id,
