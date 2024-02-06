@@ -46,7 +46,7 @@ WITH
     FROM
       good_segments)),
         # Select the AIS messages
-  # Get all data for 2014 and beyond
+  # Get all data for 2012 and 2013
   ais_info_archive AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,

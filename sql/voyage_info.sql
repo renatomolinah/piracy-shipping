@@ -1,5 +1,11 @@
 #standardSQL
 WITH
+# On select relevant voyages
+vessel_info AS(
+  SELECT
+    mmsi voyage_mmsi
+  FROM
+    `emlab-gcp.piracy.vessel_info` ),
   # Get anchorage, port, and country info for start of voyage
   from_anchorage_info AS(
   SELECT
@@ -64,6 +70,9 @@ SELECT
       to_anchorage_position)/1000 total_haversine_distance_km
 FROM
   all_voyages
+JOIN
+vessel_info
+USING(voyage_mmsi)
 LEFT JOIN
   from_anchorage_info
 USING

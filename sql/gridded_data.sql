@@ -19,8 +19,8 @@ WITH
     heading,
     main_fuel_consumption_mt_inst,
     aux_fuel_consumption_mt_inst,
-    FLOOR(lat/pixel_size() * pixel_size() lat_bin,
-    FLOOR(lon/pixel_size() * pixel_size() lon_bin
+    FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
+    FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
     `emlab-gcp.piracy.ungridded_data`),
   # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
