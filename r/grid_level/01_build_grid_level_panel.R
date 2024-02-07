@@ -76,8 +76,6 @@ local_gridded_panel <- collect(gridded_panel)
 
 # Add FAO zone info  -----------------------------------------------------------
 sf_use_s2(F)
-fao_regions <- st_read(dsn = here("data", "fao_regions.gpkg")) %>% 
-  rename(fao_zone = zone)
 asam_regions <- asam_subregions() %>% 
   select(asam_region = REGION,
          asam_subregion = SUBREGION)
@@ -87,7 +85,6 @@ grid_regions <- local_gridded_panel %>%
   distinct() %>% 
   st_as_sf(coords = c("lon_bin", "lat_bin"),
            crs = 4326) %>% 
-  st_join(fao_regions, join = st_nearest_feature) %>%
   st_join(asam_regions, join = st_nearest_feature) %>%
   st_drop_geometry()
 

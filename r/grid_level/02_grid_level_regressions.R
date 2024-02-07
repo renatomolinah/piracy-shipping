@@ -31,19 +31,14 @@ grid_level_panel <- readRDS(file = here("processed_data",
 # Modify the panel -------------------------------------------------------------
 reg_data <- grid_level_panel %>% 
   # Rename the variable of interest for consistency with Renato's regressions
-  # rename(TNE = attacks_window_last_12_month) %>%
   rename(TNE = number_previous_attacks_grid_3_months) %>% 
-  # Replace missing values (no transit detected in AIS) with zeroes.    << -------------- NOTE THIS!
+  # Replace missing values (no transit detected in AIS) with zeroes.            << -------------- NOTE THIS!
   replace_na(replace = list(distance_km = 0,
                             time_hours = 0,
                             n_trips = 0,
                             n_vessels = 0,
                             n_ais_messages = 0)) %>% 
-  mutate(dist_div_vessel = distance_km / n_vessels,
-         dist_div_trip = distance_km / n_trips,
-         time_div_vessel = time_hours / n_vessels,
-         time_div_trip = time_hours / n_trips,
-         year = year(date),
+  mutate(year = year(date),
          month = month(date),
          ym = paste(year, month, sep = "-"))
   
@@ -102,6 +97,13 @@ etable(mod)
 fixest::models(mod)
 
 ## BUILD TABLES ################################################################
+gm <- tribble(~raw, ~clean, ~fmt,
+              "nobs", "Observations", 0,
+              "vcov.type", "SE", 0,
+              "FE: grid_id", "FE: Grid ID", 0,
+              "FE: year^month^asam_subregion", "FE: ASAM subregion-year-month", 0
+)
+
 panelsummary(mod[c(1, 4, 7, 10)],
              mod[c(2, 5, 8, 11)],
              mod[c(3, 6, 9, 12)],
@@ -116,11 +118,12 @@ panelsummary(mod[c(1, 4, 7, 10)],
                               "Panel (C): Number of trips (count)"),
              stars = T,
              coef_map = c("TNE" = "TNE (3 mo)"),
-             gof_omit = "R|Std.",
+             gof_map = gm,
+             # omit = "R|Std.",
              collapse_fe = T,
              pretty_num = T,
              format = "latex") %>% 
   add_footnote(threeparttable = T,
-               c("Note: Standard errors in parentheses are Conley HAC (75 km cutoff, 14 day lag). The unit of of observation is a grid cell. Every column is a different regression analysis for different samples. The first column refers to the global sample, while the rest only takes into account grid cells within a hotspot.",
+               c("Note: Standard errors in parentheses are Conley HAC (100 km cutoff). The unit of of observation is a grid cell. Every column is a different regression analysis for different samples. The first column refers to the global sample, while the rest only takes into account grid cells within a hotspot.",
                  "*p<0.05, **p<0.01, ***p<0.001")) %>% 
   cat(file = here("tables", "gridcell-dist-time.tex"))

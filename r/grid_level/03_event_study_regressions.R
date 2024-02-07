@@ -16,14 +16,13 @@
 pacman::p_load(
   here,
   sf,
-  zoo,
   fixest,
   modelsummary,
   tidyverse
 )
 
 # Load data --------------------------------------------------------------------
-data <- readRDS(file = here("processed_data",
+grid_level_panel <- readRDS(file = here("processed_data",
                              "attacks_and_activity_by_grid.rds"))
 
 # Define some windows
@@ -36,14 +35,15 @@ aft_window <- 7
 
 ## PROCESSING ------------------------------------------------------------------
 # Identify all dates with attacks
-attacks <- data %>% 
+attacks <- grid_level_panel %>% 
   filter(days_since_attack == 0) %>% 
   group_by(grid_id) %>% 
   arrange(date) %>%
   mutate(data_days = date - min(date)) %>% # Build a temporary variable that tells me how many days have passed between this observation and the first one, for each cell
   filter(data_days >= bef_window) %>%  # Remove attacks for which we don't have enough enough observations leading to it
   select(grid_id, attack_date = date) %>% 
-  mutate(attack_id = paste(grid_id, attack_date))
+  mutate(attack_id = paste(grid_id, attack_date)) %>% 
+  ungroup()
 
 # The attack described above is being dropped out because there were only two attacks fo thtis cell, but they are 7 days appart.
 # Need to think of a better way to build this sample.
@@ -51,7 +51,7 @@ attacks <- data %>%
 # Now build the panel
 event_study_panel <- attacks %>% 
   # First, we perform a many-to-many match
-  left_join(data,
+  left_join(grid_level_panel,
             by = "grid_id",
             relationship = "many-to-many") %>% 
   # Then, for each attack date, we keep data that are within the before and after window defined above
@@ -74,7 +74,7 @@ event_study_panel <- attacks %>%
   mutate(attack_bin = bin(attacks, "bin::10")) %>% 
   select(grid_id, attack_cluster, attack_id,
          lat_bin, lon_bin, attack_date,
-         date, year, month, fao_zone, asam_subregion, event, days_since_attack, attack_bin, attacks, contains("dist"), contains("hours"), n_trips)
+         date, year, month, asam_subregion, event, days_since_attack, attack_bin, attacks, contains("dist"), contains("hours"), n_trips)
 
 
   
