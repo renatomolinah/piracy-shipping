@@ -117,10 +117,11 @@ make_global_map_figure <- function(asam_data_processed,
                           guide = 'none') +
     ggnewscale::new_scale_color() +
     ggplot2::geom_sf(data = world_land,
-                     color = "darkgrey",
-                     fill = "darkgrey") +
+                     color = "black",
+                     fill = "black") +
     ggplot2::geom_sf(data = asam_data_processed_sf,
-                     size = 0.01) + 
+                     size = 0.01,
+                     color = "red") + 
     ggplot2::geom_sf(data = hotspots  %>%
                        mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
                                                   cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
