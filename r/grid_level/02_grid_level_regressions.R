@@ -35,7 +35,7 @@ reg_data <- grid_level_panel %>%
   rename(TNE = number_previous_attacks_grid_3_months) %>% 
   # Replace missing values (no transit detected in AIS) with zeroes.    << -------------- NOTE THIS!
   replace_na(replace = list(distance_km = 0,
-                            hours = 0,
+                            time_hours = 0,
                             n_trips = 0,
                             n_vessels = 0,
                             n_ais_messages = 0)) %>% 
@@ -59,66 +59,63 @@ kbl(x = by_cluster,
     label = "grid_summary",
     caption = "Summary statistics for daily ship transit by grid cell",
     col.names = c("", "", "Distance (km)", "Occupancy (hours)", "Trips (#)"),
+    linesep = "",
     format = "latex") %>% 
   cat(file = here("tables", "grid_summary_stats.tex"))
 
 ## ESTIMATE ####################################################################
 # Just distance and slowly adding FEs
-dist_quad_mod <- feols(data = reg_data,
-                       fml = distance_km ~ TNE + (TNE ^ 2) | csw(0, grid_id, year ^ month ^ zone),
-                       # SE specifictions
-                       vcov = vcov_conley(lat = "lat_bin",
-                                          lon = "lon_bin",
-                                          cutoff = 100),
-                       panel.id = ~grid_id + date,
-                       # fsplit = ~attack_cluster,
-                       # split.drop = "None",
-                       lean = TRUE)
-
-etable(dist_quad_mod)
-
-# Full estimation --------------------------------------------------------------
-quad_mod <- feols(data = reg_data,
-                  fml =
-                    # Outcome varibles
-                    c(distance_km,
-                      time_hours,
-                      n_trips) ~
-                    # Regressors
-                    TNE + (TNE ^ 2) | 
-                    # Fixed effects
-                    grid_id + year ^ month ^ zone,
+dist_mod <- feols(data = reg_data,
+                  fml = distance_km ~ TNE | csw(0, grid_id, year ^ month ^ asam_subregion),
                   # SE specifictions
                   vcov = vcov_conley(lat = "lat_bin",
                                      lon = "lon_bin",
                                      cutoff = 100),
-                  panel.id = ~grid_id + date,
-                  fsplit = ~attack_cluster,
-                  split.drop = "None",
-                  lean = TRUE)
+                  panel.id = ~grid_id + date)
+
+etable(dist_mod)
+
+# Full estimation --------------------------------------------------------------
+mod <- feols(data = reg_data,
+             fml =
+               # Outcome varibles
+               c(distance_km,
+                 time_hours,
+                 n_trips) ~
+               # Regressors
+               TNE | 
+               # Fixed effects
+               grid_id + year ^ month ^ asam_subregion,
+             # SE specifictions
+             vcov = vcov_conley(lat = "lat_bin",
+                                lon = "lon_bin",
+                                cutoff = 100),
+             panel.id = ~grid_id + date,
+             fsplit = ~attack_cluster,
+             split.drop = "None",
+             lean = TRUE)
 
 # Quick local model inspection -------------------------------------------------
-etable(quad_mod)
+etable(mod)
 
 # Summary of the models --------------------------------------------------------
-fixest::models(quad_mod)
+fixest::models(mod)
 
 ## BUILD TABLES ################################################################
-panelsummary(quad_mod[c(1, 4, 7, 10)],
-             quad_mod[c(2, 5, 8, 11)],
-             quad_mod[c(3, 6, 9, 12)],
+panelsummary(mod[c(1, 4, 7, 10)],
+             mod[c(2, 5, 8, 11)],
+             mod[c(3, 6, 9, 12)],
              caption = "\\label{grid_reg}Linear regression estimates for the average piracy effect on ship transit.",
              colnames = c(" ",
                           "Global",
                           "G. of Aden",
                           "G. of Guinea",
                           "South East Asia"),
-             panel_labels = c("Panel A: Total Distance (km)",
-                              "Panel B: Occupancy (hours)",
-                              "Panel C: Number of trips"),
+             panel_labels = c("Panel (A): Total Distance (km)",
+                              "Panel (B): Occupancy (hours)",
+                              "Panel (C): Number of trips (count)"),
              stars = T,
-             coef_map = c("TNE" = "One year ago",
-                          "I(TNE^2)" = "(One year ago) ^ 2"),
+             coef_map = c("TNE" = "TNE (3 mo)"),
              gof_omit = "R|Std.",
              collapse_fe = T,
              pretty_num = T,
