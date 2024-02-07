@@ -119,7 +119,6 @@ panelsummary(mod[c(1, 4, 7, 10)],
              stars = T,
              coef_map = c("TNE" = "TNE (3 mo)"),
              gof_map = gm,
-             # omit = "R|Std.",
              collapse_fe = T,
              pretty_num = T,
              format = "latex") %>% 
