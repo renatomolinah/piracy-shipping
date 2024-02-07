@@ -4,6 +4,8 @@ pacman::p_load(
   DBI,
   bigrquery,
   magrittr,
+  zoo,
+  cowplot,
   tidyverse
 )
 
@@ -15,7 +17,6 @@ piracy <- dbConnect(
   bigquery(),
   project = "emlab-gcp",
   dataset = "piracy",
-  # # billing = "juancv-stanford",
   billing = "emlab-gcp",
   use_legacy_sql = FALSE,
   allowLargeResults = TRUE
@@ -24,6 +25,10 @@ piracy <- dbConnect(
 coast <- rnaturalearth::ne_countries(scale = "large",
                                      country = c("Malaysia", "Indonesia", "Singapore"),
                                      returnclass = "sf")
+
+# coast <- rnaturalearth::ne_countries(scale = "large",
+#                                      country = c("China", "South Korea", "North Korea"),
+#                                      returnclass = "sf")
 
 # Load data --------------------------------------------------------------------
 grid_level_panel <- readRDS(file = here("processed_data",
@@ -34,20 +39,23 @@ grid_level_panel <- readRDS(file = here("processed_data",
 
 
 event_study_panel %>%
+  filter(attack_date <= ymd("2021-07-01")) %>% 
   mutate(post = 1 * (event >= 0)) %>%
   group_by(attack_id, post) %>%
-  summarize(distance_km = sum(distance_km)) %>%
+  summarize(m = sum(n_trips, na.rm = T)) %>%
   pivot_wider(names_from = post,
-              values_from = distance_km,
-              names_prefix = "d_") %>%
-  mutate(d = d_1 - d_0) %>%
-  arrange(d) %>% 
+              values_from = m,
+              names_prefix = "m_") %>%
+  mutate(m = m_1 - m_0,
+         mp = m / m_0) %>%
+  arrange(m) %>% 
   View()
-# 162 2013-06-19    343   130  -213
 
 
-focus_grid <- "-1.5_117" #"124" 
-focus_date <- ymd("2013-06-19") #ymd("2017-10-17")
+# On 26 March, duty crewman on routine rounds onboard a bulk carrier anchored near position 03-43S 114-25E, Taboneo Anchorage, noticed the forecastle store room door lock was broken. Further checks made on the forecastle indicated that the hawse pipe cover securing arrangements were cut through. The crewman informed the bridge and alarm was raised. Crew mustered and went to the forecastle and found ship's stores were stolen. Port Control informed
+# Source: https://msi.nga.mil/queryResults?publications/asam?filter=none&minOccurDate=2017-03-01&maxOccurDate=2017-03-30&sort=date&output=html
+focus_grid <- "-4_114" #"-1.5_117" #"124" 
+focus_date <- ymd("2017-03-26") #ymd("2013-06-19") #ymd("2017-10-17")
 focus_grid_coords <- grid_level_panel %>% 
   filter(grid_id == focus_grid) %>% 
   select(lat_bin, lon_bin) %>% 
@@ -56,48 +64,54 @@ focus_grid_coords <- grid_level_panel %>%
 focus_lat <- focus_grid_coords$lat_bin
 focus_lon <- focus_grid_coords$lon_bin
 
-tracks <- tbl(piracy, "ungridded_data") %>% 
-  filter(between(lat, focus_lat - 3, focus_lat + 3),
-         between(lon, focus_lon - 3, focus_lon + 3),
-         between(date, sql("date('2013-06-12')"), sql("date('2013-06-26')"))) %>%
-  mutate(post = ifelse(date > sql("date('2013-06-19')"), "After", "Before")) %>% 
-  arrange(trip_id, date) %>% 
-  collect()
-
-g_tracks <- tbl(piracy, "gridded_data_ml") %>% 
-  filter(between(lat_bin, focus_lat - 3, focus_lat + 3),
-         between(lon_bin, focus_lon - 3, focus_lon + 3),
-         between(date, sql("date('2013-06-12')"), sql("date('2013-06-26')"))) %>%
-  mutate(post = date > sql("date('2013-06-19')")) %>% 
+# Get data #####################################################################
+# Grid-level info --------------------------------------------------------------
+g_tracks <- tbl(piracy, "gridded_data_0_5") %>% 
+  filter(lat_bin == focus_lat,
+         lon_bin == focus_lon) %>%
+  mutate(post = date > sql("('2017-03-26')")) %>%
   group_by(date, lat_bin, lon_bin, post) %>% 
   summarize(distance_km = sum(distance_km, na.rm = T),
             hours = sum(hours, na.rm = T),
             n_trips = n_distinct(trip_id)) %>% 
   collect() %>% 
-  ungroup()
+  ungroup() %>% 
+  filter(between(date, focus_date - 30, focus_date + 30)) %>% 
+  arrange(date) %>% 
+  mutate(n_trips_w = rollapply(data = n_trips,
+                               width = 5,
+                               FUN = mean,
+                               fill = NA,
+                               align = "right"))
+         
+# # Track-level info -------------------------------------------------------------
+tracks <- tbl(piracy, "ungridded_data") %>%
+  filter(between(lat, focus_lat - 3, focus_lat + 3),
+         between(lon, focus_lon - 3, focus_lon + 3),
+         between(date, sql("date('2017-03-19')"), sql("date('2017-04-02')"))) %>%
+  mutate(post = ifelse(date > sql("date('2017-03-26')"), "After", "Before")) %>%
+  arrange(trip_id, date) %>%
+  collect()
 
 ts <- g_tracks %>% 
-  filter(lat_bin == focus_lat,
-         lon_bin == focus_lon) %>% 
-  group_by(post, date) %>% 
-  summarize(distance_km = sum(n_trips)) %>% 
-  group_by(post) %>% 
-  mutate(distance_km = distance_km,
-         mean_dist = mean(distance_km),
-         sd_dist = sd(distance_km)) %>% 
-  ungroup() %>% 
-  ggplot(aes(x = date, y = distance_km)) +
+  rename(m = n_trips,
+         mw = n_trips_w) %>% 
+  mutate(mean_m = mean(m[!post]),
+         sd_m = sd(m[!post])) %>% 
+  ggplot(aes(x = date)) +
   geom_vline(xintercept = focus_date, linetype = "dotted") +
-  geom_ribbon(aes(ymin = mean_dist - sd_dist,
-                  ymax = mean_dist + sd_dist,
-                  group = post),
+  geom_ribbon(aes(ymin = mean_m - sd_m,
+                  ymax = mean_m + sd_m),
               alpha = 0.25) +
-  geom_line(aes(y = mean_dist, group = post),
+  geom_line(aes(y = mean_m),
             linetype = "dashed") +
-  geom_line(linewidth = 1,
+  geom_point(aes(y = m)) +
+  # geom_smooth() +
+  geom_line(aes(y = mw), 
+            linewidth = 1,
             color = "steelblue") +
-  scale_x_continuous(labels = c(focus_date -7, focus_date -3, focus_date, focus_date + 3, focus_date + 7),
-                     breaks = c(focus_date -7, focus_date -3, focus_date, focus_date + 3, focus_date + 7)) +
+  # scale_x_continuous(labels = c(focus_date -7, focus_date -3, focus_date, focus_date + 3, focus_date + 7),
+                     # breaks = c(focus_date -7, focus_date -3, focus_date, focus_date + 3, focus_date + 7)) +
   theme_bw() +
   theme(panel.grid = element_blank(),
         legend.position = "top",
@@ -119,7 +133,7 @@ spat <- ggplot(tracks %>%
              color = "black",
              alpha = 0.1) +
   facet_wrap(~post) +
-  geom_point(aes(x = 117.2, y = -1.18),
+  geom_point(aes(x = focus_lon, y = focus_lat),
              color = "black", shape = "X", size = 4) +
   guides(fill = guide_legend(nrow = 1, title.position = "top")) +
   scale_fill_discrete(type = rev(colors)) +
@@ -150,7 +164,8 @@ ref <- ggplot() +
     color = "red"
   ) +
   theme_void() + 
-  theme(panel.background = element_rect(fill = "white", colour = "black")) +
+  theme(panel.background = element_rect(fill = "white",
+                                        colour = "black")) +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) 
 

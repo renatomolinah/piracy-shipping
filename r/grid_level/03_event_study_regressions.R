@@ -30,6 +30,10 @@ data <- readRDS(file = here("processed_data",
 bef_window <- 7
 aft_window <- 7
 
+# Questions for 2017-03-23 on 7.5_49.5:
+#   - Why is "number of previous atcks grid 1 month" jumping from 0 to 2?
+#   - Why are there no records of AIS activity in the area
+
 ## PROCESSING ------------------------------------------------------------------
 # Identify all dates with attacks
 attacks <- data %>% 
@@ -40,6 +44,9 @@ attacks <- data %>%
   filter(data_days >= bef_window) %>%  # Remove attacks for which we don't have enough enough observations leading to it
   select(grid_id, attack_date = date) %>% 
   mutate(attack_id = paste(grid_id, attack_date))
+
+# The attack described above is being dropped out because there were only two attacks fo thtis cell, but they are 7 days appart.
+# Need to think of a better way to build this sample.
 
 # Now build the panel
 event_study_panel <- attacks %>% 
@@ -64,15 +71,18 @@ event_study_panel <- attacks %>%
   mutate(event = as.numeric(date - attack_date),
          pre = 1 * (event < 0)) %>%
   ungroup() %>% 
+  mutate(attack_bin = bin(attacks, "bin::10")) %>% 
   select(grid_id, attack_cluster, attack_id,
          lat_bin, lon_bin, attack_date,
-         date, year, month, zone, event, days_since_attack, attacks, contains("dist"), contains("hours"), n_trips)
+         date, year, month, fao_zone, asam_subregion, event, days_since_attack, attack_bin, attacks, contains("dist"), contains("hours"), n_trips)
 
+
+  
 ## ESTIMATION ##################################################################
 # Fit the model
-es_mod <- feols(c(distance_km, time_hours, n_trips) ~ attacks + i(event, ref = "-1") | 
+es_mod <- feols(c(distance_km, time_hours, n_trips) ~ i(event, ref = "0") | 
                   # Fixed effects
-                  grid_id + year ^ month ^ zone,
+                  grid_id + year ^ month ^ asam_subregion,
                 # SE specifictions
                 vcov = vcov_conley(lat = "lat_bin",
                                    lon = "lon_bin",
@@ -88,12 +98,12 @@ plot_data <- es_mod  %>%
   map_dfr(broom::tidy, .id = "sample", conf.int = TRUE, conf.level = 0.95) %>% 
   filter(str_detect(term, "event")) %>% 
   mutate(var = str_extract(sample, "distance_km|hours|n_trips"),
-         var = case_when(var == "distance_km" ~ "Distance (km)",
-                         var == "hours" ~ "Time (hours)",
+         var = case_when(var == "distance_km" ~ "Distance traveled (km)",
+                         var == "hours" ~ "Occupancy (hours)",
                          var == "n_trips" ~ "Trips (#)"),
          sample = str_extract(sample, "sample: .+;"),
          sample = str_remove_all(sample, "sample|[:punct:]| "),
-         event = as.numeric(str_remove(term, "event::")))
+         event = as.numeric(str_remove_all(term, "event::|:attack_bin")))
 
 # Build the event-study plot
 plot <- ggplot(data = plot_data,
@@ -114,10 +124,10 @@ plot <- ggplot(data = plot_data,
              ncol = 3,
              labeller = function(x){x[1]}) +
   theme_bw() +
-  guides(shape = guide_legend(title.position = "top")) +
+  guides(shape = guide_legend(title.position = "top", title.hjust = 0.5)) +
   labs(x = "Days since attack",
        y = "Estimate (with SE)",
-       shape = "Dependent variable") +
+       shape = "Outcome of interest") +
   theme(strip.background = element_blank(),
         panel.grid = element_blank(),
         legend.position = "top",
