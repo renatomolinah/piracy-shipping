@@ -20,7 +20,7 @@ WITH
     # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
     3.39*POW(10,-4)*best.best_engine_power_kw+2.151*POW(10,-5)*best.best_tonnage_gt-2.742*POW(10,-9)*best.best_engine_power_kw*best.best_tonnage_gt+12.93 design_speed
   FROM
-    `world-fishing-827.gfw_research.vi_ssvid_v20231201`
+    `world-fishing-827.gfw_research.vi_ssvid_v20220101`
   WHERE
     best.best_vessel_class IN('cargo',
       'cargo_or_tanker',
