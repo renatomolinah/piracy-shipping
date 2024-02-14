@@ -1,9 +1,12 @@
 #standardSQL
 WITH
-# On select relevant voyages
+# Get vessel info, which is pre-filtered list of cargo vessels
 vessel_info AS(
   SELECT
-    mmsi voyage_mmsi
+    mmsi voyage_mmsi,
+    vessel_type_is_cargo_best,
+    vessel_type_is_cargo_registry,
+    vessel_type_is_cargo_registry_across_years
   FROM
     `emlab-gcp.piracy.vessel_info` ),
   # Get anchorage, port, and country info for start of voyage
@@ -26,7 +29,7 @@ vessel_info AS(
       lat) to_anchorage_position
   FROM
     `world-fishing-827.gfw_research.named_anchorages`),
-  # Get voyage info
+  # Get voyage info - first pull 2014-2021 data
   # Using highest confidence voyages - see https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/wiki/Anchorages-and-voyages
   voyages_base AS (
   SELECT
@@ -40,8 +43,10 @@ vessel_info AS(
     `world-fishing-827.pipe_production_v20201001.proto_voyages_c4`
   WHERE
     trip_start_confidence = 4
-    AND trip_end_confidence = 4),
-# Pull 2012 and 2013 data
+    AND trip_end_confidence = 4
+    AND trip_start >= '2014-01-01'
+    AND trip_end <= '2021-12-31'),
+# Pull 2013 data
 voyages_base_archive AS (
   SELECT
     CAST(ssvid AS INT64) voyage_mmsi,
@@ -54,7 +59,9 @@ voyages_base_archive AS (
     `world-fishing-827.pipe_production_v20201001.archive_proto_voyages_c4`
   WHERE
     trip_start_confidence = 4
-    AND trip_end_confidence = 4),
+    AND trip_end_confidence = 4
+    AND trip_start >= '2013-01-01'
+    AND trip_end <= '2013-12-31'),
   all_voyages AS(
     SELECT
     *
