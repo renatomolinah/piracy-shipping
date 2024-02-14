@@ -26,7 +26,7 @@ WITH
     good_seg
     AND NOT overlapping_and_short ),
   # Select the AIS messages
-  # Get all data for 2014 and beyond
+  # Get all data for 2014-2021
   ais_info_current AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
@@ -44,9 +44,10 @@ WITH
     SELECT
       seg_id
     FROM
-      good_segments)),
+      good_segments)
+    AND _partitiontime <= '2021-12-31'),
         # Select the AIS messages
-  # Get all data for 2012 and 2013
+  # Get all data for 2013
   ais_info_archive AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
@@ -64,7 +65,8 @@ WITH
     SELECT
       seg_id
     FROM
-      good_segments)),
+      good_segments)
+    AND _partitiontime >= '2013-01-01'),
   ais_info AS(
     SELECT
     *
