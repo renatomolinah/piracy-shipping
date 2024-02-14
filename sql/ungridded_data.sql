@@ -40,13 +40,15 @@ WITH
   FROM
     `world-fishing-827.pipe_production_v20201001.research_messages`
     # Only use good segments for AIS messages
-    WHERE seg_id IN (
+  WHERE
+    seg_id IN (
     SELECT
       seg_id
     FROM
       good_segments)
+    AND _partitiontime >= '2014-01-01'
     AND _partitiontime <= '2021-12-31'),
-        # Select the AIS messages
+  # Select the AIS messages
   # Get all data for 2013
   ais_info_archive AS(
   SELECT
@@ -61,21 +63,24 @@ WITH
   FROM
     `world-fishing-827.pipe_production_v20201001.archive_research_messages`
     # Only use good segments for AIS messages
-    WHERE seg_id IN (
+  WHERE
+    seg_id IN (
     SELECT
       seg_id
     FROM
       good_segments)
-    AND _partitiontime >= '2013-01-01'),
+    AND _partitiontime >= '2013-01-01'
+    AND _partitiontime <= '2013-12-31'),
   ais_info AS(
-    SELECT
+  SELECT
     *
-    FROM
+  FROM
     ais_info_current
-    UNION ALL(
-      SELECT * FROM ais_info_archive
-    )
-  ),
+  UNION ALL (
+    SELECT
+      *
+    FROM
+      ais_info_archive ) ),
   shipping_ais_info AS(
   SELECT
     *
