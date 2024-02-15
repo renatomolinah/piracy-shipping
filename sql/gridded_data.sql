@@ -22,9 +22,30 @@ WITH
     aux_fuel_consumption_mt_inst,
     # Assign lat and lon bins based on pixel size
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
-    FLOOR(lon/pixel_size()) * pixel_size() lon_bin
+    FLOOR(lon/pixel_size()) * pixel_size() lon_bin,
+    # We will add wind data at the actual date on which activity occurred, regardless of the aggregation
+      EXTRACT(MONTH
+    FROM
+      timestamp) wind_month,
+      EXTRACT(YEAR
+    FROM
+      timestamp) wind_year
   FROM
     `emlab-gcp.piracy.ungridded_data`),
+  wind_info AS(
+  SELECT
+    EXTRACT(YEAR
+    FROM
+      date) wind_year,
+    EXTRACT(MONTH
+    FROM
+      date) wind_month,
+    lat_bin,
+    lon_bin,
+    wind_speed_ms,
+    wind_direction_degrees
+  FROM
+    `emlab-gcp.piracy.{wind_table_location}`),
   # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
   binned AS(
   SELECT
@@ -197,7 +218,7 @@ vessel_info AS(
   FROM
     `emlab-gcp.piracy.vessel_info` ),
 SELECT
-  * EXCEPT(grid_attacked_in_study_period),
+  * EXCEPT(grid_attacked_in_study_period,wind_month,wind_year),
   EXTRACT(YEAR from date) AS year,
   IFNULL(grid_attacked_in_study_period,FALSE) grid_attacked_in_study_period,
 IF
@@ -229,3 +250,6 @@ USING
 LEFT JOIN
 vessel_info
 USING(mmsi)
+# For voyage-level analysis based on 5x5 degree data, add wind data
+    {ifelse(voyage_level,
+      'LEFT JOIN wind_info USING (wind_month,wind_year,lat_bin,lon_bin)','')}

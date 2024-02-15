@@ -147,7 +147,8 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5,
                                voyage_level = TRUE,
-                               hotspots = hotspots_sql),
+                               hotspots = hotspots_sql,
+                               wind_table_location = "wind_data_5"),
                   bq_table_name = "gridded_data_5", 
                   download_data = FALSE,
                   # Trigger re-run of this if timestamp for when ungridded_data was generated changes
@@ -222,8 +223,7 @@ list(
     name = voyage_data,
     run_gfw_query(sql = voyage_data_sql %>%
                     readr::read_file() %>%
-                    glue::glue(gridded_data_table_location = "gridded_data_5",
-                               wind_table_location = "wind_data_5"),
+                    glue::glue(gridded_data_table_location = "gridded_data_5"),
                   bq_table_name = "voyage_data_5", 
                   download_data = TRUE,
                   # Trigger re-run of this if timestamp for when gridded_data_5 was generated changes

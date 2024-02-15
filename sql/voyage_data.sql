@@ -16,48 +16,16 @@ vessel_info AS(
     from_anchorage_id),
   FROM
     `emlab-gcp.piracy.voyage_info` ),
-  wind_info AS(
-  SELECT
-    EXTRACT(YEAR
-    FROM
-      date) year,
-    EXTRACT(MONTH
-    FROM
-      date) month,
-    lat_bin,
-    lon_bin,
-    wind_speed_ms,
-    wind_direction_degrees
-  FROM
-    `emlab-gcp.piracy.{wind_table_location}`),
   gridded_data AS(
+  # Calculate wind vector based on direction and heading
   SELECT
-    *,
+    * EXCEPT(wind_direction_degrees,heading),
+  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector,
   EXTRACT(MONTH
     FROM
       date) month
   FROM
-    `emlab-gcp.piracy.{gridded_data_table_location}`
-    WHERE
-    hours > 0
-    AND distance_km >0
-    # Restrict analysis to 2022 and before
-    AND year <= 2022),
-    gridded_data_with_wind AS(
-    SELECT 
-    *
-    EXCEPT(wind_direction_degrees,heading),
-  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector,
-    FROM
-    gridded_data
-      # Add wind info
-LEFT JOIN
-  wind_info
-USING
-  (month,
-    year,
-    lat_bin,
-    lon_bin)),
+    `emlab-gcp.piracy.{gridded_data_table_location}`,
   fuel_prices AS(
   SELECT
     *
@@ -87,7 +55,7 @@ USING
     SUM(hotspot_gulf_of_aden) hotspot_gulf_of_aden,
     SUM(hotspot_gulf_of_guinea) hotspot_gulf_of_guinea
   FROM
-    gridded_data_with_wind
+    gridded_data
   GROUP BY
     mmsi,
     trip_id,
@@ -165,3 +133,7 @@ USING
   voyage_info
 USING
   (trip_id)
+  # Only include voyages that have some time and distance
+    WHERE
+    hours > 0
+    AND distance_km >0)
