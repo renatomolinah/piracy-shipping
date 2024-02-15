@@ -81,6 +81,7 @@ WITH
       *
     FROM
       ais_info_archive ) ),
+  # Filter AIS messages to just those broadcast by our vessels of interest (e.g., cargo vessels)
   shipping_ais_info AS(
   SELECT
     *
@@ -90,6 +91,7 @@ WITH
     vessel_info
   USING
     (mmsi)),
+  # Now JOIN those AIS messages to the voyage data, so that each AIS message is assigned to a voyage
   shipping_ais_info_with_voyages AS(
   SELECT
     * EXCEPT(voyage_mmsi)
@@ -99,7 +101,7 @@ WITH
     voyage_info
   ON
     shipping_ais_info.mmsi = voyage_info.voyage_mmsi
-    AND shipping_ais_info.timestamp > voyage_info.departure_timestamp
+    AND shipping_ais_info.timestamp >= voyage_info.departure_timestamp
     AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
 SELECT
   * EXCEPT(engine_power,
