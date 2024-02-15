@@ -4,8 +4,29 @@ WITH
   vessel_info_base AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
+     # The "best" vessel class accounts for AIS info, official registries, and the GFW vessel classification algorithm
     best.best_vessel_class best_vessel_type,
-    ARRAY_TO_STRING(registry_info.best_known_vessel_class,";") registry_vessel_type,
+    # Our main binary will flag vessels that have 'best' vessel class of one of the following
+    IF(best.best_vessel_class IN('cargo',
+        'cargo_or_tanker',
+        'bunker_or_tanker',
+        'tanker',
+        'cargo_or_reefer',
+        'specialized_reefer',
+        'container_reefer',
+        'reefer',
+        'bunker'),TRUE,FALSE) best_vessel_type_cargo,
+    # We can also get the vessel class just from official registries, where avaiable
+    # This column is an array, since sometimes vessels are in multiple registries which may each have be for different vessel classes
+    # We will unnest in below, so that we can determine whether each item in the array is a cargo vessel
+    registry_info.best_known_vessel_class registry_vessel_type_array,
+  # We also we turn that array into a string, and separate the different classes with a ';''
+ARRAY_TO_STRING(registry_info.best_known_vessel_class,";") registry_vessel_type,
+# We also make a binary for whether or not *any* of the registry vessel classes are ever one of our cargo types of interest
+IF
+(REGEXP_CONTAINS(ARRAY_TO_STRING(registry_info.best_known_vessel_class,";"),'cargo|cargo_or_tanker|bunker_or_tanker|tanker|cargo_or_reefer|specialized_reefer|container_reefer|reefer|bunker' ), TRUE, FALSE) registry_vessel_type_any_cargo,
+    # do the neural net and vessel registries disagree about the vessel class?
+    best.registry_net_disagreement registry_neural_net_disagreement,
     best.best_flag flag,
     best.best_length_m length,
     best.best_tonnage_gt tonnage,
@@ -26,48 +47,11 @@ WITH
   WHERE
     NOT activity.offsetting
     AND activity.overlap_hours_multinames = 0),
-  # Load time-varying version of vessel database
-  # So we make the most restrictive sample, where we look for vessels that are consistently registered as cargo in the time-varying vessel info tables based on official registries
-  vessel_info_base_byyear AS(
-  SELECT
-    CAST(ssvid AS INT64) mmsi,
-    year,
-  IF
-    (REGEXP_CONTAINS(ARRAY_TO_STRING(registry_info.best_known_vessel_class,";"),'cargo|cargo_or_tanker|bunker_or_tanker|tanker|cargo_or_reefer|specialized_reefer|container_reefer|reefer|bunker' ), 1, 0) vessel_type_is_cargo_registry
-  FROM
-    `world-fishing-827.gfw_research.vi_ssvid_byyear_v20220101`
-    # Ensure it's a reliable vessel that is not offetting or broadcasting multiple overlapping names
-  WHERE
-    NOT activity.offsetting
-    AND activity.overlap_hours_multinames = 0
-    AND year >= 2013
-    AND year <= 2021),
-  # Now for each mmsi, summarize number of years in database, and number of years registered as cargo in database
-  vessel_info_byyear_summary_by_mmsi AS(
-  SELECT
+  # Unnest registry info, so that each row represents a specific mmsi, and whether the registry is cargo or not
+  vessel_info_registry_unnested AS(
+    SELECT
     mmsi,
-    COUNT(*) number_years,
-    SUM(vessel_type_is_cargo_registry) number_years_registered_as_cargo
-  FROM
-    vessel_info_base_byyear
-  GROUP BY
-    mmsi),
-  # Finally, determine which mmsi are registered as cargo acrosss all years
-  vessel_consistently_cargo_across_years AS(
-  SELECT
-    mmsi
-  FROM
-    vessel_info_byyear_summary_by_mmsi
-  WHERE
-    number_years = number_years_registered_as_cargo ),
-  vessel_info_with_cargo_binaries AS(
-    # To that table, add on binaries for whether or not the best_vessel_type is cargo,
-    # and whether or not the registry_vessel_type is cargo
-    # and whether or not the vessel is registered as cargo in the time-varying version of the vessel database
-  SELECT
-    mmsi,
-  IF
-    ((best_vessel_type) IN('cargo',
+    IF(registry_vessel_type_string IN('cargo',
         'cargo_or_tanker',
         'bunker_or_tanker',
         'tanker',
@@ -75,27 +59,32 @@ WITH
         'specialized_reefer',
         'container_reefer',
         'reefer',
-        'bunker'), TRUE, FALSE) vessel_type_is_cargo_best,
-  IF
-    (REGEXP_CONTAINS(registry_vessel_type,'cargo|cargo_or_tanker|bunker_or_tanker|tanker|cargo_or_reefer|specialized_reefer|container_reefer|reefer|bunker' ), TRUE, FALSE) vessel_type_is_cargo_registry,
-  IF
-    (mmsi IN (
-      SELECT
-        mmsi
-      FROM
-        vessel_consistently_cargo_across_years),TRUE,FALSE) vessel_type_is_cargo_registry_across_years
-  FROM
-    vessel_info_base)
+        'bunker'),1,0) registry_is_cargo
+    FROM
+    vessel_info_base
+    CROSS JOIN
+    UNNEST(registry_vessel_type_array) AS registry_vessel_type_string
+  ),
+  # Now, for each vessel, summarize the number of registry entries, and number of registry entries that are cargo
+  # And determine whether or not all registry entries are always cargo
+  vessel_info_registry_by_mmsi AS(
+    SELECT
+    mmsi,
+    IF(COUNT(*) = SUM(registry_is_cargo),
+    TRUE,FALSE) registry_vessel_type_always_cargo
+    FROM
+    vessel_info_registry_unnested
+    GROUP BY
+    mmsi
+  )
 SELECT
-  *
+  * EXCEPT(registry_vessel_type_array,registry_vessel_type_always_cargo),
+  # If registry_vessel_type_always_cargo is missing, it is FALSE
+  IFNULL(registry_vessel_type_always_cargo,FALSE) registry_vessel_type_always_cargo
 FROM
   vessel_info_base
 LEFT JOIN
-  vessel_info_with_cargo_binaries
-USING
-  (mmsi)
-  # Only keep mmsi that are either GFW-classified as cargo, or registry-listed as cargo, or registry-listed as cargo across all years
-WHERE
-  (vessel_type_is_cargo_best
-    OR vessel_type_is_cargo_registry
-    OR vessel_type_is_cargo_registry_across_years)
+  vessel_info_registry_by_mmsi
+USING(mmsi)
+# Only include vessels that match one of our class criteria
+WHERE(best_vessel_type_cargo OR registry_vessel_type_any_cargo OR registry_vessel_type_always_cargo)
