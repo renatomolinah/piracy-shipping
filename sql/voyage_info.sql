@@ -3,10 +3,7 @@ WITH
 # Get vessel info, which is pre-filtered list of cargo vessels
 vessel_info AS(
   SELECT
-    mmsi voyage_mmsi,
-    vessel_type_is_cargo_best,
-    vessel_type_is_cargo_registry,
-    vessel_type_is_cargo_registry_across_years
+    mmsi voyage_mmsi
   FROM
     `emlab-gcp.piracy.vessel_info` ),
   # Get anchorage, port, and country info for start of voyage
