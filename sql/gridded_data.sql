@@ -3,6 +3,7 @@ CREATE TEMPORARY FUNCTION
   pixel_size() AS ({pixel_size});
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
+# Pull AIS positions from ungridded_data
 WITH
   ais_positions AS(
   SELECT
@@ -19,6 +20,7 @@ WITH
     heading,
     main_fuel_consumption_mt_inst,
     aux_fuel_consumption_mt_inst,
+    # Assign lat and lon bins based on pixel size
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
@@ -39,7 +41,6 @@ WITH
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst
   FROM
     ais_positions
-    WHERE date <= '2022-12-31' AND date >= '2013-01-01'
   GROUP BY
     mmsi,
     trip_id,
@@ -184,7 +185,17 @@ WITH
     trip_id,
     date,
     lat_bin,
-    lon_bin)
+    lon_bin),
+# Get vessel info, which is pre-filtered list of cargo vessels
+# This provides binaries so that the dataset can be filtered by on the vessel class selection criteria
+vessel_info AS(
+  SELECT
+    mmsi,
+    best_vessel_type_cargo,
+    registry_vessel_type_any_cargo,
+    registry_vessel_type_always_cargo
+  FROM
+    `emlab-gcp.piracy.vessel_info` ),
 SELECT
   * EXCEPT(grid_attacked_in_study_period),
   EXTRACT(YEAR from date) AS year,
@@ -215,3 +226,6 @@ LEFT JOIN
 USING
   (lon_bin,
     lat_bin)
+LEFT JOIN
+vessel_info
+USING(mmsi)
