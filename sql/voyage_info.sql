@@ -1,32 +1,30 @@
 #standardSQL
 WITH
-# Get vessel info, which is pre-filtered list of cargo vessels
-vessel_info AS(
+  # Get vessel info, which is pre-filtered list of cargo vessels
+  vessel_info AS(
   SELECT
     mmsi
   FROM
     `emlab-gcp.piracy.vessel_info` ),
-  # Get anchorage, port, and country info for start of voyage
+  # Get anchorage, port, and country info for starting anchorage of voyage
   from_anchorage_info AS(
   SELECT
     s2id from_anchorage_id,
     label from_port,
     iso3 from_country,
-    ST_GEOGPOINT(lon,
-      lat) from_anchorage_position
+    ST_GEOGPOINT(lon, lat) from_anchorage_position
   FROM
     `world-fishing-827.gfw_research.named_anchorages`),
-  # Get anchorage, port, and country info for end of voyage
+  # Get anchorage, port, and country info for ending anchorage of voyage
   to_anchorage_info AS(
   SELECT
     s2id to_anchorage_id,
     label to_port,
     iso3 to_country,
-    ST_GEOGPOINT(lon,
-      lat) to_anchorage_position
+    ST_GEOGPOINT(lon, lat) to_anchorage_position
   FROM
     `world-fishing-827.gfw_research.named_anchorages`),
-    # Get all data from 'current' voyages table, which includes data for the last 10 years
+  # Get all data from 'current' voyages table, which includes data for the last 10 years
   # At the time of this query in February 2024, this archive version includes 2014-2024 data
   # Using highest confidence voyages - see https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/wiki/Anchorages-and-voyages
   voyages_base AS (
@@ -42,11 +40,13 @@ vessel_info AS(
   WHERE
     trip_start_confidence = 4
     AND trip_end_confidence = 4
-   AND trip_start >= '2013-01-01'
-   AND trip_end <= '2021-12-31'),
+    # Use a single set of date filters that is the same for both the 'archive' and 'current' tables
+    # and which matches our study period. This will make the query forward compatible.
+    AND trip_start >= '2013-01-01'
+    AND trip_end <= '2021-12-31'),
   # Get all voyage data from 'archive' table, which includes data prior to last 10 years
   # At the time of this query in February 2024, this archive version includes 2013 data
-voyages_base_archive AS (
+  voyages_base_archive AS (
   SELECT
     ssvid mmsi,
     trip_start departure_timestamp,
@@ -59,26 +59,36 @@ voyages_base_archive AS (
   WHERE
     trip_start_confidence = 4
     AND trip_end_confidence = 4
+    # Use a single set of date filters that is the same for both the 'archive' and 'current' tables
+    # and which matches our study period. This will make the query forward compatible.
     AND trip_start >= '2013-01-01'
-   AND trip_end <= '2021-12-31'),
+    AND trip_end <= '2021-12-31'),
+  # Bind the rows of the 'current' voyages data with the 'archive' voyages data
+  # in order to get a complete table of all voyages for our time period
   all_voyages AS(
-    SELECT
+  SELECT
     *
-    FROM
+  FROM
     voyages_base
-    UNION ALL
-    (SELECT * FROM voyages_base_archive)
-  )
-  # Combine voyage info with anchorages, ports, and countries
+  UNION ALL (
+    SELECT
+      *
+    FROM
+      voyages_base_archive) )
+  # Join the voyage info with vessel info,
+  # as well as starting anchorage info and ending achorage info
 SELECT
-  * EXCEPT(from_anchorage_position,to_anchorage_position),
-    ST_DISTANCE(from_anchorage_position,
-      to_anchorage_position)/1000 total_haversine_distance_km
+  * EXCEPT(from_anchorage_position,
+    to_anchorage_position),
+  ST_DISTANCE(from_anchorage_position,
+    # set use_spheroid as TRUE so that the function measures distance on the surface of the WGS84 spheroid
+    to_anchorage_position, TRUE)/1000 total_haversine_distance_km
 FROM
   all_voyages
 JOIN
-vessel_info
-USING(mmsi)
+  vessel_info
+USING
+  (mmsi)
 LEFT JOIN
   from_anchorage_info
 USING
@@ -87,5 +97,6 @@ LEFT JOIN
   to_anchorage_info
 USING
   (to_anchorage_id)
+  # Filter to only voyages that have different starting and ending ports
 WHERE
   NOT from_port = to_port
