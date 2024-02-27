@@ -78,7 +78,8 @@ WITH
     lon_bin,
     date),
   # Select attack info
-  # Only select rows that correspond to anything except suspicious approaches
+  # Select all rows except those encounters that are labeled as suspicious approaches
+  # Then aggregate by summing the number of encounters per lat_bin/lon_bin/attack_date
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
@@ -93,9 +94,8 @@ WITH
     attack_date,
     attack_lat_bin,
     attack_lon_bin),
-  # Select attack info
-  # Only select rows that correspond to anything except suspicious approaches
-  # For all encounter types
+  # Select attack info for all encounter types
+  # Then aggregate by summing the number of encounters per lat_bin/lon_bin/attack_date
   attack_info_base_all_encounters AS(
   SELECT
     DATE(date) attack_date,
@@ -186,7 +186,19 @@ WITH
     MIN(days_since_attack) days_since_attack,
     SUM(
     IF
-      (days_since_attack <= 365,number_attacks,0)) number_previous_attacks_grid_12_months
+      (days_since_attack <= 3 * 30,number_attacks,0)) number_previous_attacks_grid_3_months,
+    SUM(
+    IF
+      (days_since_attack <= 6 * 30,number_attacks,0)) number_previous_attacks_grid_6_months,
+    SUM(
+    IF
+      (days_since_attack <= 9 * 30,number_attacks,0)) number_previous_attacks_grid_9_months,
+    SUM(
+    IF
+      (days_since_attack <= 365,number_attacks,0)) number_previous_attacks_grid_12_months,
+    SUM(
+    IF
+      (days_since_attack <= 2 * 365,number_attacks,0)) number_previous_attacks_grid_24_months
   FROM
     by_voyage_date_grid_attack
   GROUP BY
