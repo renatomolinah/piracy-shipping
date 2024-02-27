@@ -3,7 +3,7 @@ WITH
 # Get vessel info, which is pre-filtered list of cargo vessels
 vessel_info AS(
   SELECT
-    mmsi voyage_mmsi
+    mmsi
   FROM
     `emlab-gcp.piracy.vessel_info` ),
   # Get anchorage, port, and country info for start of voyage
@@ -31,7 +31,7 @@ vessel_info AS(
   # Using highest confidence voyages - see https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/wiki/Anchorages-and-voyages
   voyages_base AS (
   SELECT
-    ssvid voyage_mmsi,
+    ssvid mmsi,
     trip_start departure_timestamp,
     trip_end arrival_timestamp,
     trip_start_anchorage_id from_anchorage_id,
@@ -48,7 +48,7 @@ vessel_info AS(
   # At the time of this query in February 2024, this archive version includes 2013 data
 voyages_base_archive AS (
   SELECT
-    CAST(ssvid AS INT64) voyage_mmsi,
+    ssvid mmsi,
     trip_start departure_timestamp,
     trip_end arrival_timestamp,
     trip_start_anchorage_id from_anchorage_id,
@@ -59,7 +59,7 @@ voyages_base_archive AS (
   WHERE
     trip_start_confidence = 4
     AND trip_end_confidence = 4
-    ND trip_start >= '2013-01-01'
+    AND trip_start >= '2013-01-01'
    AND trip_end <= '2021-12-31'),
   all_voyages AS(
     SELECT
@@ -78,7 +78,7 @@ FROM
   all_voyages
 JOIN
 vessel_info
-USING(voyage_mmsi)
+USING(mmsi)
 LEFT JOIN
   from_anchorage_info
 USING
