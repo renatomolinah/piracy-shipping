@@ -13,7 +13,7 @@ WITH
     `emlab-gcp.piracy.vessel_info` ),
   voyage_info AS(
   SELECT
-    voyage_mmsi,
+    mmsi,
     trip_id,
     departure_timestamp,
     arrival_timestamp
@@ -33,7 +33,7 @@ WITH
   # At the time of this query in February 2024, this archive version includes 2014-2024 data
   ais_info_current AS(
   SELECT
-    CAST(ssvid AS INT64) mmsi,
+    ssvid mmsi,
     lat,
     lon,
     timestamp,
@@ -59,7 +59,7 @@ WITH
   # At the time of this query in February 2024, this archive version includes 2013 data
   ais_info_archive AS(
   SELECT
-    CAST(ssvid AS INT64) mmsi,
+    ssvid mmsi,
     lat,
     lon,
     timestamp,
@@ -103,20 +103,17 @@ WITH
   # Now JOIN those AIS messages to the voyage data, so that each AIS message is assigned to a voyage
   shipping_ais_info_with_voyages AS(
   SELECT
-    * EXCEPT(voyage_mmsi)
-  FROM
-    shipping_ais_info
-  JOIN
-    voyage_info
-  ON
-    shipping_ais_info.mmsi = voyage_info.voyage_mmsi
-    AND shipping_ais_info.timestamp >= voyage_info.departure_timestamp
-    AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
-SELECT
-  * EXCEPT(engine_power,
-    aux_engine_power,
-    design_speed,
-    implied_speed_knots),
+    shipping_ais_info.mmsi mmsi,
+    trip_id,
+    departure_timestamp,
+    arrival_timestamp,
+    lat,
+    lon,
+    timestamp,
+    hours,
+    implied_speed_knots,
+    heading,
+    distance_km,
   # Calculate fuel consumption
   # main_sfc is always 206; aux_sfc is always 221
   # sfc from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
@@ -125,5 +122,15 @@ SELECT
     IF
       (implied_speed_knots/design_speed>1,1,implied_speed_knots/design_speed), 3))*206*engine_power/1000000 main_fuel_consumption_mt_inst,
   hours*0.5*221*aux_engine_power/1000000 aux_fuel_consumption_mt_inst
+  FROM
+    shipping_ais_info
+  JOIN
+    voyage_info
+  ON
+    shipping_ais_info.mmsi = voyage_info.mmsi
+    AND shipping_ais_info.timestamp >= voyage_info.departure_timestamp
+    AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
+SELECT
+  * 
 FROM
   shipping_ais_info_with_voyages
