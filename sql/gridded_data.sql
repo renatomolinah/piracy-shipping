@@ -1,3 +1,12 @@
+# Description:
+# Here we aggregate the data up to either 5x5 degree grids, or 0.5x0.5 degree grids for JC's analysis. 
+#For the 0.5x0.5 degree aggregation, we aggregate shipping activity at the daily vessel level, 
+# and determine our pirate attack indicators based on that date. 
+# For the 5x5 degree grids, we aggregate shipping activity at the vessel level based on voyage departure date, 
+#and determine our pirate attack indicators based on that voyage departure date 
+# (since this dataset will be the one that gets aggregated to the voyage-level in the final below). 
+#For the 5x5 degree analysis, we also add our wind speed and heading data for each grid 
+# matched to the day each voyage passes through each grid.
 #standardSQL
 CREATE TEMPORARY FUNCTION
   pixel_size() AS ({pixel_size});
