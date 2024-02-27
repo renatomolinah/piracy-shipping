@@ -1,11 +1,12 @@
 WITH
   voyage_info AS(
   SELECT
-    * EXCEPT(voyage_mmsi,
-    departure_timestamp,
-    arrival_timestamp,
-    to_anchorage_id,
-    from_anchorage_id),
+    date,
+    trip_id,
+    from_port,
+    from_country,
+    to_port,
+    to_country,
   FROM
     `emlab-gcp.piracy.voyage_info` ),
   # for each trip occurring on each departure date and route, calculate the total number of attacks that occurred along the grids within the last 12 months
@@ -97,22 +98,22 @@ SELECT
   trip_id,
   AVG(
   IF
-    (days_since_average_attack_calculation <= 30*3,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_3_months,
+    (days_since_average_attack_calculation <= 30 * 3,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_3_months,
   AVG(
   IF
-    (days_since_average_attack_calculation <= 30*6,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_6_months,
+    (days_since_average_attack_calculation <= 30 * 6,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_6_months,
    AVG(
   IF
-    (days_since_average_attack_calculation <= 30*9,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_9_months,
+    (days_since_average_attack_calculation <= 30 * 9,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_9_months,
   AVG(
   IF
-    (days_since_average_attack_calculation <= 30*12,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_12_months,
+    (days_since_average_attack_calculation <= 365,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_12_months,
   AVG(
   IF
-    (days_since_average_attack_calculation <= 30*24,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_24_months,
+    (days_since_average_attack_calculation <= 2 * 365,average_number_previous_attacks_grid_12_months,0)) average_route_attacks_last_24_months,
   AVG(
   IF
-    (days_since_average_attack_calculation <= 30*3,average_number_previous_attacks_grid_12_months_all_encounters,0)) average_route_attacks_last_3_months_all_encounter_types
+    (days_since_average_attack_calculation <= 30 * 3,average_number_previous_attacks_grid_12_months_all_encounters,0)) average_route_attacks_last_3_months_all_encounter_types
 FROM
   joined
 GROUP BY

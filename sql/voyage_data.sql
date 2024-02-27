@@ -9,11 +9,12 @@ vessel_info AS(
     `emlab-gcp.piracy.vessel_info` ),
   voyage_info AS(
   SELECT
-    * EXCEPT(voyage_mmsi,
-    departure_timestamp,
-    arrival_timestamp,
-    to_anchorage_id,
-    from_anchorage_id),
+    date,
+    trip_id,
+    from_port,
+    from_country,
+    to_port,
+    to_country,
   FROM
     `emlab-gcp.piracy.voyage_info` ),
   gridded_data AS(
