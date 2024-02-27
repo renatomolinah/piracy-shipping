@@ -66,7 +66,7 @@ IF
         'specialized_reefer',
         'container_reefer',
         'reefer',
-        'bunker'),1,0) registry_is_cargo
+        bunker'),TRUE,FALSE) registry_is_cargo
     FROM
     vessel_info_base
     CROSS JOIN
@@ -77,7 +77,7 @@ IF
   vessel_info_registry_by_mmsi AS(
     SELECT
     mmsi,
-    IF(COUNT(*) = SUM(registry_is_cargo),
+    IF(COUNT(*) = SUM(IF(registry_is_cargo,1,0)),
     TRUE,FALSE) registry_vessel_type_always_cargo
     FROM
     vessel_info_registry_unnested
