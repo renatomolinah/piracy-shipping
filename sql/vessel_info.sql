@@ -10,7 +10,7 @@ WITH
   # Get relevant vessel info
   vessel_info_base AS(
   SELECT
-    CAST(ssvid AS INT64) mmsi,
+    ssvid mmsi,
      # The "best" vessel class accounts for AIS info, official registries, and the GFW vessel classification algorithm
     best.best_vessel_class best_vessel_type,
     # Our main binary will flag vessels that have 'best' vessel class of one of the following
