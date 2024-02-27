@@ -26,7 +26,8 @@ WITH
     good_seg
     AND NOT overlapping_and_short ),
   # Select the AIS messages
-  # Get all data for 2014-2021
+  # Get all data from 'current' AIS messages table, which includes data for the last 10 years
+  # At the time of this query in February 2024, this archive version includes 2014-2024 data
   ais_info_current AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
@@ -46,10 +47,13 @@ WITH
       seg_id
     FROM
       good_segments)
-    AND _partitiontime >= '2014-01-01'
+    # date filters that explicitly account for the study period of interest only, 
+    # not the intersection between study period of interest and data availability in the table (which can change)
+    AND _partitiontime >= '2013-01-01'
     AND _partitiontime <= '2021-12-31'),
   # Select the AIS messages
-  # Get all data for 2013
+  # Get all data from 'archived' table, which includes data prior to last 10 years
+  # At the time of this query in February 2024, this archive version includes 2013 data
   ais_info_archive AS(
   SELECT
     CAST(ssvid AS INT64) mmsi,
@@ -69,8 +73,10 @@ WITH
       seg_id
     FROM
       good_segments)
+    # date filters that explicitly account for the study period of interest only, 
+    # not the intersection between study period of interest and data availability in the table (which can change)
     AND _partitiontime >= '2013-01-01'
-    AND _partitiontime <= '2013-12-31'),
+    AND _partitiontime <= '2021-12-31'),
   ais_info AS(
   SELECT
     *
