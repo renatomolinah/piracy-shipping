@@ -1,3 +1,6 @@
+# Query description:
+# This generates the unguided data (e.g., AIS-ping-level) for 2013-2021, for all of our vessels of interest, 
+# matched to all of our voyages of interest. This also calculates ping-level fuel consumption
 #standardSQL
 WITH
   vessel_info AS(
