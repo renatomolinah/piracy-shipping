@@ -1,3 +1,5 @@
+# Description:
+# Pull aggregate spatial shipping stats for global map (Figure 3 of the paper)
 SELECT
   lat_bin,
   lon_bin,

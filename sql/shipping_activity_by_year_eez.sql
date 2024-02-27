@@ -1,3 +1,6 @@
+# Description
+# This gives gives aggregate shipping activity statistics by year and EEZ
+# which is necessary for the IV analysis
 WITH
   base AS(
   SELECT
