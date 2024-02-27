@@ -26,7 +26,8 @@ vessel_info AS(
       lat) to_anchorage_position
   FROM
     `world-fishing-827.gfw_research.named_anchorages`),
-  # Get voyage info - first pull 2014-2021 data
+    # Get all data from 'current' voyages table, which includes data for the last 10 years
+  # At the time of this query in February 2024, this archive version includes 2014-2024 data
   # Using highest confidence voyages - see https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/wiki/Anchorages-and-voyages
   voyages_base AS (
   SELECT
@@ -41,9 +42,10 @@ vessel_info AS(
   WHERE
     trip_start_confidence = 4
     AND trip_end_confidence = 4
-    AND trip_start >= '2014-01-01'
-    AND trip_end <= '2021-12-31'),
-# Pull 2013 data
+   AND trip_start >= '2013-01-01'
+   AND trip_end <= '2021-12-31'),
+  # Get all voyage data from 'archive' table, which includes data prior to last 10 years
+  # At the time of this query in February 2024, this archive version includes 2013 data
 voyages_base_archive AS (
   SELECT
     CAST(ssvid AS INT64) voyage_mmsi,
@@ -57,8 +59,8 @@ voyages_base_archive AS (
   WHERE
     trip_start_confidence = 4
     AND trip_end_confidence = 4
-    AND trip_start >= '2013-01-01'
-    AND trip_end <= '2013-12-31'),
+    ND trip_start >= '2013-01-01'
+   AND trip_end <= '2021-12-31'),
   all_voyages AS(
     SELECT
     *

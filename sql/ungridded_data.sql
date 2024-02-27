@@ -55,7 +55,7 @@ WITH
     AND _partitiontime >= '2013-01-01'
     AND _partitiontime <= '2021-12-31'),
   # Select the AIS messages
-  # Get all data from 'archived' table, which includes data prior to last 10 years
+  # Get all data from 'archive' table, which includes data prior to last 10 years
   # At the time of this query in February 2024, this archive version includes 2013 data
   ais_info_archive AS(
   SELECT
