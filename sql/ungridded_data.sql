@@ -113,8 +113,7 @@ SELECT
   * EXCEPT(engine_power,
     aux_engine_power,
     design_speed,
-    implied_speed_knots,
-    arrival_timestamp),
+    implied_speed_knots),
   # Calculate fuel consumption
   # main_sfc is always 206; aux_sfc is always 221
   # sfc from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
