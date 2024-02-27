@@ -1,4 +1,11 @@
-#standardSQL
+# Query description:
+# This pulls the vessel info we need for the analysis. It also creates three new binary flags, which will allow us to restrict the data to
+# different samples based on how vessel class is determined: 1) best_vessel_type_cargo (whether or not GFW's "best" classification
+# is one of our cargo/tanker/etc vessel types); 2) registry_vessel_type_any_cargo (whether or not any of the official registries for the
+# vessel is one of our cargo/tanker/etc vessel types. Some vessels have multiple registry entries either across years or even in the
+# same year, which sometimes can provide different vessel type classes); 3) registry_vessel_type_always_cargo (whether or not all
+# of the official registries across all years are one of our cargo/tanker/etc vessel types). At the end of the query, vessel_info is filtered
+# to just vessels that match one of our 3 selection criteria. So it is for only those vessels that we'll generate voyages, ungridded, gridded, and voyage-level data.
 WITH
   # Get relevant vessel info
   vessel_info_base AS(
