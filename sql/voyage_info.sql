@@ -30,7 +30,7 @@ vessel_info AS(
   # Using highest confidence voyages - see https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/wiki/Anchorages-and-voyages
   voyages_base AS (
   SELECT
-    CAST(ssvid AS INT64) voyage_mmsi,
+    ssvid voyage_mmsi,
     trip_start departure_timestamp,
     trip_end arrival_timestamp,
     trip_start_anchorage_id from_anchorage_id,
