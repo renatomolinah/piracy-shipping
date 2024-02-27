@@ -32,8 +32,6 @@ ARRAY_TO_STRING(registry_info.best_known_vessel_class,";") registry_vessel_type,
 # We also make a binary for whether or not *any* of the registry vessel classes are ever one of our cargo types of interest
 IF
 (REGEXP_CONTAINS(ARRAY_TO_STRING(registry_info.best_known_vessel_class,";"),'cargo|cargo_or_tanker|bunker_or_tanker|tanker|cargo_or_reefer|specialized_reefer|container_reefer|reefer|bunker' ), TRUE, FALSE) registry_vessel_type_any_cargo,
-    # do the neural net and vessel registries disagree about the vessel class?
-    best.registry_net_disagreement registry_neural_net_disagreement,
     best.best_flag flag,
     best.best_length_m length,
     best.best_tonnage_gt tonnage,
@@ -66,7 +64,7 @@ IF
         'specialized_reefer',
         'container_reefer',
         'reefer',
-        bunker'),TRUE,FALSE) registry_is_cargo
+        'bunker'),TRUE,FALSE) registry_is_cargo
     FROM
     vessel_info_base
     CROSS JOIN
@@ -85,7 +83,18 @@ IF
     mmsi
   )
 SELECT
-  * EXCEPT(registry_vessel_type_array,registry_vessel_type_always_cargo),
+  mmsi,
+  flag,
+  length,
+  tonnage,
+  engine_power,
+  aux_engine_power,
+  crew,
+  design_speed,
+  best_vessel_type,
+  registry_vessel_type,
+  best_vessel_type_cargo,
+  registry_vessel_type_any_cargo,
   # If registry_vessel_type_always_cargo is missing, it is FALSE
   IFNULL(registry_vessel_type_always_cargo,FALSE) registry_vessel_type_always_cargo
 FROM
