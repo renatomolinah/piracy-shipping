@@ -186,7 +186,7 @@ WITH
     MIN(days_since_attack) days_since_attack,
     SUM(
     IF
-      (days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months
+      (days_since_attack <= 365,number_attacks,0)) number_previous_attacks_grid_12_months
   FROM
     by_voyage_date_grid_attack
   GROUP BY
@@ -207,7 +207,7 @@ WITH
     lon_bin,
     SUM(
     IF
-      (days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months_all_encounters
+      (days_since_attack <= 365,number_attacks,0)) number_previous_attacks_grid_12_months_all_encounters
   FROM
     by_voyage_date_grid_attack_all_encounters
   GROUP BY
