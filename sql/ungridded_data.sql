@@ -10,7 +10,7 @@ WITH
     aux_engine_power,
     design_speed
   FROM
-    `emlab-gcp.piracy.vessel_info` ),
+    `emlab-gcp.piracy.vessel_info_v_20240228` ),
   voyage_info AS(
   SELECT
     mmsi,
@@ -18,7 +18,7 @@ WITH
     departure_timestamp,
     arrival_timestamp
   FROM
-    `emlab-gcp.piracy.voyage_info` ),
+    `emlab-gcp.piracy.voyage_info_v_20240228` ),
   # Select good segments
   good_segments AS (
   SELECT

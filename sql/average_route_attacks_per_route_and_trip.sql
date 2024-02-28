@@ -8,7 +8,7 @@ WITH
     to_port,
     to_country,
   FROM
-    `emlab-gcp.piracy.voyage_info` ),
+    `emlab-gcp.piracy.voyage_info_v_20240228` ),
   # for each trip occurring on each departure date and route, calculate the total number of attacks that occurred along the grids within the last 12 months
   # do this for just pirate attacks, and all encounter types
   total_attacks_by_trips_on_date AS(
@@ -22,7 +22,7 @@ WITH
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_grid_12_months,
     SUM(number_previous_attacks_grid_12_months_all_encounters) number_previous_attacks_grid_12_months_all_encounters
   FROM 
-    `emlab-gcp.piracy.gridded_data_5`
+    `emlab-gcp.piracy.gridded_data_5_v_20240228`
           LEFT JOIN
   voyage_info
   USING(trip_id)
@@ -63,7 +63,7 @@ WITH
     to_port,
     to_country
   FROM
-    `emlab-gcp.piracy.gridded_data_5`
+    `emlab-gcp.piracy.gridded_data_5_v_20240228`
               LEFT JOIN
   voyage_info
   USING(trip_id)

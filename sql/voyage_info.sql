@@ -11,7 +11,7 @@ WITH
   SELECT
     mmsi
   FROM
-    `emlab-gcp.piracy.vessel_info` ),
+    `emlab-gcp.piracy.vessel_info_v_20240228` ),
   # Get anchorage, port, and country info for starting anchorage of voyage
   from_anchorage_info AS(
   SELECT

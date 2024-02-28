@@ -6,7 +6,7 @@ vessel_info AS(
   SELECT
     *
   FROM
-    `emlab-gcp.piracy.vessel_info` ),
+    `emlab-gcp.piracy.vessel_info_v_20240228` ),
   voyage_info AS(
   SELECT
     date,
@@ -16,7 +16,7 @@ vessel_info AS(
     to_port,
     to_country,
   FROM
-    `emlab-gcp.piracy.voyage_info` ),
+    `emlab-gcp.piracy.voyage_info_v_20240228` ),
   gridded_data AS(
   # Calculate wind vector based on direction and heading
   SELECT
@@ -31,7 +31,7 @@ vessel_info AS(
   SELECT
     *
   FROM
-    `emlab-gcp.piracy.fuel_prices`),
+    `emlab-gcp.piracy.fuel_prices_v_20240228`),
   aggregated AS(
   SELECT
     mmsi,
@@ -85,7 +85,7 @@ average_route_attacks_per_route_and_trip AS(
 SELECT
 *
 FROM 
-`emlab-gcp.piracy.average_route_attacks_per_route_and_trip`
+`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_v_20240228`
 )
 SELECT
   * EXCEPT(month,

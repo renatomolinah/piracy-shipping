@@ -30,7 +30,9 @@ pull_gfw_data_locally <- function(bq_table_name, ...){
 # "Anti-shipping Activity Messages (ASAM) include the locations and descriptive accounts of specific hostile acts against ships and mariners. 
 # The reports may be useful for recognition, prevention and avoidance of potential hostile activity."
 
-process_asam_data <- function(asam_data){
+process_asam_data <- function(asam_data,
+                              # Name to save this table as in BQ
+                              table_name){
   processed_asam_data <- asam_data %>%
     dplyr::mutate(date = lubridate::as_date(dateofocc)) %>%
     dplyr::select(-dateofocc) %>%
@@ -53,7 +55,7 @@ process_asam_data <- function(asam_data){
   
   # Upload table to BQ
   bigrquery::bq_table(project = billing_project,
-                      table = "asam_data",
+                      table = bq_table_name,
                       dataset = bq_dataset) %>% 
     bigrquery::bq_table_upload(values = processed_asam_data,
                                fields = bigrquery::as_bq_fields(processed_asam_data),
@@ -160,6 +162,7 @@ make_global_map_figure <- function(asam_data_processed,
 }
 process_wind_data <- function(wind_file,
                               pixel_size,
+                              # Name to save this table on BigQuery
                               table_name){
   # ERA5 monthly averaged data downloaded from Copernicus
   # We get the u10 and v10 wind components, which come at monthly 0.25x0.25 degree resolution
@@ -224,7 +227,9 @@ process_wind_data <- function(wind_file,
 # The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide, 
 # covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
 # Downloaded from https://bunkerindex.com/prices/bix-world.php
-process_fuel_data <- function(fuel_file){
+process_fuel_data <- function(fuel_file,
+                              # Name to save this table on BigQuery
+                              table_name){
   # Load fuel price data
   fuel_price_data <- fuel_file %>%
     read_csv() %>%
@@ -245,7 +250,7 @@ process_fuel_data <- function(fuel_file){
   
   # Upload table to BQ
   bigrquery::bq_table(project = billing_project,
-                      table = "fuel_prices",
+                      table = table_name,
                       dataset = bq_dataset) %>% 
     bigrquery::bq_table_upload(values = interpolated_fuel_price_data,
                                fields = bigrquery::as_bq_fields(interpolated_fuel_price_data),

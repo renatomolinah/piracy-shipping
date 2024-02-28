@@ -45,7 +45,8 @@ list(
   ),
   tar_target(
     name = asam_data_processed,
-    process_asam_data(asam_data)
+    process_asam_data(asam_data,
+                      table_name = "asam_data_v_20240228")
   ),
   # Add clusters to encounter data
   tar_target(
@@ -75,7 +76,7 @@ list(
     name = wind_data_processed_5,
     process_wind_data(wind_file,
                       pixel_size = 5,
-                      table_name = "wind_data_5")
+                      table_name = "wind_data_5_v_20240228")
   ),
   # Process fuel data
   tar_target(
@@ -85,7 +86,8 @@ list(
   ),
   tar_target(
     name = fuel_data,
-    process_fuel_data(fuel_file)
+    process_fuel_data(fuel_file,
+                      table_name = "fuel_prices_v_20240228")
   ),
   # Get vessel info for shipping vessels in BigQuery
   tar_target(
@@ -98,7 +100,7 @@ list(
     name = vessel_info_bq,
     run_gfw_query(sql = vessel_info_sql %>%
                     readr::read_file(),
-                  bq_table_name = "vessel_info")
+                  bq_table_name = "vessel_info_v_20240228")
   ),
   # Get voyage trip info in BigQuery
   tar_target(
@@ -111,7 +113,7 @@ list(
     name = voyage_info_bq,
     run_gfw_query(sql = voyage_info_sql %>%
                     readr::read_file(),
-                  bq_table_name = "voyage_info", 
+                  bq_table_name = "voyage_info_v_20240228", 
                   # Trigger re-run of this if timestamp changes for vessel_info_bq
                   vessel_info_bq)
   ),
@@ -126,7 +128,7 @@ list(
     name = ungridded_data_bq,
     run_gfw_query(sql = ungridded_data_bq_sql %>%
                     readr::read_file(),
-                  bq_table_name = "ungridded_data_bq",
+                  bq_table_name = "ungridded_data_v_20240228",
                   # Trigger re-run of this if timestamp changes for vessel_info_bq
                   vessel_info_bq,
                   # Trigger re-run of this if timestamp changes for voyage_info_bq
@@ -147,8 +149,8 @@ list(
                     glue::glue(pixel_size = 5,
                                voyage_level = TRUE,
                                hotspots = hotspots_sql,
-                               wind_table_location = "wind_data_5"),
-                  bq_table_name = "gridded_data_5_bq", 
+                               wind_table_location = "wind_data_5_v_20240228"),
+                  bq_table_name = "gridded_data_5_v_20240228", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)
   ),
@@ -164,7 +166,7 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_pirate_attacks_0_5", 
+                  bq_table_name = "gridded_pirate_attacks_0_5_v_20240228", 
                   # Trigger re-run of this if process_asam_data is run
                   process_asam_data)
   ),
@@ -179,14 +181,14 @@ list(
     name = aggregate_spatial_shipping_activity_bq,
     run_gfw_query(sql = aggregate_spatial_shipping_activity_sql %>%
                     readr::read_file(),
-                  bq_table_name = "aggregate_spatial_shipping_activity", 
+                  bq_table_name = "aggregate_spatial_shipping_activity_v_20240228", 
                   # Trigger re-run of this if timestamp changes for gridded_data_0_5_bq
                   gridded_data_0_5_bq)
   ),
   # Pull gridded shipipng data locally
   tar_target(
     name = aggregate_spatial_shipping_activity_bq,
-    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity", 
+    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity_v_20240228", 
                   # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
                   aggregate_spatial_shipping_activity_bq)
   ),
@@ -199,7 +201,7 @@ list(
                     glue::glue(pixel_size = 0.5,
                                voyage_level = FALSE,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_0_5_bq", 
+                  bq_table_name = "gridded_data_0_5_v_20240228", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)
   ),
@@ -215,7 +217,7 @@ list(
     name = average_route_attacks_per_route_and_trip_bq,
     run_gfw_query(sql = average_route_attacks_per_route_and_trip_sql %>%
                     readr::read_file(),
-                  bq_table_name = "average_route_attacks_per_route_and_trip", 
+                  bq_table_name = "average_route_attacks_per_route_and_trip_v_20240228", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq)
   ),
@@ -230,8 +232,8 @@ list(
     name = voyage_data_bq,
     run_gfw_query(sql = voyage_data_sql %>%
                     readr::read_file() %>%
-                    glue::glue(gridded_data_table_location = "gridded_data_5_bq"),
-                  bq_table_name = "voyage_data_5", 
+                    glue::glue(gridded_data_table_location = "gridded_data_5_v_20240228"),
+                  bq_table_name = "voyage_data_5_v_20240228", 
                   #Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
                   # Trigger re-run of this if timestamp changes for average_route_attacks_per_route_and_trip_bq
@@ -240,7 +242,7 @@ list(
   # Pull voyage-level data from BigQuery to local environment
   tar_target(
     name = voyage_data,
-    pull_gfw_data_locally(bq_table_name = "voyage_data_5", 
+    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240228", 
                           # Trigger re-run of this if timestamp changes for voyage_data_bq
                           voyage_data_bq)
   ),
@@ -274,14 +276,14 @@ list(
     name = shipping_activity_by_year_eez_bq,
     run_gfw_query(sql = shipping_activity_by_year_eez_sql %>%
                     readr::read_file(),
-                  bq_table_name = "shipping_activity_by_year_eez", 
+                  bq_table_name = "shipping_activity_by_year_eez_v_20240228", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)
   ),
   # Pull the annual shipping activty by EEZ data locally
   tar_target(
     name = shipping_activity_by_year_eez,
-    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez", 
+    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez_v_20240228", 
                   # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
                   shipping_activity_by_year_eez_bq)
   )

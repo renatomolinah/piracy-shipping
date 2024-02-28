@@ -40,7 +40,7 @@ WITH
     FROM
       timestamp) wind_year
   FROM
-    `emlab-gcp.piracy.ungridded_data`),
+    `emlab-gcp.piracy.ungridded_data_v_20240228`),
   wind_info AS(
   SELECT
     EXTRACT(YEAR
