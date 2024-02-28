@@ -25,11 +25,11 @@ bq_dataset <- "piracy" # The dataset name for this project
 
 # Set ggplot theme for all plots
 ggplot2::theme_set(ggplot2::theme_bw() +
-            ggplot2::theme(axis.title.y = ggplot2::element_text(vjust=0.6),
-                  strip.background = ggplot2::element_blank(),
-                  panel.background = ggplot2::element_blank(),
-                  panel.border = ggplot2::element_blank(),
-                  panel.grid.minor = ggplot2::element_blank()))
+                     ggplot2::theme(axis.title.y = ggplot2::element_text(vjust=0.6),
+                                    strip.background = ggplot2::element_blank(),
+                                    panel.background = ggplot2::element_blank(),
+                                    panel.border = ggplot2::element_blank(),
+                                    panel.grid.minor = ggplot2::element_blank()))
 
 # Replace the target list below with your own:
 list(
@@ -93,45 +93,44 @@ list(
     "sql/vessel_info.sql",
     format = "file"
   ),
+  # Generate vessel characteristic info and save on BigQuery
   tar_target(
-    name = vessel_info,
+    name = vessel_info_bq,
     run_gfw_query(sql = vessel_info_sql %>%
                     readr::read_file(),
-                  bq_table_name = "vessel_info", 
-                  download_data = FALSE)
+                  bq_table_name = "vessel_info")
   ),
-  # Get voyage info in BigQuery
+  # Get voyage trip info in BigQuery
   tar_target(
     name = voyage_info_sql,
     "sql/voyage_info.sql",
     format = "file"
   ),
+  # Generate voyage info and save on BigQuery
   tar_target(
-    name = voyage_info,
+    name = voyage_info_bq,
     run_gfw_query(sql = voyage_info_sql %>%
                     readr::read_file(),
                   bq_table_name = "voyage_info", 
-                  download_data = FALSE,
-                  # Trigger re-run of this if timestamp for when vessel_info was generated changes
-                  vessel_info)
+                  # Trigger re-run of this if timestamp changes for vessel_info_bq
+                  vessel_info_bq)
   ),
   # Process ungridded, raw AIS messages
   # This ungridded dataset will serve as the basis of all gridded and voyage-level datasets
   tar_target(
-    name = ungridded_data_sql,
-    "sql/ungridded_data.sql",
+    name = ungridded_data_bq_sql,
+    "sql/ungridded_data_bq.sql",
     format = "file"
   ),
   tar_target(
-    name = ungridded_data,
-    run_gfw_query(sql = ungridded_data_sql %>%
+    name = ungridded_data_bq,
+    run_gfw_query(sql = ungridded_data_bq_sql %>%
                     readr::read_file(),
-                  bq_table_name = "ungridded_data",
-                  download_data = FALSE,
-                  # Trigger re-run of this if timestamp for when vessel_info was generated changes
-                  vessel_info,
-                  # Trigger re-run of this if timestamp for when voyage_info was generated changes
-                  voyage_info)
+                  bq_table_name = "ungridded_data_bq",
+                  # Trigger re-run of this if timestamp changes for vessel_info_bq
+                  vessel_info_bq,
+                  # Trigger re-run of this if timestamp changes for voyage_info_bq
+                  voyage_info_bq)
   ),
   # Process gridded data for 5x5 degree voyage-level analysis, which aggregates ungridded data to different pixel resolutions
   # This loads the SQL query
@@ -142,32 +141,31 @@ list(
   ),
   # Here we make a 5x5 degree gridded dataset. This will serve as the basis of the voyage-level analysis
   tar_target(
-    name = gridded_data_5,
+    name = gridded_data_5_bq,
     run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5,
                                voyage_level = TRUE,
                                hotspots = hotspots_sql,
                                wind_table_location = "wind_data_5"),
-                  bq_table_name = "gridded_data_5", 
-                  download_data = FALSE,
-                  # Trigger re-run of this if timestamp for when ungridded_data was generated changes
-                  ungridded_data)
+                  bq_table_name = "gridded_data_5_bq", 
+                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
+                  ungridded_data_bq)
   ),
+  # Generate some gridded pirate attack data, for the grid-level analysis
   tar_target(
     name = gridded_pirate_attacks_sql,
     "sql/gridded_pirate_attacks.sql",
     format = "file"
   ),
   tar_target(
-    name = gridded_pirate_attacks_0_5,
+    name = gridded_pirate_attacks_0_5_bq,
     run_gfw_query(sql = gridded_pirate_attacks_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                hotspots = hotspots_sql),
                   bq_table_name = "gridded_pirate_attacks_0_5", 
-                  download_data = FALSE,
-                  # Trigger re-run of this if timestamp for when process_asam_data was generated changes
+                  # Trigger re-run of this if process_asam_data is run
                   process_asam_data)
   ),
   # Here we summarize aggregate spatial shipping activity at 0.5x0.5 degrees, for making a global map
@@ -176,27 +174,34 @@ list(
     "sql/aggregate_spatial_shipping_activity.sql",
     format = "file"
   ),
+  # Run this query and save to BigQuery
   tar_target(
-    name = aggregate_spatial_shipping_activity,
+    name = aggregate_spatial_shipping_activity_bq,
     run_gfw_query(sql = aggregate_spatial_shipping_activity_sql %>%
                     readr::read_file(),
                   bq_table_name = "aggregate_spatial_shipping_activity", 
-                  download_data = TRUE,
-                  # Trigger re-run of this if timestamp for when gridded_data_0_5 was generated changes
-                  gridded_data_0_5)
+                  # Trigger re-run of this if timestamp changes for gridded_data_0_5_bq
+                  gridded_data_0_5_bq)
+  ),
+  # Pull gridded shipipng data locally
+  tar_target(
+    name = aggregate_spatial_shipping_activity_bq,
+    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity", 
+                  # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
+                  aggregate_spatial_shipping_activity_bq)
   ),
   # Here we make a 0.5x0.5 degree gridded dataset. This will serve as the basis of the grid-level analysis
+  # Run this query and save to BigQuery
   tar_target(
-    name = gridded_data_0_5,
+    name = gridded_data_0_5_bq,
     run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                voyage_level = FALSE,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_0_5", 
-                  download_data = FALSE,
-                  # Trigger re-run of this if timestamp for when ungridded_data was generated changes
-                  ungridded_data)
+                  bq_table_name = "gridded_data_0_5_bq", 
+                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
+                  ungridded_data_bq)
   ),
   # Process the average number of attacks that occurred along each route, by trip
   tar_target(
@@ -204,14 +209,15 @@ list(
     "sql/average_route_attacks_per_route_and_trip.sql",
     format = "file"
   ),
+  # Run the query to generate the average number of attacks that occurred along each route, by trip
+  # Save to BigQuery
   tar_target(
-    name = average_route_attacks_per_route_and_trip,
+    name = average_route_attacks_per_route_and_trip_bq,
     run_gfw_query(sql = average_route_attacks_per_route_and_trip_sql %>%
                     readr::read_file(),
                   bq_table_name = "average_route_attacks_per_route_and_trip", 
-                  download_data = FALSE,
-                  # Trigger re-run of this if timestamp for when gridded_data_5 was generated changes
-                  gridded_data_5)
+                  # Trigger re-run of this if timestamp changes for gridded_data_5_bq
+                  gridded_data_5_bq)
   ),
   # Process voyage-level data, which aggregates gridded data
   tar_target(
@@ -219,17 +225,24 @@ list(
     "sql/voyage_data.sql",
     format = "file"
   ),
+  # Run query to generate voyage-level data and save on BigQuery
   tar_target(
-    name = voyage_data,
+    name = voyage_data_bq,
     run_gfw_query(sql = voyage_data_sql %>%
                     readr::read_file() %>%
-                    glue::glue(gridded_data_table_location = "gridded_data_5"),
+                    glue::glue(gridded_data_table_location = "gridded_data_5_bq"),
                   bq_table_name = "voyage_data_5", 
-                  download_data = TRUE,
-                  # Trigger re-run of this if timestamp for when gridded_data_5 was generated changes
-                  gridded_data_5,
-                  # Trigger re-run of this if timestamp for when average_route_attacks_per_route_and_trip was generated changes
-                  average_route_attacks_per_route_and_trip)
+                  #Trigger re-run of this if timestamp changes for gridded_data_5_bq
+                  gridded_data_5_bq,
+                  # Trigger re-run of this if timestamp changes for average_route_attacks_per_route_and_trip_bq
+                  average_route_attacks_per_route_and_trip_bq)
+  ),
+  # Pull voyage-level data from BigQuery to local environment
+  tar_target(
+    name = voyage_data,
+    pull_gfw_data_locally(bq_table_name = "voyage_data_5", 
+                          # Trigger re-run of this if timestamp changes for voyage_data_bq
+                          voyage_data_bq)
   ),
   # Set projection for global map figures
   tar_target(
@@ -248,7 +261,7 @@ list(
   tar_target(
     name = encounter_time_series_figure,
     make_encounter_time_series_figure(asam_data_processed,
-                                   hotspots)
+                                      hotspots)
   ),
   # Summarize annual shipping activity by EEZ
   tar_target(
@@ -256,13 +269,20 @@ list(
     "sql/shipping_activity_by_year_eez.sql",
     format = "file"
   ),
+  # Run this query and save the data on BigQuery
   tar_target(
-    name = shipping_activity_by_year_eez,
+    name = shipping_activity_by_year_eez_bq,
     run_gfw_query(sql = shipping_activity_by_year_eez_sql %>%
                     readr::read_file(),
                   bq_table_name = "shipping_activity_by_year_eez", 
-                  download_data = TRUE,
-                  # Trigger re-run of this if timestamp for when ungridded_data was generated changes
-                  ungridded_data)
+                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
+                  ungridded_data_bq)
+  ),
+  # Pull the annual shipping activty by EEZ data locally
+  tar_target(
+    name = shipping_activity_by_year_eez,
+    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez", 
+                  # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
+                  shipping_activity_by_year_eez_bq)
   )
 )

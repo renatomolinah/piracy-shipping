@@ -1,7 +1,7 @@
-# This function pulls the necessary GFW data and optionally saves it locally as a CSV
+# This function pulls the necessary GFW data
 # This requires special permissions, and is also very expensive to run, so will not be done often
 # You can add any additional arguments for glue to make substitutions to the query, as necessary
-run_gfw_query <- function(sql, bq_table_name, download_data = FALSE, ...){
+run_gfw_query <- function(sql, bq_table_name, ...){
   
   
   # Run query and save on BQ. We don't pull this locally yet.
@@ -14,13 +14,15 @@ run_gfw_query <- function(sql, bq_table_name, download_data = FALSE, ...){
                               allowLargeResults = TRUE,
                               write_disposition = "WRITE_TRUNCATE")
   
-  # Now we download data locally, if desired
-  if(download_data) return(bigrquery::bq_project_query(billing_project, 
-                                                       glue::glue("SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name}")) %>%
-                             bigrquery::bq_table_download(n_max = Inf))
-  
-  # If data is not to be pulled locally, simply return current system time
-  if(!download_data) return(Sys.time())
+  # Return sys.time, for targets to know that something chabged
+  Sys.time()
+}
+
+# This function pulls GFW data locally from a specific table
+pull_gfw_data_locally <- function(bq_table_name, ...){
+  bigrquery::bq_project_query(billing_project, 
+                              glue::glue("SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name}")) %>%
+    bigrquery::bq_table_download(n_max = Inf)
 }
 
 # Code to process ASAM piracy data, and upload it to BigQuery
