@@ -55,7 +55,7 @@ process_asam_data <- function(asam_data,
   
   # Upload table to BQ
   bigrquery::bq_table(project = billing_project,
-                      table = bq_table_name,
+                      table = table_name,
                       dataset = bq_dataset) %>% 
     bigrquery::bq_table_upload(values = processed_asam_data,
                                fields = bigrquery::as_bq_fields(processed_asam_data),
