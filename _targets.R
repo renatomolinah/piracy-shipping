@@ -187,7 +187,7 @@ list(
   ),
   # Pull gridded shipipng data locally
   tar_target(
-    name = aggregate_spatial_shipping_activity_bq,
+    name = aggregate_spatial_shipping_activity,
     pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity_v_20240228", 
                   # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
                   aggregate_spatial_shipping_activity_bq)
