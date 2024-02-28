@@ -1,7 +1,6 @@
 WITH
   voyage_info AS(
   SELECT
-    date,
     trip_id,
     from_port,
     from_country,

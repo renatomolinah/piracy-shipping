@@ -1,9 +1,9 @@
 # Description:
 # This generates all of the necessary data on each voyage (so each row is a trip_id), 
 # and only for those vessels found in vessel_info. 
-# This gives us ~26.8M voyages where best_vessel_type_cargo is TRUE, 
-# ~23.6M voyages where registry_vessel_type_any_cargo is TRUE, 
-# and ~17M voyages where registry_vessel_type_always_cargo is TRUE.
+# This gives us ~25.9M voyages where best_vessel_type_cargo is TRUE, 
+# ~23.4M voyages where registry_vessel_type_any_cargo is TRUE, 
+# and ~16.8M voyages where registry_vessel_type_always_cargo is TRUE.
 #standardSQL
 WITH
   # Get vessel info, which is pre-filtered list of cargo vessels

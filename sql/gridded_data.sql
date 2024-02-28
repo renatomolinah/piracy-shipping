@@ -249,7 +249,9 @@ vessel_info AS(
   FROM
     `emlab-gcp.piracy.vessel_info` )
 SELECT
-  * EXCEPT(grid_attacked_in_study_period,wind_month,wind_year),
+  {ifelse(voyage_level,
+  '* EXCEPT(grid_attacked_in_study_period,wind_month,wind_year)',
+  '* EXCEPT(grid_attacked_in_study_period)')},
   EXTRACT(YEAR from date) AS year,
   IFNULL(grid_attacked_in_study_period,FALSE) grid_attacked_in_study_period,
 IF

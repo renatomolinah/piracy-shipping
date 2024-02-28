@@ -200,7 +200,8 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                voyage_level = FALSE,
-                               hotspots = hotspots_sql),
+                               hotspots = hotspots_sql,
+                               wind_table_location = "wind_data_5_v_20240228"),
                   bq_table_name = "gridded_data_0_5_v_20240228", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)

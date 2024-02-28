@@ -9,7 +9,6 @@ vessel_info AS(
     `emlab-gcp.piracy.vessel_info_v_20240228` ),
   voyage_info AS(
   SELECT
-    date,
     trip_id,
     from_port,
     from_country,
@@ -26,7 +25,7 @@ vessel_info AS(
     FROM
       date) month
   FROM
-    `emlab-gcp.piracy.{gridded_data_table_location}`,
+    `emlab-gcp.piracy.{gridded_data_table_location}`),
   fuel_prices AS(
   SELECT
     *
@@ -137,4 +136,4 @@ USING
   # Only include voyages that have some time and distance
     WHERE
     hours > 0
-    AND distance_km >0)
+    AND distance_km >0
