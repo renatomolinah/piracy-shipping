@@ -63,6 +63,11 @@ WITH
     lat_bin,
     lon_bin,
     date,
+    # Need to include wind_month and wind_year for matching to wind data
+    # when making grid-level dataset that will feed into the voyage-level dataset
+    {ifelse(voyage_level,
+      'wind_month,wind_year,',
+      '')}
     SUM(hours) hours,
     SUM(distance_km) distance_km,
     COUNT(*) ais_messages,
@@ -76,6 +81,11 @@ WITH
     trip_id,
     lat_bin,
     lon_bin,
+        # Need to include wind_month and wind_year for matching to wind data
+    # when making grid-level dataset that will feed into the voyage-level dataset
+        {ifelse(voyage_level,
+      'wind_month,wind_year,',
+      '')}
     date),
   # Select attack info
   # Select all rows except those encounters that are labeled as suspicious approaches
@@ -237,7 +247,7 @@ vessel_info AS(
     registry_vessel_type_any_cargo,
     registry_vessel_type_always_cargo
   FROM
-    `emlab-gcp.piracy.vessel_info` ),
+    `emlab-gcp.piracy.vessel_info` )
 SELECT
   * EXCEPT(grid_attacked_in_study_period,wind_month,wind_year),
   EXTRACT(YEAR from date) AS year,
