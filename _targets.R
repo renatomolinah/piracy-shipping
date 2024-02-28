@@ -121,7 +121,7 @@ list(
   # This ungridded dataset will serve as the basis of all gridded and voyage-level datasets
   tar_target(
     name = ungridded_data_bq_sql,
-    "sql/ungridded_data_bq.sql",
+    "sql/ungridded_data.sql",
     format = "file"
   ),
   tar_target(
