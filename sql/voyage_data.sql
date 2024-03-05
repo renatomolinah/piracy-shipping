@@ -17,15 +17,10 @@ vessel_info AS(
   FROM
     `emlab-gcp.piracy.voyage_info_v_20240228` ),
   gridded_data AS(
-  # Calculate wind vector based on direction and heading
   SELECT
-    * EXCEPT(wind_direction_degrees,heading),
-  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector,
-  EXTRACT(MONTH
-    FROM
-      date) month
+    *
   FROM
-    `emlab-gcp.piracy.{gridded_data_table_location}`),
+    `emlab-gcp.piracy.gridded_data_5_test_v_20240305`),
   fuel_prices AS(
   SELECT
     *
