@@ -31,7 +31,8 @@ ggplot2::theme_set(ggplot2::theme_bw() +
                                     panel.border = ggplot2::element_blank(),
                                     panel.grid.minor = ggplot2::element_blank()))
 
-# Replace the target list below with your own:
+# Note: Any target name that includes _bq at the end creates a table on BigQuery
+# in the emlab-gcp.piracy dataset
 list(
   # Process ASAM encounter data
   tar_target(
@@ -133,6 +134,15 @@ list(
                   vessel_info_bq,
                   # Trigger re-run of this if timestamp changes for voyage_info_bq
                   voyage_info_bq)
+  ),
+  # Create subsample of ungridded data for testing purposes
+  # Filter to just those trips which began and ended in 2019
+  tar_target(
+    name = ungridded_data_test_bq,
+    run_gfw_query(sql = "SELECT * FROM `emlab-gcp.piracy.ungridded_data_v_20240228` WHERE departure_timestamp >= '2019-01-01' AND arrival_timestamp <= '2019-12-31'",
+                  bq_table_name = "ungridded_data_test_v_20240305", 
+                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
+                  ungridded_data_bq)
   ),
   # Process gridded data for 5x5 degree voyage-level analysis, which aggregates ungridded data to different pixel resolutions
   # This loads the SQL query
