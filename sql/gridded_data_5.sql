@@ -76,7 +76,8 @@ WITH
     AVG(heading) heading,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
-    AVG(wind_vector) wind_vector
+    AVG(wind_vector) wind_vector,
+    AVG(wind_speed_ms) wind_speed_ms
   FROM
     ais_positions_with_wind
   GROUP BY

@@ -12,7 +12,7 @@ WITH
   # do this for just pirate attacks, and all encounter types
   total_attacks_by_trips_on_date AS(
   SELECT
-    date,
+    departure_date,
     trip_id,
     from_port,
     from_country,
@@ -21,12 +21,12 @@ WITH
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_grid_12_months,
     SUM(number_previous_attacks_grid_12_months_all_encounters) number_previous_attacks_grid_12_months_all_encounters
   FROM 
-    `emlab-gcp.piracy.gridded_data_5_v_20240228`
+    `emlab-gcp.piracy.gridded_data_5_test_v_20240305`
           LEFT JOIN
   voyage_info
   USING(trip_id)
   GROUP BY
-    date,
+    departure_date,
     trip_id,
     from_port,
     from_country,
@@ -37,7 +37,7 @@ WITH
   # do this for just pirate attacks, and all encounter types
   average_attacks_by_route_on_date AS(
   SELECT
-    date,
+    departure_date,
     from_port,
     from_country,
     to_port,
@@ -47,7 +47,7 @@ WITH
   FROM
     total_attacks_by_trips_on_date
   GROUP BY
-    date,
+    departure_date,
     from_port,
     from_country,
     to_port,
@@ -56,36 +56,27 @@ WITH
   trips AS(
   SELECT
     trip_id,
-    date,
+    departure_date,
     from_port,
     from_country,
     to_port,
     to_country
-  FROM
-    `emlab-gcp.piracy.gridded_data_5_v_20240228`
-              LEFT JOIN
-  voyage_info
-  USING(trip_id)
-  GROUP BY
-    trip_id,
-    date,
-    from_port,
-    from_country,
-    to_port,
-    to_country),
+    FROM
+    total_attacks_by_trips_on_date
+    ),
   # For each trip, get the average number of attacks along the route that occurred on each departure date prior to this trip's departure date
   joined AS(
   SELECT
     trip_id,
     average_attacks_by_route_on_date.average_number_previous_attacks_grid_12_months,
     average_attacks_by_route_on_date.average_number_previous_attacks_grid_12_months_all_encounters,
-    DATE_DIFF(trips.date, average_attacks_by_route_on_date.date, DAY) days_since_average_attack_calculation
+    DATE_DIFF(trips.departure_date, average_attacks_by_route_on_date.departure_date, DAY) days_since_average_attack_calculation
   FROM
     trips
   JOIN
     average_attacks_by_route_on_date
   ON
-    average_attacks_by_route_on_date.date < trips.date
+    average_attacks_by_route_on_date.departure_date < trips.departure_date
     AND trips.from_port = average_attacks_by_route_on_date.from_port
     AND trips.to_port = average_attacks_by_route_on_date.to_port
     AND trips.from_country = average_attacks_by_route_on_date.from_country

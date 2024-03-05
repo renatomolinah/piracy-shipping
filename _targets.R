@@ -230,7 +230,7 @@ list(
     name = average_route_attacks_per_route_and_trip_bq,
     run_gfw_query(sql = average_route_attacks_per_route_and_trip_sql %>%
                     readr::read_file(),
-                  bq_table_name = "average_route_attacks_per_route_and_trip_v_20240228", 
+                  bq_table_name = "average_route_attacks_per_route_and_trip_test_v_20240305", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq)
   ),

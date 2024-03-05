@@ -21,22 +21,21 @@ vessel_info AS(
     *
   FROM
     `emlab-gcp.piracy.gridded_data_5_test_v_20240305`),
+  # We will add fuel prices based on the voyage departure date
   fuel_prices AS(
   SELECT
-    *
+    * EXCEPT(date),
+    date departure_date
   FROM
     `emlab-gcp.piracy.fuel_prices_v_20240228`),
   aggregated AS(
   SELECT
     mmsi,
     trip_id,
-    date,
-    month,
-    year,
+    departure_date,
     SUM(hours) hours,
     SUM(distance_km) distance_km,
     SUM(ais_messages) ais_messages,
-    AVG(wind_speed_ms) wind_speed_ms,
     AVG(wind_vector) wind_vector,
     SUM(grid_area_km2) voyage_grid_area_km2,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
@@ -54,8 +53,7 @@ vessel_info AS(
   GROUP BY
     mmsi,
     trip_id,
-    date,
-    month,
+    departure_date,
     year),
   aggregated_with_voyage_fuel AS(
   SELECT
@@ -79,11 +77,10 @@ average_route_attacks_per_route_and_trip AS(
 SELECT
 *
 FROM 
-`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_v_20240228`
+`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_test_v_20240305`
 )
 SELECT
-  * EXCEPT(month,
-      main_fuel_consumption_mt_inst,
+  * EXCEPT(main_fuel_consumption_mt_inst,
       aux_fuel_consumption_mt_inst,
       main_fuel_consumption_mt_voyage,
       aux_fuel_consumption_mt_voyage,
@@ -123,7 +120,7 @@ USING
 LEFT JOIN
   fuel_prices
 USING
-  (date)
+  (departure_date)
     LEFT JOIN
   voyage_info
 USING
