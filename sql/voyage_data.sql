@@ -21,7 +21,7 @@ vessel_info AS(
   SELECT
     *
   FROM
-    `emlab-gcp.piracy.gridded_data_5_test_v_20240305`),
+    `emlab-gcp.piracy.gridded_data_5_v_20240307`),
   # We will add fuel prices based on the voyage departure date
   fuel_prices AS(
   SELECT
@@ -78,7 +78,7 @@ average_route_attacks_per_route_and_trip AS(
 SELECT
 *
 FROM 
-`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_test_v_20240305`
+`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_v_20240307`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,

@@ -21,7 +21,7 @@ WITH
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_grid_12_months,
     SUM(number_previous_attacks_grid_12_months_all_encounters) number_previous_attacks_grid_12_months_all_encounters
   FROM 
-    `emlab-gcp.piracy.gridded_data_5_test_v_20240305`
+    `emlab-gcp.piracy.gridded_data_5_v_20240307`
           LEFT JOIN
   voyage_info
   USING(trip_id)
