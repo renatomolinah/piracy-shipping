@@ -135,13 +135,6 @@ list(
                   # Trigger re-run of this if timestamp changes for voyage_info_bq
                   voyage_info_bq)
   ),
-  # Create subsample of ungridded data for testing purposes
-  # Filter to just those trips which began and ended in 2019
-  tar_target(
-    name = ungridded_data_test_bq,
-    run_gfw_query(sql = "SELECT * FROM `emlab-gcp.piracy.ungridded_data_v_20240228` WHERE departure_timestamp >= '2019-01-01' AND arrival_timestamp <= '2019-12-31'",
-                  bq_table_name = "ungridded_data_test_v_20240305")
-  ),
   # Aggregate ungridded data to level of trip departure date and 5x5 degree pixels
   # This will eventually further be aggregated to the voyage-level for the voyage-level analysis
   # This loads the SQL query
