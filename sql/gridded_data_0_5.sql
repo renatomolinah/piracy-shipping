@@ -24,7 +24,7 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20240305`),
+    `emlab-gcp.piracy.ungridded_data_v_20240228`),
   # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
   binned AS(
   SELECT

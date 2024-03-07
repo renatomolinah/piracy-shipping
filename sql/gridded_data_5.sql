@@ -34,7 +34,7 @@ WITH
     FROM
       timestamp) wind_year
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20240305`),
+    `emlab-gcp.piracy.ungridded_data_v_20240228`),
   # Load 5x5 degree wind data
   wind_info AS(
   SELECT
