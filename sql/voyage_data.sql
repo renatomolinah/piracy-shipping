@@ -14,6 +14,7 @@ vessel_info AS(
     from_country,
     to_port,
     to_country,
+    total_haversine_distance_km
   FROM
     `emlab-gcp.piracy.voyage_info_v_20240228` ),
   gridded_data AS(
