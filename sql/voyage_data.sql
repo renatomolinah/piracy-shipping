@@ -14,34 +14,29 @@ vessel_info AS(
     from_country,
     to_port,
     to_country,
+    total_haversine_distance_km
   FROM
     `emlab-gcp.piracy.voyage_info_v_20240228` ),
   gridded_data AS(
-  # Calculate wind vector based on direction and heading
-  SELECT
-    * EXCEPT(wind_direction_degrees,heading),
-  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector,
-  EXTRACT(MONTH
-    FROM
-      date) month
-  FROM
-    `emlab-gcp.piracy.{gridded_data_table_location}`),
-  fuel_prices AS(
   SELECT
     *
+  FROM
+    `emlab-gcp.piracy.gridded_data_5_v_20240307`),
+  # We will add fuel prices based on the voyage departure date
+  fuel_prices AS(
+  SELECT
+    * EXCEPT(date),
+    date departure_date
   FROM
     `emlab-gcp.piracy.fuel_prices_v_20240228`),
   aggregated AS(
   SELECT
     mmsi,
     trip_id,
-    date,
-    month,
-    year,
+    departure_date,
     SUM(hours) hours,
     SUM(distance_km) distance_km,
     SUM(ais_messages) ais_messages,
-    AVG(wind_speed_ms) wind_speed_ms,
     AVG(wind_vector) wind_vector,
     SUM(grid_area_km2) voyage_grid_area_km2,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
@@ -59,8 +54,7 @@ vessel_info AS(
   GROUP BY
     mmsi,
     trip_id,
-    date,
-    month,
+    departure_date,
     year),
   aggregated_with_voyage_fuel AS(
   SELECT
@@ -84,11 +78,10 @@ average_route_attacks_per_route_and_trip AS(
 SELECT
 *
 FROM 
-`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_v_20240228`
+`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_v_20240307`
 )
 SELECT
-  * EXCEPT(month,
-      main_fuel_consumption_mt_inst,
+  * EXCEPT(main_fuel_consumption_mt_inst,
       aux_fuel_consumption_mt_inst,
       main_fuel_consumption_mt_voyage,
       aux_fuel_consumption_mt_voyage,
@@ -128,7 +121,7 @@ USING
 LEFT JOIN
   fuel_prices
 USING
-  (date)
+  (departure_date)
     LEFT JOIN
   voyage_info
 USING

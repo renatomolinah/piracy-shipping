@@ -1,12 +1,10 @@
 # Description:
-# Here we aggregate the data up to either 5x5 degree grids, or 0.5x0.5 degree grids for JC's analysis. 
-#For the 0.5x0.5 degree aggregation, we aggregate shipping activity at the daily vessel level, 
-# and determine our pirate attack indicators based on that date. 
-# For the 5x5 degree grids, we aggregate shipping activity at the vessel level based on voyage departure date, 
-#and determine our pirate attack indicators based on that voyage departure date 
-# (since this dataset will be the one that gets aggregated to the voyage-level in the final below). 
-#For the 5x5 degree analysis, we also add our wind speed and heading data for each grid 
-# matched to the day each voyage passes through each grid.
+# Here we aggregate the data up to 5x5 degree grids
+# we aggregate shipping activity at the vessel level based on voyage departure date, 
+# and determine our pirate attack indicators based on that voyage departure date 
+# This dataset will be the one that gets aggregated to the voyage-level dataset. 
+# We also add monthly wind speed and heading data for each grid 
+# matched to the month each voyage passes through each grid. This is used to calculate the wind vector
 #standardSQL
 CREATE TEMPORARY FUNCTION
   pixel_size() AS ({pixel_size});
@@ -18,11 +16,7 @@ WITH
   SELECT
     mmsi,
     trip_id,
-    # For voyage-level analysis, we use trip deparature date for determining which attacks occurred before that
-    # for grid-level analysis, we use actual activity date for determining which attacks occurred before that
-    {ifelse(voyage_level,
-      'DATE(departure_timestamp)',
-      'DATE(timestamp)')} date,
+    # For 5x5 voyage-level analysis, we use trip deparature date for determining which attacks occurred before that
     DATE(departure_timestamp) departure_date,
     hours,
     distance_km,
@@ -32,7 +26,7 @@ WITH
     # Assign lat and lon bins based on pixel size
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin,
-    # We will add wind data at the actual date on which activity occurred, regardless of the aggregation
+    # We will add wind data at the actual date on which activity occurred, not the departure date
       EXTRACT(MONTH
     FROM
       timestamp) wind_month,
@@ -40,7 +34,8 @@ WITH
     FROM
       timestamp) wind_year
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20240228`),
+    `emlab-gcp.piracy.ungridded_data_v_20240305`),
+  # Load 5x5 degree wind data
   wind_info AS(
   SELECT
     EXTRACT(YEAR
@@ -54,39 +49,43 @@ WITH
     wind_speed_ms,
     wind_direction_degrees
   FROM
-    `emlab-gcp.piracy.{wind_table_location}`),
-  # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
+    `emlab-gcp.piracy.wind_data_5_v_20240228`),
+  # Now add wind data to AIS messages by appropriate location, month and year
+  ais_positions_with_wind as(
+    SELECT
+    *,
+    # Calculate wind vector, which combines wind speed and vessel heading
+    COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector
+    FROM
+    ais_positions
+    LEFT JOIN
+    wind_info
+    USING(lat_bin,lon_bin,wind_month,wind_year)
+  ),
+  # Summarize hours, distance, and message by vessel-by-trip-by-departure_date-by-grid
   binned AS(
   SELECT
     mmsi,
     trip_id,
     lat_bin,
     lon_bin,
-    date,
-    # Need to include wind_month and wind_year for matching to wind data
-    # when making grid-level dataset that will feed into the voyage-level dataset
-    {ifelse(voyage_level,
-      'wind_month,wind_year,',
-      '')}
+    departure_date,
     SUM(hours) hours,
     SUM(distance_km) distance_km,
     COUNT(*) ais_messages,
     AVG(heading) heading,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
-    SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst
+    SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
+    AVG(wind_vector) wind_vector,
+    AVG(wind_speed_ms) wind_speed_ms
   FROM
-    ais_positions
+    ais_positions_with_wind
   GROUP BY
     mmsi,
     trip_id,
     lat_bin,
     lon_bin,
-        # Need to include wind_month and wind_year for matching to wind data
-    # when making grid-level dataset that will feed into the voyage-level dataset
-        {ifelse(voyage_level,
-      'wind_month,wind_year,',
-      '')}
-    date),
+    departure_date),
   # Select attack info
   # Select all rows except those encounters that are labeled as suspicious approaches
   # Then aggregate by summing the number of encounters per lat_bin/lon_bin/attack_date
@@ -132,16 +131,16 @@ WITH
   GROUP BY
     lat_bin,
     lon_bin),
-  # Each row will be a vessel-by-trip-by-date-by-grid-by-attack
+  # Each row will be a vessel-by-trip-by-departure_date-by-grid-by-attack
   by_voyage_date_grid_attack AS(
   SELECT
     mmsi,
     trip_id,
     lat_bin,
     lon_bin,
-    date,
+    departure_date,
     number_attacks,
-    DATE_DIFF(date, attack_date, DAY) days_since_attack,
+    DATE_DIFF(departure_date, attack_date, DAY) days_since_attack,
     # From GFW: https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/blob/master/queries/fishing_hours_gridded.sql
     # At the equator, a one degree cell is approximately 111 km2 on a side
     # Moving away from the poles, the distance of one degree of longitude changes
@@ -156,8 +155,8 @@ WITH
   ON
     binned.lat_bin = attack_info_base.attack_lat_bin
     AND binned.lon_bin = attack_info_base.attack_lon_bin
-    AND binned.date > attack_info_base.attack_date),
-  # Each row will be a vessel-by-trip-by-date-by-grid-by-attack
+    AND binned.departure_date > attack_info_base.attack_date),
+  # Each row will be a vessel-by-trip-by-departure_date-by-grid-by-attack
   # For all encounter types
   by_voyage_date_grid_attack_all_encounters AS(
   SELECT
@@ -165,16 +164,9 @@ WITH
     trip_id,
     lat_bin,
     lon_bin,
-    date,
+    departure_date,
     number_attacks,
-    DATE_DIFF(date, attack_date, DAY) days_since_attack,
-    # From GFW: https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/blob/master/queries/fishing_hours_gridded.sql
-    # At the equator, a one degree cell is approximately 111 km2 on a side
-    # Moving away from the poles, the distance of one degree of longitude changes
-    # due to the shape of a globe. Thus, we need to adjust the distance in km of
-    # longitude based on latitude using the formula cos(radians(latitude)).
-    # We also multiply 111 by the final resolution of the grid cell
-    COS(RADIANS(binned.lat_bin)) * (111*pixel_size()) * (111*pixel_size()) grid_area_km2
+    DATE_DIFF(departure_date, attack_date, DAY) days_since_attack
   FROM
     binned
   LEFT JOIN
@@ -182,13 +174,13 @@ WITH
   ON
     binned.lat_bin = attack_info_base_all_encounters.attack_lat_bin
     AND binned.lon_bin = attack_info_base_all_encounters.attack_lon_bin
-    AND binned.date > attack_info_base_all_encounters.attack_date),
-  # Now summarize attacks where each row is vessel-by-trip-by-date-by-grid
+    AND binned.departure_date > attack_info_base_all_encounters.attack_date),
+  # Now summarize attacks where each row is vessel-by-trip-by-departure_date-by-grid
   by_voyage_date_grid AS(
   SELECT
     mmsi,
     trip_id,
-    date,
+    departure_date,
     lat_bin,
     lon_bin,
     grid_area_km2,
@@ -214,17 +206,17 @@ WITH
   GROUP BY
     mmsi,
     trip_id,
-    date,
+    departure_date,
     lat_bin,
     lon_bin,
     grid_area_km2),
-  # Now summarize attacks where each row is vessel-by-trip-by-date-by-grid
+  # Now summarize attacks where each row is vessel-by-trip-by-departure_date-by-grid
   # For all encounter types
   by_voyage_date_grid_all_encounters AS(
   SELECT
     mmsi,
     trip_id,
-    date,
+    departure_date,
     lat_bin,
     lon_bin,
     SUM(
@@ -235,7 +227,7 @@ WITH
   GROUP BY
     mmsi,
     trip_id,
-    date,
+    departure_date,
     lat_bin,
     lon_bin),
 # Get vessel info, which is pre-filtered list of cargo vessels
@@ -249,40 +241,39 @@ vessel_info AS(
   FROM
     `emlab-gcp.piracy.vessel_info` )
 SELECT
-  {ifelse(voyage_level,
-  '* EXCEPT(grid_attacked_in_study_period,wind_month,wind_year)',
-  '* EXCEPT(grid_attacked_in_study_period)')},
-  EXTRACT(YEAR from date) AS year,
+    * EXCEPT(grid_attacked_in_study_period),
+    EXTRACT(YEAR from departure_date) AS year,
   IFNULL(grid_attacked_in_study_period,FALSE) grid_attacked_in_study_period,
 IF
   (number_previous_attacks_grid_all_time >0,TRUE,FALSE) grid_has_previous_attacks,
   {hotspots_sql}
 FROM
 binned
+# Add attack info for all encounters except suspicious encounters
 LEFT JOIN
   by_voyage_date_grid
 USING
   (mmsi,
     trip_id,
-    date,
+    departure_date,
     lat_bin,
     lon_bin)
     LEFT JOIN
+# Add attack info for all encounters
   by_voyage_date_grid_all_encounters
 USING
   (mmsi,
     trip_id,
-    date,
+    departure_date,
     lat_bin,
     lon_bin)
+# Add info for whether there were attacks in the study period
 LEFT JOIN
   attack_info_base_in_study_period
 USING
   (lon_bin,
     lat_bin)
+# Add vessel info
 LEFT JOIN
 vessel_info
 USING(mmsi)
-# For voyage-level analysis based on 5x5 degree data, add wind data
-    {ifelse(voyage_level,
-      'LEFT JOIN wind_info USING (wind_month,wind_year,lat_bin,lon_bin)','')}

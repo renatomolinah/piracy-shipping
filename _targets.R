@@ -31,7 +31,8 @@ ggplot2::theme_set(ggplot2::theme_bw() +
                                     panel.border = ggplot2::element_blank(),
                                     panel.grid.minor = ggplot2::element_blank()))
 
-# Replace the target list below with your own:
+# Note: Any target name that includes _bq at the end creates a table on BigQuery
+# in the emlab-gcp.piracy dataset
 list(
   # Process ASAM encounter data
   tar_target(
@@ -134,23 +135,41 @@ list(
                   # Trigger re-run of this if timestamp changes for voyage_info_bq
                   voyage_info_bq)
   ),
-  # Process gridded data for 5x5 degree voyage-level analysis, which aggregates ungridded data to different pixel resolutions
+  # Aggregate ungridded data to level of trip departure date and 5x5 degree pixels
+  # This will eventually further be aggregated to the voyage-level for the voyage-level analysis
   # This loads the SQL query
   tar_target(
-    name = gridded_data_sql,
-    "sql/gridded_data.sql",
+    name = gridded_data_5_sql,
+    "sql/gridded_data_5.sql",
     format = "file"
   ),
-  # Here we make a 5x5 degree gridded dataset. This will serve as the basis of the voyage-level analysis
+  # Run the query and save it on BQ
   tar_target(
     name = gridded_data_5_bq,
-    run_gfw_query(sql = gridded_data_sql %>%
+    run_gfw_query(sql = gridded_data_5_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5,
-                               voyage_level = TRUE,
-                               hotspots = hotspots_sql,
-                               wind_table_location = "wind_data_5_v_20240228"),
-                  bq_table_name = "gridded_data_5_v_20240228", 
+                               hotspots = hotspots_sql),
+                  bq_table_name = "gridded_data_5_v_20240307", 
+                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
+                  ungridded_data_bq)
+  ),
+  # Aggregate ungridded data to level of shipping activity date and 0.5x0.5 degree pixels
+  # This will be the basis of the grid-level analysis
+  # This loads the SQL query
+  tar_target(
+    name = gridded_data_0_5_sql,
+    "sql/gridded_data_0_5.sql",
+    format = "file"
+  ),
+  # Run the query and save it on BQ
+  tar_target(
+    name = gridded_data_0_5_bq,
+    run_gfw_query(sql = gridded_data_0_5_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 0.5,
+                               hotspots = hotspots_sql),
+                  bq_table_name = "gridded_data_0_5_v_20240307", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)
   ),
@@ -181,30 +200,16 @@ list(
     name = aggregate_spatial_shipping_activity_bq,
     run_gfw_query(sql = aggregate_spatial_shipping_activity_sql %>%
                     readr::read_file(),
-                  bq_table_name = "aggregate_spatial_shipping_activity_v_20240228", 
+                  bq_table_name = "aggregate_spatial_shipping_activity_v_20240307", 
                   # Trigger re-run of this if timestamp changes for gridded_data_0_5_bq
                   gridded_data_0_5_bq)
   ),
   # Pull gridded shipipng data locally
   tar_target(
     name = aggregate_spatial_shipping_activity,
-    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity_v_20240228", 
+    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity_v_20240307", 
                   # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
                   aggregate_spatial_shipping_activity_bq)
-  ),
-  # Here we make a 0.5x0.5 degree gridded dataset. This will serve as the basis of the grid-level analysis
-  # Run this query and save to BigQuery
-  tar_target(
-    name = gridded_data_0_5_bq,
-    run_gfw_query(sql = gridded_data_sql %>%
-                    readr::read_file() %>%
-                    glue::glue(pixel_size = 0.5,
-                               voyage_level = FALSE,
-                               hotspots = hotspots_sql,
-                               wind_table_location = "wind_data_5_v_20240228"),
-                  bq_table_name = "gridded_data_0_5_v_20240228", 
-                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
-                  ungridded_data_bq)
   ),
   # Process the average number of attacks that occurred along each route, by trip
   tar_target(
@@ -218,7 +223,7 @@ list(
     name = average_route_attacks_per_route_and_trip_bq,
     run_gfw_query(sql = average_route_attacks_per_route_and_trip_sql %>%
                     readr::read_file(),
-                  bq_table_name = "average_route_attacks_per_route_and_trip_v_20240228", 
+                  bq_table_name = "average_route_attacks_per_route_and_trip_v_20240307", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq)
   ),
@@ -232,9 +237,8 @@ list(
   tar_target(
     name = voyage_data_bq,
     run_gfw_query(sql = voyage_data_sql %>%
-                    readr::read_file() %>%
-                    glue::glue(gridded_data_table_location = "gridded_data_5_v_20240228"),
-                  bq_table_name = "voyage_data_5_v_20240228", 
+                    readr::read_file(),
+                  bq_table_name = "voyage_data_5_v_20240307", 
                   #Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
                   # Trigger re-run of this if timestamp changes for average_route_attacks_per_route_and_trip_bq
@@ -243,7 +247,7 @@ list(
   # Pull voyage-level data from BigQuery to local environment
   tar_target(
     name = voyage_data,
-    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240228", 
+    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240307", 
                           # Trigger re-run of this if timestamp changes for voyage_data_bq
                           voyage_data_bq)
   ),
@@ -277,14 +281,14 @@ list(
     name = shipping_activity_by_year_eez_bq,
     run_gfw_query(sql = shipping_activity_by_year_eez_sql %>%
                     readr::read_file(),
-                  bq_table_name = "shipping_activity_by_year_eez_v_20240228", 
+                  bq_table_name = "shipping_activity_by_year_eez_v_20240307", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)
   ),
   # Pull the annual shipping activty by EEZ data locally
   tar_target(
     name = shipping_activity_by_year_eez,
-    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez_v_20240228", 
+    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez_v_20240307", 
                   # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
                   shipping_activity_by_year_eez_bq)
   )
