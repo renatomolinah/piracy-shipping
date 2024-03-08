@@ -38,6 +38,7 @@ vessel_info AS(
     SUM(distance_km) distance_km,
     SUM(ais_messages) ais_messages,
     AVG(wind_vector) wind_vector,
+    AVG(wind_speed_ms) wind_speed_ms,
     SUM(grid_area_km2) voyage_grid_area_km2,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
