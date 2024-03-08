@@ -88,7 +88,7 @@ WITH
   WHERE
     number_attacks >0
     AND attack_date >= '2013-01-01'
-    AND attack_date <= '2022-12-31'
+    AND attack_date <= '2021-12-31'
   GROUP BY
     lat_bin,
     lon_bin),

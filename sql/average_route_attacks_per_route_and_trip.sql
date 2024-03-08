@@ -9,7 +9,7 @@ WITH
   FROM
     `emlab-gcp.piracy.voyage_info_v_20240228` ),
   # for each trip occurring on each departure date and route, calculate the total number of attacks that occurred along the grids within the last 12 months
-  # do this for just pirate attacks, and all encounter types
+  # do this for just pirate attacks, and then for all encounter types
   total_attacks_by_trips_on_date AS(
   SELECT
     departure_date,
