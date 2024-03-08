@@ -40,8 +40,8 @@ process_asam_data <- function(asam_data,
     # Remove duplicates
     dplyr::filter(row_number() == 1) %>%
     dplyr::ungroup() %>%
-    # Only include attacks in 2022 or before
-    dplyr::filter(lubridate::year(date) <= 2022) %>%
+    # Only include attacks in 2021 or before
+    dplyr::filter(lubridate::year(date) <= 2021) %>%
     # Extract lat and lon columns
     dplyr::mutate(lon = sf::st_coordinates(.)[,1],
                   lat = sf::st_coordinates(.)[,2]) %>%
@@ -65,12 +65,12 @@ process_asam_data <- function(asam_data,
 }
 
 # Make global map, which will include ASAM attacks and eventually shipping activity
-make_global_map_figure <- function(asam_data_processed,
+make_global_map_figure <- function(asam_with_hotspots,
                                    hotspots,
                                    aggregate_spatial_shipping_activity,
                                    map_projection,
                                    attack_year_min = 2013,
-                                   attack_year_max = 2022){
+                                   attack_year_max = 2021){
   
   shipping_data_stars <- aggregate_spatial_shipping_activity %>%
     stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
@@ -78,12 +78,14 @@ make_global_map_figure <- function(asam_data_processed,
     sf::st_as_sf()%>%
     sf::st_transform(map_projection)
   
-  asam_data_processed_sf <- asam_data_processed %>%
+  asam_data_processed_sf <- asam_with_hotspots %>%
+    # Only include encounters that are not suspicious approaches
+    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
     sf::st_as_sf(coords = c("lon","lat"),
                  crs = sf::st_crs(4326)) %>%
     sf::st_transform(map_projection) %>%
-    dplyr::filter(lubridate::year(date) >= attack_year_min,
-                  lubridate::year(date) <= attack_year_max)
+    dplyr::filter(year >= attack_year_min,
+                  year <= attack_year_max)
   
   # Load world land
   world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
@@ -261,7 +263,7 @@ process_fuel_data <- function(fuel_file,
 
 # Generate piracy attack hotspot boundaries
 # use dbscan to generate clusters, focusing on a specified year range
-generate_asam_with_hotspots <- function(asam_data_processed,
+generate_hotspot_boundaries <- function(asam_data_processed,
                                         year_min = 2010,
                                         years_to_include = 12){
   
@@ -277,17 +279,16 @@ generate_asam_with_hotspots <- function(asam_data_processed,
                                  eps = 10, #km
                                  MinPts = 300)
 
-  asam_filtered %>%
+  asam_with_clusters <- asam_filtered %>%
     dplyr::mutate(cluster_number = dbscan_clusters$cluster)%>%
     dplyr::mutate(cluster = dplyr::case_when(cluster_number == 1 ~ "hotspot_southeast_asia",
                                              cluster_number == 2 ~ "hotspot_gulf_of_aden",
                                              cluster_number == 3 ~ "hotspot_gulf_of_guinea",
                                              TRUE ~ "0"))
-}
-
-# Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
-# Round this up or down to nearest 5 degrees, to match units of analysis
-generate_hotspot_boundaries <- function(asam_with_clusters){
+  
+  # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
+  # Round this up or down to nearest 5 degrees, to match units of analysis
+  
   purrr::map(unique(asam_with_clusters$cluster),function(x){
     temp_df <- asam_with_clusters %>%
       dplyr::filter(cluster == x)
@@ -301,6 +302,31 @@ generate_hotspot_boundaries <- function(asam_with_clusters){
     dplyr::filter(cluster != "0")
 }
 
+assign_hotspot_to_asam <- function(asam_data_processed,
+                                   hotspots){
+  
+  asam_data_processed  %>%
+    dplyr::cross_join(hotspots) %>%
+    dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
+    dplyr::select(asam_reference,
+                  cluster,
+                  attack_in_hotspot) %>%
+    tidyr::pivot_wider(names_from = cluster,
+                       values_from = attack_in_hotspot) %>%
+    dplyr::mutate(rest_of_world = ifelse(!hotspot_southeast_asia &
+                                           !hotspot_gulf_of_aden &
+                                           !hotspot_gulf_of_guinea,
+                                         TRUE,
+                                         FALSE)) %>%
+    tidyr::pivot_longer(cols = c(hotspot_southeast_asia,
+                                 hotspot_gulf_of_aden,
+                                 hotspot_gulf_of_guinea,
+                                 rest_of_world),
+                        names_to = "cluster",
+                        values_to = "attack_in_hotspot")
+
+}
+
 # Code to generate SQL for assigning lat/lon to hotspots
 generate_hotspot_sql <- function(hotspots){
   hotspots %>%
@@ -308,23 +334,19 @@ generate_hotspot_sql <- function(hotspots){
     .$cluster_filter %>% paste0(.,collapse = ", ")
 }
 
-
-make_encounter_time_series_figure <- function(asam_data_processed,
-                                           hotspots,
-                                           attack_year_min = 2005,
-                                           attack_year_max = 2022){
+# Take ASAM data and add hotspot info, based on the hotspots boundaries
+generate_asam_with_hotspots <- function(asam_data_processed,
+                               hotspots){
   
-  # Assign all 2005+ attacks to a hotspot cluster
-  plot_data<-asam_data_processed  %>%
-    # Only include encounters that are not suspicious approaches
-    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
-    dplyr::mutate(year = lubridate::year(date)) %>%
-    dplyr::filter(year >= attack_year_min) %>%
-    dplyr::filter(year <= attack_year_max) %>%
+  asam_data_processed   %>%
+    dplyr::mutate(year = lubridate::year(date))%>%
     dplyr::cross_join(hotspots) %>%
     dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
     dplyr::select(asam_reference,
+                  encounter_type,
                   year,
+                  lon,
+                  lat,
                   cluster,
                   attack_in_hotspot) %>%
     tidyr::pivot_wider(names_from = cluster,
@@ -340,7 +362,20 @@ make_encounter_time_series_figure <- function(asam_data_processed,
                                  rest_of_world),
                         names_to = "cluster",
                         values_to = "attack_in_hotspot") %>%
-    dplyr::filter(attack_in_hotspot)
+    dplyr::filter(attack_in_hotspot) %>%
+    dplyr::select(-attack_in_hotspot)
+}
+
+
+make_encounter_time_series_figure <- function(asam_with_hotspots,
+                                           attack_year_min = 2005,
+                                           attack_year_max = 2021){
+  
+  plot_data<-asam_with_hotspots  %>%
+    # Only include encounters that are not suspicious approaches
+    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
+    dplyr::filter(year >= attack_year_min) %>%
+    dplyr::filter(year <= attack_year_max)
   
   plot <- plot_data %>%
     dplyr::group_by(year,cluster) %>%
@@ -360,7 +395,7 @@ make_encounter_time_series_figure <- function(asam_data_processed,
                                palette = "Dark2") +
     ggplot2::labs(x = "",
                   y = "Number of encounters\n") +
-    ggplot2::scale_x_continuous(breaks = seq(2005,2022,2))
+    ggplot2::scale_x_continuous(breaks = seq(2005,2021,2))
   
   ggplot2::ggsave(filename = "figures/encounter_time_series.png",
                   plot,

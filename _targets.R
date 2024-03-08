@@ -49,17 +49,17 @@ list(
     process_asam_data(asam_data,
                       table_name = "asam_data_v_20240228")
   ),
-  # Add clusters to encounter data
+  # Create hotspot cluster bounding boxes, using attacks from 2010 - 2021
   tar_target(
-    name = asam_with_hotspots,
-    generate_asam_with_hotspots(asam_data_processed,
+    name = hotspots,
+    generate_hotspot_boundaries(asam_data_processed,
                                 year_min = 2010,
                                 years_to_include = 12)
   ),
-  # Create hotspot cluster bounding boxes
+  # # Using hotspot cluster bounding boxes, assign hotspot to each asam attack
   tar_target(
-    name = hotspots,
-    generate_hotspot_boundaries(asam_with_hotspots)
+    name = asam_with_hotspots,
+    generate_asam_with_hotspots(asam_data_processed, hotspots)
   ),
   # Create SQL code for hotspot cluster bounding boxes
   # This will go into the gridded SQL queries
@@ -267,8 +267,7 @@ list(
   # Make barplot that shows attacks over time, by hotspot
   tar_target(
     name = encounter_time_series_figure,
-    make_encounter_time_series_figure(asam_data_processed,
-                                      hotspots)
+    make_encounter_time_series_figure(asam_with_hotspots)
   ),
   # Summarize annual shipping activity by EEZ
   tar_target(
