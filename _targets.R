@@ -211,19 +211,19 @@ list(
                   # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
                   aggregate_spatial_shipping_activity_bq)
   ),
-  # Process the average number of attacks that occurred along each route, by trip
+  # Process the total number of attacks that occurred along each route, by trip, over a rolling time window
   tar_target(
-    name = average_route_attacks_per_route_and_trip_sql,
-    "sql/average_route_attacks_per_route_and_trip.sql",
+    name = total_rolling_route_attacks_per_trip_sql,
+    "sql/total_rolling_route_attacks_per_trip.sql",
     format = "file"
   ),
-  # Run the query to generate the average number of attacks that occurred along each route, by trip
+  # Run the query to generate total_rolling_route_attacks_per_trip_sql
   # Save to BigQuery
   tar_target(
-    name = average_route_attacks_per_route_and_trip_bq,
-    run_gfw_query(sql = average_route_attacks_per_route_and_trip_sql %>%
+    name = total_rolling_route_attacks_per_trip_bq,
+    run_gfw_query(sql = total_rolling_route_attacks_per_trip_sql %>%
                     readr::read_file(),
-                  bq_table_name = "average_route_attacks_per_route_and_trip_v_20240307", 
+                  bq_table_name = "total_rolling_route_attacks_per_trip_v_20240312", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq)
   ),
