@@ -156,7 +156,7 @@ list(
   ),
   # For robustness check, make another version of this table that is 3x3 degrees
   tar_target(
-    name = gridded_data_5_bq,
+    name = gridded_data_3_bq,
     run_gfw_query(sql = gridded_data_5_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3,
@@ -167,7 +167,7 @@ list(
   ),
   # For robustness check, make another version of this table that is 7x7 degrees
   tar_target(
-    name = gridded_data_5_bq,
+    name = gridded_data_7_bq,
     run_gfw_query(sql = gridded_data_5_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 7,
@@ -266,9 +266,13 @@ list(
                     readr::read_file(),
                   bq_table_name = "voyage_data_5_v_20240312", 
                   #Trigger re-run of this if timestamp changes for gridded_data_5_bq
-                  gridded_data_5_bq,
-                  # Trigger re-run of this if timestamp changes for average_route_attacks_per_route_and_trip_bq
-                  average_route_attacks_per_route_and_trip_bq)
+                  gridded_data_5_bq, 
+                  #Trigger re-run of this if timestamp changes for gridded_data_3_bq
+                  gridded_data_3_bq, 
+                  #Trigger re-run of this if timestamp changes for gridded_data_7_bq
+                  gridded_data_7_bq,
+                  # Trigger re-run of this if timestamp changes for total_rolling_route_attacks_per_trip_bq
+                  total_rolling_route_attacks_per_trip_bq)
   ),
   # Pull voyage-level data from BigQuery to local environment
   tar_target(

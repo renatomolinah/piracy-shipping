@@ -65,7 +65,7 @@ vessel_info AS(
   FROM
     `emlab-gcp.piracy.gridded_data_3_v_20240312`
   GROUP BY
-    trip_id)),
+    trip_id),
     # For robustness check, add number_previous_attacks_* for 7 degree version of gridded dataset
   aggregated_7_degrees AS(
   SELECT
@@ -96,11 +96,17 @@ USING
 # For each trip, this summarize the total number of attacks in the grids
 # that voyages have previously passed through for that route (including the current voyage),
 # over different rolling windows
+# We can replace NULL values with 0s, since even trips with no previous trips along that route
+# can count attacks over the grids that the trip actually passes through. If no attacks are counted,
+# it's a true 0
 total_rolling_route_attacks_per_trip AS(
 SELECT
-*
+  trip_id,
+  IFNULL(total_route_attacks_last_3_months, 0) total_route_attacks_last_3_months,
+  IFNULL(total_route_attacks_last_6_months, 0) total_route_attacks_last_6_months,
+  IFNULL(total_route_attacks_last_12_months,0) total_route_attacks_last_12_months
 FROM 
-`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_20240312`
+`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_v_20240312`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,
@@ -110,7 +116,7 @@ SELECT
       price_usd_mt,
       hotspot_southeast_asia,
       hotspot_gulf_of_aden,
-      hotspot_gulf_of_guinea,
+      hotspot_gulf_of_guinea),
   price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
   3.17 * total_fuel_consumption_mt_voyage emissions_co2_mt_voyage,
   87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt_voyage emissions_nox_kg_voyage,
