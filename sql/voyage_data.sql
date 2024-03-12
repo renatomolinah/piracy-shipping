@@ -43,9 +43,9 @@ vessel_info AS(
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
     SUM(main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) total_fuel_consumption_mt_inst,
-    SUM(number_previous_attacks_grid_all_time) number_previous_attacks_all_time,
-    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months,
-    SUM(number_previous_attacks_grid_12_months_all_encounters) number_previous_attacks_12_months_all_encounter_types,
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_5_degrees,
+    SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_5_degrees,
+    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_5_degrees,
     MIN(days_since_attack) days_since_attack,
     SUM(hotspot_southeast_asia) hotspot_southeast_asia,
     SUM(hotspot_gulf_of_aden) hotspot_gulf_of_aden,
@@ -57,6 +57,24 @@ vessel_info AS(
     trip_id,
     departure_date,
     year),
+    # For robustness check, add number_previous_attacks_* for 3 degree version of gridded dataset
+  aggregated_3_degrees AS(
+  SELECT
+    trip_id,
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_3_degrees
+  FROM
+    `emlab-gcp.piracy.gridded_data_3_v_20240312`
+  GROUP BY
+    trip_id)),
+    # For robustness check, add number_previous_attacks_* for 7 degree version of gridded dataset
+  aggregated_7_degrees AS(
+  SELECT
+    trip_id,
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_7_degrees
+  FROM
+    `emlab-gcp.piracy.gridded_data_7_v_20240312`
+  GROUP BY
+    trip_id),
   aggregated_with_voyage_fuel AS(
   SELECT
     *,
@@ -75,11 +93,14 @@ vessel_info AS(
   vessel_info
 USING
   (mmsi)),
-average_route_attacks_per_route_and_trip AS(
+# For each trip, this summarize the total number of attacks in the grids
+# that voyages have previously passed through for that route (including the current voyage),
+# over different rolling windows
+total_rolling_route_attacks_per_trip AS(
 SELECT
 *
 FROM 
-`emlab-gcp.piracy.average_route_attacks_per_route_and_trip_v_20240307`
+`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_20240312`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,
@@ -90,18 +111,6 @@ SELECT
       hotspot_southeast_asia,
       hotspot_gulf_of_aden,
       hotspot_gulf_of_guinea,
-  average_route_attacks_last_3_months,
-  average_route_attacks_last_6_months,
-  average_route_attacks_last_9_months,
-  average_route_attacks_last_12_months,
-  average_route_attacks_last_24_months,
-  average_route_attacks_last_3_months_all_encounter_types),
-  IFNULL(average_route_attacks_last_3_months,0) average_route_attacks_last_3_months,
-  IFNULL(average_route_attacks_last_6_months,0) average_route_attacks_last_6_months,
-  IFNULL(average_route_attacks_last_9_months,0) average_route_attacks_last_9_months,
-  IFNULL(average_route_attacks_last_12_months,0) average_route_attacks_last_12_months,
-  IFNULL(average_route_attacks_last_24_months,0) average_route_attacks_last_24_months,
-  IFNULL(average_route_attacks_last_3_months_all_encounter_types,0) average_route_attacks_last_3_months_all_encounter_types,
   price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
   3.17 * total_fuel_consumption_mt_voyage emissions_co2_mt_voyage,
   87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt_voyage emissions_nox_kg_voyage,
@@ -115,14 +124,25 @@ SELECT
   IF(hotspot_gulf_of_guinea>0,TRUE,FALSE) hotspot_gulf_of_guinea
 FROM
   aggregated_with_voyage_fuel
+# Add attack indicators for 3 degree robustness check
+LEFT JOIN
+aggregated_3_degrees
+USING(trip_id)
+# Add attack indicators for 3 degree robustness check
+LEFT JOIN
+aggregated_7_degrees
+USING(trip_id)
+# Add attack indicators for total previous attacks along all observed routes
 LEFT  JOIN
-average_route_attacks_per_route_and_trip
+total_rolling_route_attacks_per_trip
 USING
 (trip_id)
+# Add monthly fuel prices
 LEFT JOIN
   fuel_prices
 USING
   (departure_date)
+# Add voyage info
     LEFT JOIN
   voyage_info
 USING
