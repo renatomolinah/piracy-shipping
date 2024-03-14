@@ -109,6 +109,23 @@ SELECT
   *
 FROM 
 `emlab-gcp.piracy.total_rolling_route_attacks_per_trip_3_degrees_v_20240314`
+),
+# For each trip, this summarize the average number of attacks previous trips and grids
+# that voyages have previously passed through for that route (not including the current voyage),
+# over different rolling windows
+# Load 5 degree version
+average_rolling_route_attacks_per_trip_5_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.average_rolling_route_attacks_per_trip_5_degrees_v_20240314`
+),
+# Load 3 degree version
+average_rolling_route_attacks_per_trip_3_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.average_rolling_route_attacks_per_trip_3_degrees_v_20240314`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,
@@ -140,13 +157,22 @@ USING(trip_id)
 LEFT JOIN
 aggregated_7_degrees
 USING(trip_id)
-# Add attack indicators for total previous attacks along all observed routes
+# Add attack indicators for total previous attacks along previous grids
 LEFT  JOIN
 total_rolling_route_attacks_per_trip_5_degrees
 USING
 (trip_id)
 LEFT  JOIN
 total_rolling_route_attacks_per_trip_3_degrees
+USING
+(trip_id)
+# Add attack indicators for average previous attacks along previous trips and previous grids
+LEFT  JOIN
+average_rolling_route_attacks_per_trip_5_degrees
+USING
+(trip_id)
+LEFT  JOIN
+average_rolling_route_attacks_per_trip_3_degrees
 USING
 (trip_id)
 # Add monthly fuel prices

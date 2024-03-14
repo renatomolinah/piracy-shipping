@@ -261,9 +261,9 @@ list(
                   bq_table_name = "total_rolling_route_attacks_per_trip_5_degrees_v_20240314", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
-                  # Trigger re-run of timestamp changes ov voyage_info_bq
+                  # Trigger re-run of timestamp changes of voyage_info_bq
                   voyage_info_bq,
-                  # Trigger re-run of timestamp changes ov asam_data_processed
+                  # Trigger re-run of timestamp changes of asam_data_processed
                   asam_data_processed)
   ),
   # Also do 3 degree version
@@ -275,9 +275,45 @@ list(
                   bq_table_name = "total_rolling_route_attacks_per_trip_3_degrees_v_20240314", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
-                  # Trigger re-run of timestamp changes ov voyage_info_bq
+                  # Trigger re-run of timestamp changes of voyage_info_bq
                   voyage_info_bq,
-                  # Trigger re-run of timestamp changes ov asam_data_processed
+                  # Trigger re-run of timestamp changes of asam_data_processed
+                  asam_data_processed)
+  ),
+  # Process the average number of attacks that occurred along previous trips for each route, by trip, over a rolling time window
+  tar_target(
+    name = average_rolling_route_attacks_per_trip_sql,
+    "sql/average_rolling_route_attacks_per_trip.sql",
+    format = "file"
+  ),
+  # Run the query to generate average_rolling_route_attacks_per_trip_sql
+  # Save to BigQuery
+  # First do 5 degree version
+  tar_target(
+    name = average_rolling_route_attacks_per_trip_5_degrees_bq,
+    run_gfw_query(sql = average_rolling_route_attacks_per_trip_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 5),
+                  bq_table_name = "average_rolling_route_attacks_per_trip_5_degrees_v_20240314", 
+                  # Trigger re-run of this if timestamp changes for gridded_data_5_bq
+                  gridded_data_5_bq,
+                  # Trigger re-run of timestamp changes of voyage_info_bq
+                  voyage_info_bq,
+                  # Trigger re-run of timestamp changes of asam_data_processed
+                  asam_data_processed)
+  ),
+  # Also do 3 degree version
+  tar_target(
+    name = average_rolling_route_attacks_per_trip_3_degrees_bq,
+    run_gfw_query(sql = average_rolling_route_attacks_per_trip_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 3),
+                  bq_table_name = "average_rolling_route_attacks_per_trip_3_degrees_v_20240314", 
+                  # Trigger re-run of this if timestamp changes for gridded_data_5_bq
+                  gridded_data_5_bq,
+                  # Trigger re-run of timestamp changes of voyage_info_bq
+                  voyage_info_bq,
+                  # Trigger re-run of timestamp changes of asam_data_processed
                   asam_data_processed)
   ),
   # Process voyage-level data, which aggregates gridded data
