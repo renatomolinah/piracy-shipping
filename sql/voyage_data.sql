@@ -96,17 +96,19 @@ USING
 # For each trip, this summarize the total number of attacks in the grids
 # that voyages have previously passed through for that route (including the current voyage),
 # over different rolling windows
-# We can replace NULL values with 0s, since even trips with no previous trips along that route
-# can count attacks over the grids that the trip actually passes through. If no attacks are counted,
-# it's a true 0
-total_rolling_route_attacks_per_trip AS(
+# Load 5 degree version
+total_rolling_route_attacks_per_trip_5_degrees AS(
 SELECT
-  trip_id,
-  IFNULL(total_route_attacks_last_3_months, 0) total_route_attacks_last_3_months,
-  IFNULL(total_route_attacks_last_6_months, 0) total_route_attacks_last_6_months,
-  IFNULL(total_route_attacks_last_12_months,0) total_route_attacks_last_12_months
+  *
 FROM 
-`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_v_20240312`
+`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_5_degrees_v_20240314`
+),
+# Load 3 degree version
+total_rolling_route_attacks_per_trip_3_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_3_degrees_v_20240314`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,
@@ -140,7 +142,11 @@ aggregated_7_degrees
 USING(trip_id)
 # Add attack indicators for total previous attacks along all observed routes
 LEFT  JOIN
-total_rolling_route_attacks_per_trip
+total_rolling_route_attacks_per_trip_5_degrees
+USING
+(trip_id)
+LEFT  JOIN
+total_rolling_route_attacks_per_trip_3_degrees
 USING
 (trip_id)
 # Add monthly fuel prices

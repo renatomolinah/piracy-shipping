@@ -1,6 +1,6 @@
 #standardSQL
 CREATE TEMPORARY FUNCTION
-  pixel_size() AS (5);
+  pixel_size() AS ({pixel_size});
 WITH
   # For all attacks, get lat/lon into lat_bin/lon_bin using pixel_size
   gridded_attack_info AS(
@@ -142,11 +142,14 @@ WITH
     trip_id)
 # Now build all indicators
 # Start with voyage_info, so we get full suite of indicators for every trip_id
+# We can replace NULL values with 0s, since even trips with no previous trips along that route
+# can count attacks over the grids that the trip actually passes through. If no attacks are counted,
+# it's a true 0
 SELECT
   trip_id,
-  total_route_attacks_last_3_months,
-  total_route_attacks_last_6_months,
-  total_route_attacks_last_12_months
+  IFNULL(total_route_attacks_last_3_months, 0) total_route_attacks_last_3_months_{pixel_size}_degrees,
+  IFNULL(total_route_attacks_last_6_months, 0) total_route_attacks_last_6_months_{pixel_size}_degrees,
+  IFNULL(total_route_attacks_last_12_months,0) total_route_attacks_last_12_months_{pixel_size}_degrees
 FROM
   voyage_info
 LEFT JOIN
