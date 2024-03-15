@@ -188,9 +188,10 @@ WITH
   # Start with voyage_info, so we get full suite of indicators for every trip_id
 SELECT
   trip_id,
-  average_route_attacks_last_3_months average_route_attacks_last_3_months_{pixel_size}_degrees,
-  average_route_attacks_last_6_months average_route_attacks_last_6_months_{pixel_size}_degrees,
-  average_route_attacks_last_12_months average_route_attacks_last_12_months_{pixel_size}_degrees
+  # Replace NULLs with 0s, since they're true zeros
+  IFNULL(average_route_attacks_last_3_months,0) average_route_attacks_last_3_months_{pixel_size}_degrees,
+  IFNULL(average_route_attacks_last_6_months,0) average_route_attacks_last_6_months_{pixel_size}_degrees,
+  IFNULL(average_route_attacks_last_12_months,0) average_route_attacks_last_12_months_{pixel_size}_degrees
 FROM
   voyage_info
 LEFT JOIN
