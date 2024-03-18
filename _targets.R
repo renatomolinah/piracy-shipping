@@ -334,13 +334,19 @@ list(
                   gridded_data_3_bq, 
                   #Trigger re-run of this if timestamp changes for gridded_data_7_bq
                   gridded_data_7_bq,
-                  # Trigger re-run of this if timestamp changes for total_rolling_route_attacks_per_trip_bq
-                  total_rolling_route_attacks_per_trip_bq)
+                  # Trigger re-run of this if timestamp changes for total_rolling_route_attacks_per_trip_5_degrees_bq
+                  total_rolling_route_attacks_per_trip_5_degrees_bq,
+                  # Trigger re-run of this if timestamp changes for total_rolling_route_attacks_per_trip_3_degrees_bq
+                  total_rolling_route_attacks_per_trip_3_degrees_bq,
+                  # Trigger re-run of this if timestamp changes for average_rolling_route_attacks_per_trip_5_degrees_bq
+                  average_rolling_route_attacks_per_trip_5_degrees_bq,
+                  # Trigger re-run of this if timestamp changes for average_rolling_route_attacks_per_trip_3_degrees_bq
+                  average_rolling_route_attacks_per_trip_3_degrees_bq)
   ),
   # Pull voyage-level data from BigQuery to local environment
   tar_target(
     name = voyage_data,
-    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240312", 
+    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240314", 
                           # Trigger re-run of this if timestamp changes for voyage_data_bq
                           voyage_data_bq)
   ),
