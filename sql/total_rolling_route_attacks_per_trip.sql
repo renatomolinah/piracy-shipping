@@ -37,7 +37,7 @@ WITH
     lat_bin,
     lon_bin
   FROM
-    `emlab-gcp.piracy.gridded_data_5_v_20240307`
+    {ifelse(pixel_size == 5,'`emlab-gcp.piracy.gridded_data_5_v_20240307`','`emlab-gcp.piracy.gridded_data_3_v_20240312`')}
   LEFT JOIN
     voyage_info
   USING
