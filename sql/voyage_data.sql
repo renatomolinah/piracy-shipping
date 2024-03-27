@@ -70,7 +70,9 @@ vessel_info AS(
   aggregated_7_degrees AS(
   SELECT
     trip_id,
-    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_7_degrees
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_7_degrees,
+    SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_7_degrees,
+    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_7_degrees
   FROM
     `emlab-gcp.piracy.gridded_data_7_v_20240312`
   GROUP BY
