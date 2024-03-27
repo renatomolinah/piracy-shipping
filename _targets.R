@@ -207,7 +207,7 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_pirate_attacks_0_5_v_20240228", 
+                  bq_table_name = "gridded_pirate_attacks_0_5_v_20240327", 
                   # Trigger re-run of this if process_asam_data is run
                   process_asam_data)
   ),
@@ -327,7 +327,7 @@ list(
     name = voyage_data_bq,
     run_gfw_query(sql = voyage_data_sql %>%
                     readr::read_file(),
-                  bq_table_name = "voyage_data_5_v_20240314", 
+                  bq_table_name = "voyage_data_5_v_20240327", 
                   #Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq, 
                   #Trigger re-run of this if timestamp changes for gridded_data_3_bq
@@ -346,7 +346,7 @@ list(
   # Pull voyage-level data from BigQuery to local environment
   tar_target(
     name = voyage_data,
-    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240314", 
+    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240327", 
                           # Trigger re-run of this if timestamp changes for voyage_data_bq
                           voyage_data_bq)
   ),
