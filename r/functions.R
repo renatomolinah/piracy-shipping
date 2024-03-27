@@ -146,10 +146,7 @@ make_global_map_figure <- function(asam_with_hotspots,
     scale_color_brewer("Hotspot",
                        type ="qual",
                        palette = "Dark2")+ 
-    ggplot2::theme(panel.grid = element_blank(),
-                   panel.background = element_blank(),
-                   axis.text = element_blank(),
-                   axis.ticks = element_blank())+
+    theme_map() +
     guides(fill  = guide_legend(order = 1,
                                 reverse=TRUE),
            color = guide_legend(order = 2))

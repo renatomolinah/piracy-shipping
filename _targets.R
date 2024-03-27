@@ -24,12 +24,20 @@ billing_project <- "emlab-gcp" # emLab's billing project
 bq_dataset <- "piracy" # The dataset name for this project
 
 # Set ggplot theme for all plots
-ggplot2::theme_set(ggplot2::theme_bw() +
-                     ggplot2::theme(axis.title.y = ggplot2::element_text(vjust=0.6),
-                                    strip.background = ggplot2::element_blank(),
-                                    panel.background = ggplot2::element_blank(),
-                                    panel.border = ggplot2::element_blank(),
-                                    panel.grid.minor = ggplot2::element_blank()))
+ggplot2::theme_set(ggplot2::theme_minimal(base_size = 7))
+
+theme_map <- function(){
+  theme_minimal() %+replace%
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_line(colour = "black"),
+          panel.grid.major = element_line(colour = "black"),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          strip.background = element_rect(fill=NA,color=NA))
+}
 
 # Note: Any target name that includes _bq at the end creates a table on BigQuery
 # in the emlab-gcp.piracy dataset
