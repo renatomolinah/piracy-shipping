@@ -161,8 +161,6 @@ make_global_map_figure <- function(asam_with_hotspots,
     ggplot2::geom_sf(data = world_bbox_sf,
                      fill = NA,
                      color = "black") +
-    ggplot2::geom_sf_label(data = asam_regions,
-                           aes(label = asam_region)) +
     ggplot2::scale_color_brewer("Hotspot",
                                 type ="qual",
                                 palette = "Dark2")+ 
