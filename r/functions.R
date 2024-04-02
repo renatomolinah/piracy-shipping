@@ -98,30 +98,48 @@ make_global_map_figure <- function(asam_with_hotspots,
   lats <- c(90:-90, -90:90, 90)
   longs <- c(rep(c(180, -180), each = 181), 180)
   
-  world_bbox_sf <- 
+  world_bbox_untransformed_sf <- 
     list(cbind(longs, lats)) %>%
     sf::st_polygon() %>%
     sf::st_sfc( # create sf geometry list column
       crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
     ) %>% 
-    sf::st_sf() %>%
+    sf::st_sf() 
+  
+  world_bbox_sf <- world_bbox_untransformed_sf%>%
+    sf::st_transform(map_projection)
+  
+  # Get polygons of ASAM regions
+  asam_regions <- asam::asam_subregions() %>% 
+    sf::st_make_valid() %>% 
+    sf::st_buffer(dist = 0.01) %>%
+    dplyr::select(asam_region = REGION) %>% 
+    dplyr::group_by(asam_region) %>% 
+    dplyr::summarize() %>% 
+    dplyr::ungroup() %>%
+    # Need to intersect with world bounding box, since original shapefile extends beyond thi
+    sf::st_intersection(world_bbox_untransformed_sf) %>%
     sf::st_transform(map_projection)
   
   plot <- ggplot2::ggplot()  +
     ggplot2::geom_sf(data = shipping_data_stars,
                      aes(fill = hours,
                          color = hours)) +
-    scale_fill_gradient2("Shipping hours",
-                         trans = "log10",
-                         labels = scales::comma,
-                         breaks = c(100,1000,10000,100000,1e6),
-                         low = "white",
-                         high = "dodgerblue4") +
-    scale_color_gradient2(trans = "log10",
-                          low = "white",
-                          high = "dodgerblue4",
-                          guide = 'none') +
+    ggplot2::scale_fill_gradient2("Shipping hours",
+                                  trans = "log10",
+                                  labels = scales::comma,
+                                  breaks = c(100,1000,10000,100000,1e6),
+                                  low = "white",
+                                  high = "dodgerblue4") +
+    ggplot2::scale_color_gradient2(trans = "log10",
+                                   low = "white",
+                                   high = "dodgerblue4",
+                                   guide = 'none') +
     ggnewscale::new_scale_color() +
+    ggplot2::geom_sf(data = asam_regions,
+                     size = 0.01,
+                     color = "grey30",
+                     fill = NA) +
     ggplot2::geom_sf(data = world_land,
                      color = "black",
                      fill = "black") +
@@ -143,13 +161,16 @@ make_global_map_figure <- function(asam_with_hotspots,
     ggplot2::geom_sf(data = world_bbox_sf,
                      fill = NA,
                      color = "black") +
-    scale_color_brewer("Hotspot",
-                       type ="qual",
-                       palette = "Dark2")+ 
+    ggplot2::geom_sf_label(data = asam_regions,
+                           aes(label = asam_region)) +
+    ggplot2::scale_color_brewer("Hotspot",
+                                type ="qual",
+                                palette = "Dark2")+ 
     theme_map() +
     guides(fill  = guide_legend(order = 1,
                                 reverse=TRUE),
-           color = guide_legend(order = 2))
+           color = guide_legend(order = 2)) +
+    labs(x="",y="")
   
   ggplot2::ggsave(filename = "figures/map.png",
                   plot,
@@ -266,7 +287,7 @@ generate_hotspot_boundaries <- function(asam_data_processed,
   
   asam_filtered <- asam_data_processed %>%
     dplyr::filter(lubridate::year(date) >= year_min,
-           lubridate::year(date) <= year_min + years_to_include) %>%
+                  lubridate::year(date) <= year_min + years_to_include) %>%
     # Only include encounters that are not suspicious approaches
     dplyr::filter(encounter_type != 'Suspicious Approach')
   
@@ -275,7 +296,7 @@ generate_hotspot_boundaries <- function(asam_data_processed,
                                    dplyr::select(lon,lat),
                                  eps = 10, #km
                                  MinPts = 300)
-
+  
   asam_with_clusters <- asam_filtered %>%
     dplyr::mutate(cluster_number = dbscan_clusters$cluster)%>%
     dplyr::mutate(cluster = dplyr::case_when(cluster_number == 1 ~ "hotspot_southeast_asia",
@@ -321,7 +342,7 @@ assign_hotspot_to_asam <- function(asam_data_processed,
                                  rest_of_world),
                         names_to = "cluster",
                         values_to = "attack_in_hotspot")
-
+  
 }
 
 # Code to generate SQL for assigning lat/lon to hotspots
@@ -333,7 +354,7 @@ generate_hotspot_sql <- function(hotspots){
 
 # Take ASAM data and add hotspot info, based on the hotspots boundaries
 generate_asam_with_hotspots <- function(asam_data_processed,
-                               hotspots){
+                                        hotspots){
   
   asam_data_processed   %>%
     dplyr::mutate(year = lubridate::year(date))%>%
@@ -365,8 +386,8 @@ generate_asam_with_hotspots <- function(asam_data_processed,
 
 
 make_encounter_time_series_figure <- function(asam_with_hotspots,
-                                           attack_year_min = 2005,
-                                           attack_year_max = 2021){
+                                              attack_year_min = 2005,
+                                              attack_year_max = 2021){
   
   plot_data<-asam_with_hotspots  %>%
     # Only include encounters that are not suspicious approaches

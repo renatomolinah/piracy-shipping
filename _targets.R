@@ -29,8 +29,8 @@ ggplot2::theme_set(ggplot2::theme_minimal(base_size = 7))
 theme_map <- function(){
   theme_minimal() %+replace%
     theme(panel.background = element_blank(),
-          panel.grid.minor = element_line(colour = "black"),
-          panel.grid.major = element_line(colour = "black"),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_blank(),
           axis.text.x = element_blank(),
           axis.ticks.x = element_blank(),
           axis.title.y = element_blank(),

@@ -115,6 +115,18 @@
       ],
       "Hash": "5ea2700d21e038ace58269ecdbeb9ec0"
     },
+    "XML": {
+      "Package": "XML",
+      "Version": "3.99-0.16.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "methods",
+        "utils"
+      ],
+      "Hash": "da3098169c887914551b607c66fe2a28"
+    },
     "abind": {
       "Package": "abind",
       "Version": "1.4-5",
@@ -126,6 +138,26 @@
         "utils"
       ],
       "Hash": "4f57884290cc75ab22f4af9e9d4ca862"
+    },
+    "asam": {
+      "Package": "asam",
+      "Version": "0.2.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "asam",
+      "RemoteUsername": "hrbrmstr",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "90b0606cf38455314d7465b6ac51474787a8bd1a",
+      "Requirements": [
+        "R",
+        "XML",
+        "httr",
+        "memoise",
+        "sf",
+        "utils"
+      ],
+      "Hash": "13804281deb23e3f769024f501eef6d0"
     },
     "askpass": {
       "Package": "askpass",
