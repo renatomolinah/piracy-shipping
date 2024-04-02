@@ -1,40 +1,38 @@
 \begin{table}
 
-\begin{threeparttable}
-\caption{\label{grid_reg}Linear regression estimates for the average piracy effect on ship transit.}
+\caption{Linear regression estimates for the average effect of piracy on grid-level ship transit.\label{grid_reg}}
 \centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
 \begin{tabular}[t]{lcccc}
 \toprule
-  & Global & G. of Aden & G. of Guinea & South East Asia\\
+  & (1) & (2) & (3) & (4)\\
 \midrule
-\addlinespace[0.3em]
-\multicolumn{5}{l}{Panel (A): Total Distance (km)}\\
-\hspace{1em}TNE (3 mo) & -26.069 & -50.303** & -4.520*** & -40.161\\
-\hspace{1em} & (19.366) & (16.268) & (1.343) & (29.490)\\
-\hspace{1em}Observations & 7,643,636 & 2,523,532 & 609,884 & \vphantom{2} 2,110,856\\
-\hspace{1em}SE & Conley (100km) & Conley (100km) & Conley (100km) & Conley \vphantom{2} (100km)\\
-\addlinespace[0.5cm]
-\multicolumn{5}{l}{Panel (B): Occupancy (hours)}\\
-\hspace{1em}TNE (3 mo) & 4.854 & -2.726+ & -0.077 & 9.482\\
-\hspace{1em} & (5.278) & (1.407) & (0.760) & (8.306)\\
-\hspace{1em}Observations & 7,643,636 & 2,523,532 & 609,884 & \vphantom{1} 2,110,856\\
-\hspace{1em}SE & Conley (100km) & Conley (100km) & Conley (100km) & Conley \vphantom{1} (100km)\\
-\addlinespace[0.5cm]
-\multicolumn{5}{l}{Panel (C): Number of trips (count)}\\
-\hspace{1em}TNE (3 mo) & 0.001 & -1.556*** & -0.119** & 0.270\\
-\hspace{1em} & (0.517) & (0.422) & (0.037) & (0.862)\\
-\hspace{1em}Observations & 7,643,636 & 2,523,532 & 609,884 & 2,110,856\\
-\hspace{1em}SE & Conley (100km) & Conley (100km) & Conley (100km) & Conley (100km)\\
-\midrule
-FE: Grid ID & X & X & X & X\\
-FE: ASAM subregion-year-month & X & X & X & X\\
-\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & -77.55** & -12.10 & -0.85 & -135.90***\\
+\hspace{1em} & (35.11) & (20.36) & (3.00) & (0.00)\\
+\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & \vphantom{3} 2110856\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): Occupancy (hr)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 2.36 & -1.29 & 0.27 & 4.84**\\
+\hspace{1em} & (1.47) & (2.18) & (1.03) & (2.35)\\
+\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & \vphantom{2} 2110856\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): Voyages (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & -1.11** & -0.80** & -0.01 & -1.71***\\
+\hspace{1em} & (0.53) & (0.35) & (0.09) & (0.52)\\
+\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & \vphantom{1} 2110856\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (D): Vessels (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & -1.06** & -0.76** & -0.01 & -1.63***\\
+\hspace{1em} & (0.50) & (0.33) & (0.09) & (0.48)\\
+\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & 2110856\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\small
-\item [a] Note: Standard errors in parentheses are Conley HAC (100 km cutoff). The unit of of observation is a grid cell. Every column is a different regression analysis for different samples. The first column refers to the global sample, while the rest only takes into account grid cells within a hotspot.
-\item [b] *p<0.05, **p<0.01, ***p<0.001
+\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month. Standard errors in parentheses are Conley (100 km cutoff). Each column shows results for different samples: (1) Global, (2) Gulf of Aden, (3) G. of Guinea, and (4) South East Asia.
 \end{tablenotes}
 \end{threeparttable}
+\end{adjustbox}
 \end{table}

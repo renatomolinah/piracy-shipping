@@ -31,7 +31,10 @@ grid_level_panel <- readRDS(file = here("processed_data",
 # Modify the panel -------------------------------------------------------------
 reg_data <- grid_level_panel %>% 
   # Rename the variable of interest for consistency with Renato's regressions
-  rename(TNE = number_previous_attacks_grid_3_months) %>% 
+  rename(TNE1 = number_previous_attacks_grid_1_month,
+         TNE3 = number_previous_attacks_grid_3_months,
+         TNE6 = number_previous_attacks_grid_6_months,
+         TNE12 = number_previous_attacks_grid_12_months,) %>% 
   # Replace missing values (no transit detected in AIS) with zeroes.            << -------------- NOTE THIS!
   replace_na(replace = list(distance_km = 0,
                             time_hours = 0,
@@ -43,7 +46,7 @@ reg_data <- grid_level_panel %>%
          ym = paste(year, month, sep = "-"))
   
 # Table of summary stats -------------------------------------------------------
-by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance_km + time_hours + n_trips,
+by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance_km + time_hours + n_trips + n_vessels,
                           data = reg_data %>% 
                             mutate(attack_cluster = ifelse(attack_cluster == "None", "Rest of the world", attack_cluster),
                                    attack_cluster = fct_relevel(attack_cluster, "GoA", "GoG", "SEA", "Rest of the world")),
@@ -52,35 +55,25 @@ by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance
 kbl(x = by_cluster,
     booktabs = T,
     label = "grid_summary",
-    caption = "Summary statistics for daily ship transit by grid cell",
-    col.names = c("", "", "Distance (km)", "Occupancy (hours)", "Trips (#)"),
+    caption = "Summary statistics for daily ship transit by grid cell.",
+    col.names = c("", "", "Distance (km)", "Occupancy (hr)", "Voyages (#)", "Unique vessels (#)"),
     linesep = "",
     format = "latex") %>% 
   cat(file = here("tables", "grid_summary_stats.tex"))
 
 ## ESTIMATE ####################################################################
-# Just distance and slowly adding FEs
-dist_mod <- feols(data = reg_data,
-                  fml = distance_km ~ TNE | csw(0, grid_id, year ^ month ^ asam_subregion),
-                  # SE specifictions
-                  vcov = vcov_conley(lat = "lat_bin",
-                                     lon = "lon_bin",
-                                     cutoff = 100),
-                  panel.id = ~grid_id + date)
-
-etable(dist_mod)
-
 # Full estimation --------------------------------------------------------------
 mod <- feols(data = reg_data,
              fml =
                # Outcome varibles
                c(distance_km,
                  time_hours,
-                 n_trips) ~
+                 n_trips,
+                 n_vessels) ~
                # Regressors
-               TNE | 
+               sw(TNE3, TNE6, TNE12) | 
                # Fixed effects
-               grid_id + year ^ month ^ asam_subregion,
+               asam_subregion + year ^ month ^ asam_region + grid_id,
              # SE specifictions
              vcov = vcov_conley(lat = "lat_bin",
                                 lon = "lon_bin",
@@ -91,38 +84,131 @@ mod <- feols(data = reg_data,
              lean = TRUE)
 
 # Quick local model inspection -------------------------------------------------
-etable(mod)
+etable(mod,
+       vcov = "iid") # IID is faster to compute just for now
 
 # Summary of the models --------------------------------------------------------
-fixest::models(mod)
+fixest::models(mod) %>% 
+  filter(rhs == "TNE3") %>% 
+  arrange(lhs)
 
 ## BUILD TABLES ################################################################
 gm <- tribble(~raw, ~clean, ~fmt,
-              "nobs", "Observations", 0,
-              "vcov.type", "SE", 0,
+              # "nobs", "Observations", 0,
+              # "vcov.type", "SE", 0,
               "FE: grid_id", "FE: Grid ID", 0,
-              "FE: year^month^asam_subregion", "FE: ASAM subregion-year-month", 0
+              "FE: asam_subregion", "FE: ASAM subregion", 0,
+              "FE: year^month^asam_region", "FE: ASAM region-year-month", 0
 )
 
-panelsummary(mod[c(1, 4, 7, 10)],
-             mod[c(2, 5, 8, 11)],
-             mod[c(3, 6, 9, 12)],
-             caption = "\\label{grid_reg}Linear regression estimates for the average piracy effect on ship transit.",
-             colnames = c(" ",
-                          "Global",
-                          "G. of Aden",
-                          "G. of Guinea",
-                          "South East Asia"),
-             panel_labels = c("Panel (A): Total Distance (km)",
-                              "Panel (B): Occupancy (hours)",
-                              "Panel (C): Number of trips (count)"),
-             stars = T,
-             coef_map = c("TNE" = "TNE (3 mo)"),
-             gof_map = gm,
-             collapse_fe = T,
-             pretty_num = T,
-             format = "latex") %>% 
-  add_footnote(threeparttable = T,
-               c("Note: Standard errors in parentheses are Conley HAC (100 km cutoff). The unit of of observation is a grid cell. Every column is a different regression analysis for different samples. The first column refers to the global sample, while the rest only takes into account grid cells within a hotspot.",
-                 "*p<0.05, **p<0.01, ***p<0.001")) %>% 
-  cat(file = here("tables", "gridcell-dist-time.tex"))
+
+msummary(list("Panel (A): Total Distance (km)" = mod[c(1, 13, 25, 37)],
+              "Panel (B): Occupancy (hr)" = mod[c(4, 16, 28, 40)],
+              "Panel (C): Voyages (\\#)" = mod[c(7, 19, 31, 43)],
+              "Panel (D): Vessels (\\#)" = mod[c(10, 22, 34, 46)]),
+         coef_omit = "Intercept",
+         coef_rename = c("TNE3" = "Encounters (3 mo)"),
+         gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         stars =  c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.2f",
+         title = "Linear regression estimates for the average effect of piracy on grid-level ship transit.\\label{grid_reg}",
+         notes = c(
+           paste("All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month.",
+                 "Standard errors in parentheses are Conley (100 km cutoff).",
+                 "Each column shows results for different samples: (1) Global, (2) Gulf of Aden, (3) G. of Guinea, and (4) South East Asia.")),
+         threeparttable = TRUE,
+         shape = "rbind",
+         escape = FALSE,
+         output = here("tables", "gridcell-dist-time.tex"))
+
+add_adjust_box(here("tables", "gridcell-dist-time.tex"))
+
+
+# Turn model into data.frame of coefficients
+coef_data <- map_df(mod, broom::tidy, .id = "model", conf.int = T) %>%
+  mutate(sample = str_squish(str_remove_all(str_remove_all(model, "sample.var: attack_cluster; sample:"), ";.+")),
+         term = paste(str_extract(term, "[:digit:]+"), "mo"),
+         var = case_when(str_detect(model, "distance_km") ~ "Distance (km)",
+                         str_detect(model, "time_hours") ~ "Occupancy (hr)",
+                         str_detect(model, "n_trips") ~ "Voyages (#)",
+                         str_detect(model, "n_vessels") ~ "Vessels (#)")) %>% 
+  mutate(term = fct_relevel(term, c("3 mo", "6 mo", "12 mo")),
+         var = fct_relevel(var, c("Distance (km)", "Occupancy (hr)", "Voyages (#)", "Vessels (#)")))
+
+# Plot
+plot <- ggplot(coef_data, aes(x = sample, y = estimate, color = term)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_linerange(aes(ymin = conf.low, ymax = conf.high, group = term),
+                 position = position_dodge(width = 0.5),
+                 color = "black",
+                 linewidth = 0.2) +
+  geom_pointrange(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                  position = position_dodge(width = 0.5),
+                  size = 0.5,
+                  linewidth = 1) +
+  facet_wrap(~var, scales = "free_y", ncol = 1) + 
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Sample",
+       y = "Estimate ± (std.error & 95%CI)",
+       color = "Time window:") +
+  theme_minimal(base_size = 7) +
+  theme(legend.position = "bottom",
+        legend.background = element_rect(fil = "transparent",
+                                         color = "black")) +
+  guides(color = guide_legend(title.position = "top",
+                              title.hjust = 0.5))
+
+plot
+
+ggsave(plot = plot,
+       filename = here("figures", "grid_level_TWFE_coefficient_plot.pdf"),
+       width = 5.7,
+       height = 12,
+       units = "cm")
+
+
+
+#### NOW cumulatively adding FEs
+# Just distance and slowly adding FEs
+sw_fe_mod <- feols(data = reg_data,
+                   fml = c(distance_km,
+                           time_hours,
+                           n_trips,
+                           n_vessels) ~ TNE3 | csw0(grid_id, asam_subregion, year ^ month ^ asam_region),
+                   # SE specifictions
+                   vcov = vcov_conley(lat = "lat_bin",
+                                      lon = "lon_bin",
+                                      cutoff = 100),
+                   panel.id = ~grid_id + date)
+
+fixest::models(sw_fe_mod) %>% 
+  arrange(lhs)
+
+fe_rows <- tribble(
+  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
+  "", "", "", "", "",
+  "Grid ID FE", "", "X", "X", "X",
+  "ASAM Subregion FE",  "", "", "X", "X",
+  "ASAM Region-year-month FE",  "", "", "", "X",
+)
+
+msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[c(1, 5, 9, 13)],
+              "Panel (B): Occupancy (hr)" = sw_fe_mod[c(2, 6, 10, 14)],
+              "Panel (C): Voyages (\\#)" = sw_fe_mod[c(3, 7, 11, 15)],
+              "Panel (D): Vessels (\\#)" = sw_fe_mod[c(4, 8, 12, 16)]),
+         coef_omit = "Intercept",
+         coef_rename = c("TNE3" = "Encounters (3 mo)"),
+         gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         stars =  c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.2f",
+         add_rows = fe_rows,
+         title = "Linear regression estimates for the average effect of piracy on grid-level ship transit for different FE specifications.\\label{grid_reg_fe}",
+         notes = c(
+           paste("Standard errors in parentheses are Conley (100 km cutoff).",
+                 "Number of observations:", as.character(nobs(sw_fe_mod[[1]]) %>% format(big.mark = ",")),".")),
+         threeparttable = TRUE,
+         shape = "rbind",
+         escape = FALSE,
+         output = here("tables", "gridcell-dist-time_FEs.tex"))
+
+add_adjust_box(here("tables", "gridcell-dist-time_FEs.tex"))

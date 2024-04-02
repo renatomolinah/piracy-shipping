@@ -1,0 +1,42 @@
+\begin{table}
+
+\caption{Linear regression estimates for the average effect of piracy on grid-level ship transit for different FE specifications.\label{grid_reg_fe}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & (1) & (2) & (3) & (4)\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 448.54* & -83.20** & -83.20** & -77.55**\\
+\hspace{1em} & (234.99) & (37.35) & (37.35) & (35.11)\\
+\hspace{1em}Num.Obs. & 7643636 & 7643636 & 7643636 & \vphantom{3} 7643636\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): Occupancy (hr)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 54.17** & 2.04* & 2.04* & 2.36\\
+\hspace{1em} & (25.49) & (1.07) & (1.07) & (1.47)\\
+\hspace{1em}Num.Obs. & 7643636 & 7643636 & 7643636 & \vphantom{2} 7643636\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): Voyages (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 9.41* & -1.36** & -1.36** & -1.11**\\
+\hspace{1em} & (4.84) & (0.56) & (0.56) & (0.53)\\
+\hspace{1em}Num.Obs. & 7643636 & 7643636 & 7643636 & \vphantom{1} 7643636\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (D): Vessels (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 9.19* & -1.30** & -1.30** & -1.06**\\
+\hspace{1em} & (4.77) & (0.53) & (0.53) & (0.50)\\
+\hspace{1em}Num.Obs. & 7643636 & 7643636 & 7643636 & 7643636\\
+ &  &  &  & \\
+Grid ID FE &  & X & X & X\\
+ASAM Subregion FE &  &  & X & X\\
+ASAM Region-year-month FE &  &  &  & X\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 Standard errors in parentheses are Conley (100 km cutoff). Number of observations: 7,643,636 .
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}

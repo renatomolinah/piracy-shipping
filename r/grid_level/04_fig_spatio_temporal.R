@@ -11,8 +11,23 @@ pacman::p_load(
   tidyverse
 )
 
+theme_map <- function(){
+  theme_minimal(base_size = 7) %+replace%
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_line(colour = "black"),
+          panel.grid.major = element_line(colour = "black"),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          # axis.text.x = element_blank(),
+          # axis.text.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          strip.background = element_rect(fill=NA,color=NA))
+}
+
 colors <- c("#67001F", "#B1182B", "#D5604D", "#F3A481", "#FCDAC6", "#F6F6F6", "#D0E4EF", "#91C4DD", "#4392C2", "#2166AB")
 
+sf_use_s2(F)
 # Authenticate using local token -----------------------------------------------
 bq_auth("juancarlos@ucsb.edu")
 
@@ -25,14 +40,6 @@ piracy <- dbConnect(
   use_legacy_sql = FALSE,
   allowLargeResults = TRUE
 )
-
-coast <- rnaturalearth::ne_countries(scale = "large",
-                                     country = c("Malaysia", "Indonesia", "Singapore"),
-                                     returnclass = "sf")
-
-coast <- rnaturalearth::ne_countries(scale = "large",
-                                     country = c("Vietnam", "Cambodia", "Laos", "Thailand", "China"),
-                                     returnclass = "sf")
 
 # Load data --------------------------------------------------------------------
 grid_level_panel <- readRDS(file = here("processed_data",
@@ -89,8 +96,9 @@ get_pars <- function(attack_id){
 get_grid_activity <- function(pars){
   focus_lat <- pars$focus_lat
   focus_lon <- pars$focus_lon
+  focus_date <- lubridate::ymd(pars$focus_date)
   
-  g_tracks <- tbl(piracy, "gridded_data_0_5") %>% 
+  g_tracks <- tbl(piracy, "gridded_data_0_5_v_20240307") %>% 
     filter(lat_bin == focus_lat,
            lon_bin == focus_lon) %>%
     mutate(post = date > sql(paste0("date('", focus_date, "')"))) %>%
@@ -108,7 +116,9 @@ get_grid_activity <- function(pars){
                                  fill = NA,
                                  align = "right")) %>% 
     mutate(n_trips_m = mean(n_trips[!post]),
-           n_trips_sd = sd(n_trips[!post]))
+           n_trips_sd = sd(n_trips[!post]),
+           lat_bin = lat_bin + 0.25,
+           lon_bin = lon_bin + 0.25)
   
   return(g_tracks)
 }
@@ -120,7 +130,7 @@ get_tracks <- function(pars) {
   focus_lon <- pars$focus_lon
   
   
-  tracks <- tbl(piracy, "ungridded_data") %>%
+  tracks <- tbl(piracy, "ungridded_data_v_20240228") %>%
     mutate(date = sql("EXTRACT(DATE from timestamp)")) %>% 
     filter(between(lat, focus_lat - 3, focus_lat + 3),
            between(lon, focus_lon - 3, focus_lon + 3),
@@ -134,7 +144,9 @@ get_tracks <- function(pars) {
 
 
 # Build time-series plot
-make_ts_plot <- function(grid_activity) {
+make_ts_plot <- function(grid_activity, pars) {
+  focus_date <- lubridate::ymd(pars$focus_date)
+  
   grid_activity %>% 
     ggplot(aes(x = date)) +
     geom_vline(xintercept = focus_date, linetype = "dotted") +
@@ -147,12 +159,9 @@ make_ts_plot <- function(grid_activity) {
     geom_line(aes(y = n_trips_w), 
               linewidth = 1,
               color = "steelblue") +
-    theme_bw() +
-    theme(panel.grid = element_blank(),
-          legend.position = "top",
-          text = element_text(size = 8)) +
-    labs(x = "Date",
-         y = "Number of trips")
+    theme_minimal(base_size = 7) +
+    theme(axis.title.x = element_blank()) +
+    labs(y = "# Voyages")
 }
 
 # Build spatial plot
@@ -185,22 +194,15 @@ make_spat_plot <- function(tracks, pars) {
                color = "black",
                alpha = 0.1) +
     facet_wrap(~post) +
-    geom_point(aes(x = focus_lon, y = focus_lat),
+    geom_point(aes(x = focus_lon + 0.25, y = focus_lat + 0.25),
                color = "black", shape = "X", size = 4) +
-    guides(fill = guide_legend(nrow = 1, title.position = "top")) +
+    guides(fill = guide_colorsteps(ticks = T)) +
     scale_fill_discrete(type = rev(colors)) +
     scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +
     scale_y_continuous(limits = c(focus_lat - 3, focus_lat + 3), expand = expansion(0.01, 0)) +
-    theme_bw() +
-    theme(panel.background = element_rect(fill = "#D0E4EF", color = "black"),
-          panel.grid = element_line(color = "black",
-                                    linewidth = 0.1,
-                                    linetype = "dashed"),
-          strip.background = element_blank(),
-          legend.position = "bottom",
-          axis.title = element_blank(),
-          text = element_text(size = 8)) +
-    labs(fill = "Normalized density")
+    theme_map() +
+    theme(panel.spacing.x = unit(2, "lines")) +
+    labs(fill = "Density")
 }
 
 
@@ -208,19 +210,21 @@ case_plot <- function(attack_id) {
   pars <- get_pars(attack_id)
   tracks <- get_tracks(pars)
   grid_activity <- get_grid_activity(pars)
-  ts <- make_ts_plot(grid_activity)
+  ts <- make_ts_plot(grid_activity, pars)
   spat <- make_spat_plot(tracks, pars)  
   
   cowplot::plot_grid(spat, ts,
                      rel_heights = c(3, 1),
                      labels = "AUTO",
+                     label_x = 0.9,
+                     label_y = c(1, 1.2),
                      ncol = 1,
                      axis = "l",
                      align = "hv")
 }
 
 # Get data #####################################################################
-pars <- get_pars("22.5_69.5 2015-10-29")
+pars <- get_pars("-1.5_117 2013-06-19")
 tracks <- get_tracks(pars)
 grid_activity <- get_grid_activity(pars)
 ts <- make_ts_plot(grid_activity)
@@ -231,52 +235,13 @@ gog_plot <- case_plot(attack_id = "6_3 2017-09-20")
 sea_plot <- case_plot(attack_id = "-1.5_117 2013-06-19")
 oth_plot <- case_plot(attack_id = "38.5_119 2019-01-30")
 
-map <- cowplot::plot_grid(goa_plot,
-                          # gog_plot,
-                          sea_plot,
-                          # oth_plot,
-                          ncol = 1)
-
-
 # 1 GoA            22.5_69.5 2015-10-29   208   175   -33 -0.159
 # 2 GoG            6_3 2017-09-20         144   118   -26 -0.181
 # 3 None           38.5_119 2019-01-30   1075   844  -231 -0.215
 # 4 SEA            -1.5_117 2013-06-19    270    98  -172 -0.637
 
-ref <- ggplot() +
-  geom_sf(data = coast,
-          fill = "black", color = "black") +
-  geom_rect(
-    aes(
-      xmin = focus_lon - 3,
-      xmax = focus_lon + 3,
-      ymin = focus_lat - 3,
-      ymax = focus_lat + 3
-    ),
-    fill = "transparent",
-    color = "red"
-  ) +
-  theme_void() + 
-  theme(panel.background = element_rect(fill = "white",
-                                        colour = "black")) +
-  scale_x_continuous(expand = c(0, 0)) +
-  scale_y_continuous(expand = c(0, 0)) 
-
-
-map <- ggdraw() +
-  draw_plot(p) +
-  cowplot::draw_plot(
-    ref,
-    x = 0.0615,
-    y = 1,
-    hjust = 0,
-    vjust = 1,
-    width = 0.25,
-    height = 0.2168
-  )
-
-ggsave(plot = map,
-       filename = here("figs", "spatio_temporal_figure.png"),
-       height = 15,
-       width = 18,
+ggsave(plot = sea_plot,
+       filename = here("figures", "spatio_temporal_figure.pdf"),
+       width = 12.1,
+       height = 8,
        units = "cm")

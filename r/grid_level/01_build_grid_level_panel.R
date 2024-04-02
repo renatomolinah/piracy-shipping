@@ -39,7 +39,7 @@ piracy <- dbConnect(
 ## PROCESSING ##################################################################
 
 # Get data for clusters only ---------------------------------------------------
-with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5") %>% 
+with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20240327") %>% 
   mutate(grid_id = paste0(lat_bin, "_", lon_bin),
          attack_cluster = case_when(hotspot_gulf_of_guinea == 1 ~ "GoG",
                                     hotspot_southeast_asia == 1 ~ "SEA",
@@ -52,12 +52,13 @@ with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5") %>%
          days_since_attack,
          number_previous_attacks_grid_1_month,
          number_previous_attacks_grid_3_months,
+         number_previous_attacks_grid_6_months,
          number_previous_attacks_grid_12_months,
          number_previous_attacks_all_time,
          attack_cluster)
 
 # Get grid-level information from the tracks -----------------------------------
-track_info <- tbl(piracy, "gridded_data_0_5") %>% 
+track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>% 
   group_by(date, lat_bin, lon_bin) %>% 
   summarize(time_hours = sum(hours, na.rm = T),
             distance_km = sum(distance_km, na.rm = T),
@@ -66,7 +67,6 @@ track_info <- tbl(piracy, "gridded_data_0_5") %>%
             n_ais_messages = sum(ais_messages, na.rm = T),
             .groups = "drop")
   
-
 # Combine both into the final panel --------------------------------------------
 gridded_panel <- with_clusters %>% 
   left_join(track_info,
