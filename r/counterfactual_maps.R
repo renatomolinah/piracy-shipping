@@ -40,6 +40,8 @@ theme_map <- function(){
           strip.background = element_rect(fill=NA,color=NA))
 }
 
+sf_use_s2(F)
+
 # Authenticate using local token -----------------------------------------------
 bq_auth("juancarlos@ucsb.edu")
 
@@ -57,8 +59,6 @@ piracy <- dbConnect(
 coast <- rnaturalearth::ne_countries(returnclass = "sf")
 coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
 
-sf_use_s2(F)
-
 asam_regions <- asam_subregions() %>% 
   select(asam_region = REGION) %>% 
   st_buffer(dist = 0.01) %>% 
@@ -75,7 +75,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
   mutate(lon_bin = lon_bin + 0.25,
          lat_bin = lat_bin + 0.25)
 
-pred_info <- tbl(piracy, "full_pred_global_v_20240328") %>% 
+pred_info <- tbl(piracy, "full_pred_global_v_20240404") %>% 
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
@@ -94,28 +94,32 @@ grided <- pred_info %>%
 
 local_grided <- collect(grided)
 
-
+## PROCESSING ##################################################################
 # From https://www.whitehouse.gov/wp-content/uploads/2021/02/TechnicalSupportDocument_SocialCostofCarbonMethaneNitrousOxide.pdf
 # Using 3% discount rate estimates for 2020 emissions
 sc_co2 <- 51
 sc_nox <- 18000
 # From table 3 at https://www.ifo.de/DocDL/wp-2021-360-mier-adelowo-weissbart-social-cost-air-pollution-carbon.pdf
-sc_sox <- 11217 * 1.31
+sc_sox <- 11217 * 1.31 #convert 2015 to 2020 USD
 
 total_grided <- local_grided %>% 
   filter(!is.na(lat_bin) | !is.na(lon_bin)) %>% 
   group_by(year, lat_bin, lon_bin) %>% 
-  summarize(cost = sum(cost, na.rm = T), 
+  summarize(cost = sum(cost, na.rm = T) / 1e3,                                  # Cost is reported in K USD so we convert to M USD 
             co2 = sum(co2, na.rm = T),
-            nox = sum(nox, na.rm = T),
-            sox = sum(sox, na.rm = T),
+            nox = sum(nox, na.rm = T) / 1e3,                                    # NOx is reported in Kg so convert to Ton
+            sox = sum(sox, na.rm = T) / 1e3,                                    # SOx is reported in Kg so convert to Ton
             .groups = "drop") %>% 
   select(-year) %>% 
   group_by(lat_bin, lon_bin) %>% 
   summarize_all(mean, na.rm = T, .groups = "drop") %>% 
-  mutate(total = cost + (co2 * sc_co2) + (nox * sc_nox), (sox * sc_nox))
+  mutate(private = cost,
+         public = (co2 * sc_co2 / 1e6) + (nox * sc_nox / 1e6) + (sox * sc_sox / 1e6),
+         total = private + public)
 
-## PROCESSING ##################################################################
+saveRDS(object = total_grided,
+        file = here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
+
 # Get cost by ASAM region
 total_by_asam <- total_grided %>% 
   st_as_sf(coords = c("lon_bin", "lat_bin"),
@@ -124,26 +128,23 @@ total_by_asam <- total_grided %>%
   st_drop_geometry() %>% 
   group_by(asam_region) %>% 
   summarize_all(sum, na.rm = T) %>% 
-  mutate()
+  mutate(asam_region = as.character(asam_region))
 
 ## VISUALIZE ###################################################################
 
 # Build a figure with four panels: Costs, CO2, NOx, SOx
 # Each of them is a map, showing the costs / emissions apportioned along the
 # trip id, for the entirety of the study period. 
-# Then, add a bar chart by ASMR region, or perhaps a Lorenz curve.
-# For supplementary figure purposes, build a single figure by metric, and include
-# one map per year.
-
+# Then, add a bar chart by ASMR region.
 # X ----------------------------------------------------------------------------
 
 make_map <- function(data,
                      var,
-                     option = c("B", "D", "E", "F"),
+                     option = "G",
                      legend = "Cost (Million USD)\nlog10-transformed") {
   ggplot() +
     geom_tile(data = data,
-              aes(x = lon_bin, y = lat_bin, fill = log10({{var}}))) +
+              aes(x = lon_bin, y = lat_bin, fill = {{var}})) +
     geom_sf(data = asam_regions,
             fill = "transparent",
             color = "white") +
@@ -156,8 +157,8 @@ make_map <- function(data,
                   aes(label = asam_region),
                   size = 2,
                   label.size = 0.1,
-                  label.pading = unit(0.01, "lines")) +
-    scale_fill_viridis_c(option = option) + 
+                  label.padding = unit(0.1, "lines")) +
+    scale_fill_viridis_c(option = option, trans = "log10") + 
     scale_x_continuous(expand = c(0, 1)) +
     scale_y_continuous(expand = c(0, 1)) +
     theme_map() +
@@ -172,38 +173,57 @@ make_map <- function(data,
                                  barheight = unit(0.5, "cm")))
 }
 
+# A map of total costs, not part of the paper but goof to have
+total_map <- make_map(data = total_grided,
+                      var = total / 1e3,
+                      option = "G",
+                      legend = "Total Cost (Billion USD)")
+
+# Map of costs to shippers
 cost_map <- make_map(data = total_grided,
                      var = cost,
                      option = "B",
-                     legend = "Cost (Million USD)\nlog10-transformed")
+                     legend = "Cost (Million USD)")
+
+# Map of tons of pollutants emitted
 co2_map <- make_map(total_grided,
                     var = co2,
                     option = "D",
-                    legend = "CO2 (Tons)\nlog10-transformed")
+                    # legend = bquote(atop(CO[2],"(Metric tons) log10-transformed"))
+                    legend = expression(CO[2]~"(Metric tons)")
+                    )
 nox_map <- make_map(total_grided,
                     var = nox,
                     option = "E",
-                    legend = "NOx (Tons)\nlog10-transformed")
+                    legend = "NOx (Metric tons)")
 sox_map <- make_map(total_grided,
                     var = sox,
                     option = "F",
-                    legend = "SOx (Tons)\nlog10-transformed")
+                    legend = "SOx (Metric tons)")
 
-
-total_map <- make_map(data = total_grided,
-                      var = total,
-                      option = "G",
-                      legend = "Total Cost (Million USD)\nlog10-transformed")
-
-zonal_stats <- ggplot(total_by_asam,
-                      aes(x = as.character(asam_region),
-                          y = total / 1e6)) + 
-  geom_col(color = "black",
-           fill = "gray50") +
-  theme_minimal(base_size = 7) +
-  theme(legend.position = "None") +
+zonal_stats <- total_by_asam %>% 
+  select(asam_region, private, public) %>% 
+  pivot_longer(cols = c(private, public)) %>% 
+  mutate(asam_region = fct_reorder(.f = asam_region, .x = value, .fun = "sum", .desc = T)) %>%
+  ggplot(mapping = aes(x = asam_region,
+                       y = value,
+                       fill = str_to_title(name))) + 
+  geom_col(color = "black") +
+  geom_text(data = total_by_asam,
+            mapping = aes(x = asam_region,
+                          y = total,
+                          label = format(x = round(total),
+                                         big.mark = ",")),
+            nudge_y = 150, 
+            inherit.aes = F,
+            size = 2) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = c(1, 1),
+        legend.justification = c(1, 1)) +
   labs(x = "ASAM Region",
-       y = "Total costs (Million USD)")
+       y = "Total costs (Million USD)",
+       fill = "Sector")
 
 
 counterfactual_maps <- cowplot::plot_grid(cost_map,
@@ -222,5 +242,5 @@ p <- cowplot::plot_grid(counterfactual_maps,
 ggsave(plot = p,
        filename = here("figures", "counterfactual_maps.pdf"),
        width = 18.4,
-       height = 17,
+       height = 17.5,
        units = "cm")

@@ -7,7 +7,7 @@ gsutil cp "$PROJECT_PATH"processed_data/full_pred_global.csv gs://piracy-emlab-g
 
 # Create a table in Big Query, specify the scheme, add a desciption, and name it
 bq mk --table \
---schema trip_id:STRING,attacks_3mo_num:INTEGER,wind_speed:FLOAT,wind_vector:FLOAT,country:STRING,vtype:STRING,size:INTEGER,hotspot:STRING,top_route:INTEGER,month:INTEGER,year:INTEGER,p_fuel:FLOAT,np_fuel:FLOAT,p_labor:FLOAT,np_labor:FLOAT,p_total:FLOAT,no_total:FLOAT,p_co2:FLOAT,np_co2:FLOAT,p_nox:FLOAT,np_nox:FLOAT,p_sox:FLOAT,np_sox:FLOAT \
+--schema trip_id:STRING,attacks_3mo_num:INTEGER,wind_speed:FLOAT,wind_vector:FLOAT,country:STRING,vtype:STRING,size:INTEGER,hotspot:STRING,top_route:INTEGER,month:INTEGER,year:INTEGER,p_fuel:FLOAT,np_fuel:FLOAT,p_labor:FLOAT,np_labor:FLOAT,p_total:FLOAT,np_total:FLOAT,p_co2:FLOAT,np_co2:FLOAT,p_nox:FLOAT,np_nox:FLOAT,p_sox:FLOAT,np_sox:FLOAT \
 --description "Model prediction of costs with and without pirate encounters" \
 emlab-gcp:piracy.full_pred_global_v_20240404
 
