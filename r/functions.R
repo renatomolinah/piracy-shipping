@@ -64,116 +64,139 @@ process_asam_data <- function(asam_data,
   return(processed_asam_data)
 }
 
-# Make global map, which will include ASAM attacks and eventually shipping activity
-make_global_map_figure <- function(asam_with_hotspots,
+# Make theme for maps
+theme_map <- function(){
+  theme_minimal() %+replace%
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          strip.background = element_rect(fill=NA,color=NA))
+}
+
+
+# Make Figure that has two panels:
+# A: global map, which includes ASAM attacks, shipping activity, and hotspots
+# B: Time series of ASAM attacks, by hotspots
+make_map_with_attack_timeseries_figure <- function(asam_with_hotspots,
                                    hotspots,
                                    aggregate_spatial_shipping_activity,
-                                   map_projection,
                                    attack_year_min = 2013,
                                    attack_year_max = 2021){
   
-  shipping_data_stars <- aggregate_spatial_shipping_activity %>%
-    stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
-    sf::st_set_crs(4326) %>%
-    sf::st_as_sf()%>%
-    sf::st_transform(map_projection)
+  sf_use_s2(FALSE)
   
   asam_data_processed_sf <- asam_with_hotspots %>%
     # Only include encounters that are not suspicious approaches
     dplyr::filter(encounter_type != 'Suspicious Approach') %>%
-    sf::st_as_sf(coords = c("lon","lat"),
-                 crs = sf::st_crs(4326)) %>%
-    sf::st_transform(map_projection) %>%
     dplyr::filter(year >= attack_year_min,
                   year <= attack_year_max)
   
-  # Load world land
-  world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
-    sf::st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"), quiet = TRUE) %>%
-    sf::st_transform(map_projection)
+  # Make coast and coastline sf objects
+  coast <- rnaturalearth::ne_countries(returnclass = "sf")
+  coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
   
-  # Create bounding box of world, to use as outline in the projected maps
-  # vectors of latitudes and longitudes that go once around the 
-  # globe in 1-degree steps
-  lats <- c(90:-90, -90:90, 90)
-  longs <- c(rep(c(180, -180), each = 181), 180)
-  
-  world_bbox_untransformed_sf <- 
-    list(cbind(longs, lats)) %>%
-    sf::st_polygon() %>%
-    sf::st_sfc( # create sf geometry list column
-      crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-    ) %>% 
-    sf::st_sf() 
-  
-  world_bbox_sf <- world_bbox_untransformed_sf%>%
-    sf::st_transform(map_projection)
-  
-  # Get polygons of ASAM regions
+  # Make ASAM region sf
   asam_regions <- asam::asam_subregions() %>% 
-    sf::st_make_valid() %>% 
-    sf::st_buffer(dist = 0.01) %>%
-    dplyr::select(asam_region = REGION) %>% 
-    dplyr::group_by(asam_region) %>% 
-    dplyr::summarize() %>% 
-    dplyr::ungroup() %>%
-    # Need to intersect with world bounding box, since original shapefile extends beyond thi
-    sf::st_intersection(world_bbox_untransformed_sf) %>%
-    sf::st_transform(map_projection)
+    select(asam_region = REGION) %>% 
+    st_buffer(dist = 0.01) %>% 
+    group_by(asam_region) %>% 
+    summarize() %>% 
+    ungroup()
   
-  plot <- ggplot2::ggplot()  +
-    ggplot2::geom_sf(data = shipping_data_stars,
-                     aes(fill = hours,
-                         color = hours)) +
-    ggplot2::scale_fill_gradient2("Shipping hours",
-                                  trans = "log10",
-                                  labels = scales::comma,
-                                  breaks = c(100,1000,10000,100000,1e6),
-                                  low = "white",
-                                  high = "dodgerblue4") +
-    ggplot2::scale_color_gradient2(trans = "log10",
-                                   low = "white",
-                                   high = "dodgerblue4",
-                                   guide = 'none') +
-    ggnewscale::new_scale_color() +
-    ggplot2::geom_sf(data = asam_regions,
-                     size = 0.01,
-                     color = "grey30",
-                     fill = NA) +
-    ggplot2::geom_sf(data = world_land,
-                     color = "black",
-                     fill = "black") +
-    ggplot2::geom_sf(data = asam_data_processed_sf,
-                     size = 0.01,
-                     color = "red") + 
-    ggplot2::geom_sf(data = hotspots  %>%
-                       mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-                                                  cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                                                  cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
-                                fct_relevel("Gulf of Guinea")) %>%
-                       dplyr::rowwise() %>%
-                       dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
-                       sf::st_as_sf(sf_column_name = "geometry", crs = 4326) %>%
-                       sf::st_transform(map_projection),
-                     fill = NA,
-                     linewidth = 1.025,
-                     aes(color = as.factor(cluster)))+
-    ggplot2::geom_sf(data = world_bbox_sf,
-                     fill = NA,
-                     color = "black") +
-    ggplot2::scale_color_brewer("Hotspot",
-                                type ="qual",
-                                palette = "Dark2")+ 
+  # Make hotspots into sf polygons for plotting
+  hotspots_sf <- hotspots  %>%
+    mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+                               cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                               cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
+             fct_relevel("Gulf of Guinea")) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
+    sf::st_as_sf(sf_column_name = "geometry", crs = 4326)
+  
+  # First make global map
+  map <- ggplot() +
+    geom_tile(data = aggregate_spatial_shipping_activity,
+              aes(x = lon_bin, 
+                  y = lat_bin, 
+                  fill = hours)) +
+    geom_sf(data = asam_regions,
+            fill = "transparent",
+            color = "white") +
+    geom_sf(data = coastline,
+            color = "white") +
+    geom_sf(data = coast,
+            fill = "black",
+            color = "black") +
+  ggplot2::geom_sf(data = hotspots_sf,
+                   fill = NA,
+                   linewidth = 1.025,
+                   aes(color = cluster)) +
+    geom_point(data = asam_data_processed_sf,
+               aes(x = lon, 
+                   y = lat),
+               color = "red",
+               size = 0.01) +
+    labs(x = "",
+         y = "") +
+    scale_x_continuous(expand = c(0, 1)) +
+    scale_y_continuous(expand = c(0, 1)) +
     theme_map() +
-    guides(fill  = guide_legend(order = 1,
-                                reverse=TRUE),
-           color = guide_legend(order = 2)) +
-    labs(x="",y="")
+    theme(panel.background = element_rect(fill = "black"),
+          legend.position = "bottom",
+          legend.direction = "horizontal")  +
+    ggplot2::scale_fill_viridis_c("Shipping hours",
+                                  trans = "pseudo_log",
+                                  breaks = c(0,100,10000,1e6),
+                                  option = "mako") +
+    scale_color_manual(values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6)]) +
+    guides(fill = guide_colorbar(title.position = "top",
+                                 title.hjust = 0.5,
+                                 frame.colour = "black",
+                                 ticks.colour = "black",
+                                 barwidth = unit(7, "cm"),
+                                 barheight = unit(0.5, "cm")),
+           color = "none") +
+    theme(plot.margin = unit(c(0.25,0,0,0), "cm"))
   
-  ggplot2::ggsave(filename = "figures/map.png",
-                  plot,
-                  height = 3,
-                  width = 7,
+  # Now make time series of attacks
+  timeseries <- plot <- asam_data_processed_sf %>%
+    dplyr::group_by(year,cluster) %>%
+    dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+                                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
+                                             TRUE ~ "Rest of world")  %>%
+                    forcats::fct_relevel(c("Gulf of Guinea",
+                                           "Gulf of Aden",
+                                           "Southeast Asia"))) %>%
+    ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
+    ggplot2::geom_bar(position = "stack", stat="identity",color="black", linewidth = 0.25)  +
+    ggplot2::scale_fill_manual("Hotspot",
+                               values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6,8)]) +
+    ggplot2::labs(x = "",
+                  y = "Number of encounters\n") +
+    ggplot2::theme(legend.position = c(0.9,1.1)) +
+    ggplot2::scale_x_continuous(breaks = seq(2013,2021,1)) +
+    theme(legend.box.background = element_rect(fill = 'white', color = 'white'))
+  
+  combined_figure <- cowplot::plot_grid(map,
+                                        timeseries,
+                                        ncol = 1,
+                                        rel_heights = c(0.67,0.33),
+                                        #label_y = 1.1,
+                                        labels = c("A","B"))
+  
+  
+  ggplot2::ggsave(filename = "figures/map_with_attack_timeseries.png",
+                  combined_figure,
+                  height = 7,
+                  width = 6,
                   dpi = 300)
   
   return(plot)
@@ -380,44 +403,4 @@ generate_asam_with_hotspots <- function(asam_data_processed,
                         values_to = "attack_in_hotspot") %>%
     dplyr::filter(attack_in_hotspot) %>%
     dplyr::select(-attack_in_hotspot)
-}
-
-
-make_encounter_time_series_figure <- function(asam_with_hotspots,
-                                              attack_year_min = 2005,
-                                              attack_year_max = 2021){
-  
-  plot_data<-asam_with_hotspots  %>%
-    # Only include encounters that are not suspicious approaches
-    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
-    dplyr::filter(year >= attack_year_min) %>%
-    dplyr::filter(year <= attack_year_max)
-  
-  plot <- plot_data %>%
-    dplyr::group_by(year,cluster) %>%
-    dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-                                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
-                                             TRUE ~ "Rest of world")  %>%
-                    forcats::fct_relevel(c("Gulf of Guinea",
-                                           "Gulf of Aden",
-                                           "Southeast Asia"))) %>%
-    ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
-    ggplot2::geom_bar(position = "stack", stat="identity",color="black", linewidth = 0.25)  +
-    ggplot2::scale_fill_brewer("Hotspot",
-                               type ="qual",
-                               palette = "Dark2") +
-    ggplot2::labs(x = "",
-                  y = "Number of encounters\n") +
-    ggplot2::scale_x_continuous(breaks = seq(2005,2021,2))
-  
-  ggplot2::ggsave(filename = "figures/encounter_time_series.png",
-                  plot,
-                  height = 4,
-                  width = 7,
-                  dpi = 300)
-  
-  return(plot)
 }

@@ -26,18 +26,6 @@ bq_dataset <- "piracy" # The dataset name for this project
 # Set ggplot theme for all plots
 ggplot2::theme_set(ggplot2::theme_minimal(base_size = 7))
 
-theme_map <- function(){
-  theme_minimal() %+replace%
-    theme(panel.background = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          axis.title.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          strip.background = element_rect(fill=NA,color=NA))
-}
 
 # Note: Any target name that includes _bq at the end creates a table on BigQuery
 # in the emlab-gcp.piracy dataset
@@ -358,24 +346,15 @@ list(
                           # Trigger re-run of this if timestamp changes for voyage_data_bq
                           voyage_data_bq)
   ),
-  # Set projection for global map figures
+  # Make figure with global map showing attacks shipping activity
+  # As well as time series of attack
   tar_target(
-    name = global_map_projection,
-    "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs"
-  ),
-  # Make global map showing attacks, hotspots, and shipping activity
-  tar_target(
-    name = global_map_figure,
-    make_global_map_figure(asam_with_hotspots,
+    name = map_with_attack_timeseries_figure,
+    make_map_with_attack_timeseries_figure(asam_with_hotspots,
                            hotspots,
                            aggregate_spatial_shipping_activity,
-                           map_projection = global_map_projection)
-  ),
-  # Make barplot that shows attacks over time, by hotspot
-  tar_target(
-    name = encounter_time_series_figure,
-    make_encounter_time_series_figure(asam_with_hotspots)
-  ),
+                           attack_year_min = 2013,
+                           attack_year_max = 2021)),
   # Summarize annual shipping activity by EEZ
   tar_target(
     name = shipping_activity_by_year_eez_sql,
