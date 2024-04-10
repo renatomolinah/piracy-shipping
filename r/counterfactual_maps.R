@@ -56,6 +56,19 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
+hotspot <- readRDS("processed_data/hotspots") %>% 
+  mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
+           fct_relevel("Gulf of Guinea")) %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min),
+                                                                     c(lon_max,lat_min),
+                                                                     c(lon_max,lat_max),
+                                                                     c(lon_min,lat_max),
+                                                                     c(lon_min,lat_min)))))) %>%
+  sf::st_as_sf(sf_column_name = "geometry", crs = 4326) 
+
 coast <- rnaturalearth::ne_countries(returnclass = "sf")
 coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
 
@@ -143,22 +156,29 @@ make_map <- function(data,
                      option = "G",
                      legend = "Cost (Million USD)\nlog10-transformed") {
   ggplot() +
-    geom_tile(data = data,
-              aes(x = lon_bin, y = lat_bin, fill = {{var}})) +
-    geom_sf(data = asam_regions,
-            fill = "transparent",
-            color = "white") +
     geom_sf(data = coastline,
             color = "white") +
     geom_sf(data = coast,
             fill = "black",
             color = "black") +
+    geom_tile(data = data,
+              aes(x = lon_bin, y = lat_bin, fill = {{var}})) +
+    geom_sf(data = asam_regions,
+            fill = "transparent",
+            color = "white") +
+    geom_sf(data = hotspot,
+            aes(color = cluster),
+            fill = "transparent",
+            linewidth = 1.025) +
     geom_sf_label(data = asam_regions,
                   aes(label = asam_region),
+                  nudge_y = -8,
                   size = 2,
                   label.size = 0.1,
                   label.padding = unit(0.1, "lines")) +
-    scale_fill_viridis_c(option = option, trans = "log10") + 
+    scale_fill_viridis_c(option = option, trans = "log10") +
+    scale_color_brewer(palette = "Paired") +
+    # scale_color_manual(values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6)]) +
     scale_x_continuous(expand = c(0, 1)) +
     scale_y_continuous(expand = c(0, 1)) +
     theme_map() +
@@ -170,7 +190,8 @@ make_map <- function(data,
                                  frame.colour = "black",
                                  ticks.colour = "black",
                                  barwidth = unit(5, "cm"),
-                                 barheight = unit(0.5, "cm")))
+                                 barheight = unit(0.5, "cm")),
+           color = "none")
 }
 
 # A map of total costs, not part of the paper but goof to have
@@ -200,6 +221,9 @@ sox_map <- make_map(total_grided,
                     var = sox,
                     option = "F",
                     legend = "SOx (Metric tons)")
+
+hotspot_legend <- cost_map + guides(fill = "none", color = guide_legend(title = "Hotspot"))
+hotspot_legend <- cowplot::get_legend(hotspot_legend)
 
 zonal_stats <- total_by_asam %>% 
   select(asam_region, private, public) %>% 
@@ -232,15 +256,17 @@ counterfactual_maps <- cowplot::plot_grid(cost_map,
                                           sox_map)
 
 p <- cowplot::plot_grid(counterfactual_maps,
+                        hotspot_legend,
                         zonal_stats,
                         ncol = 1,
-                        rel_heights = c(3, 1))
+                        rel_heights = c(2.8, 0.2, 1),
+                        labels = c("A", "B", ""))
 
 ## EXPORT ######################################################################
 
 # X ----------------------------------------------------------------------------
 ggsave(plot = p,
-       filename = here("figures", "counterfactual_maps.pdf"),
+       filename = here("figures", "counterfactual_maps.png"),
        width = 18.4,
-       height = 17.5,
+       height = 18.4,
        units = "cm")

@@ -1,6 +1,6 @@
 \begin{table}
 
-\caption{Linear regression estimates for the average effect of piracy on grid-level ship transit.\label{grid_reg}}
+\caption{Effect of Piracy on Grid-level Ship Transit.\label{grid_reg}}
 \centering
 \begin{adjustbox}{width = .9\textwidth}
 \begin{threeparttable}
@@ -10,28 +10,36 @@
 \midrule
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & -77.55** & -12.10 & -0.85 & -135.90***\\
-\hspace{1em} & (35.11) & (20.36) & (3.00) & (0.00)\\
-\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & \vphantom{3} 2110856\\
+\midrule \hspace{1em}Encounters (3 mo) & -8.69 & -39.60*** & -4.68*** & -9.76\\
+\hspace{1em} & (12.35) & (15.37) & (1.32) & (21.90)\\
+\hspace{1em}Observations & 6879691 & 2271317 & 548929 & \vphantom{3} 1899886\\
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (B): Occupancy (hr)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & 2.36 & -1.29 & 0.27 & 4.84**\\
-\hspace{1em} & (1.47) & (2.18) & (1.03) & (2.35)\\
-\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & \vphantom{2} 2110856\\
+\midrule \hspace{1em}Encounters (3 mo) & 8.11 & -1.27 & -0.29 & 15.43\\
+\hspace{1em} & (6.81) & (1.19) & (0.63) & (10.16)\\
+\hspace{1em}Observations & 6879691 & 2271317 & 548929 & \vphantom{2} 1899886\\
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (C): Voyages (\#)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & -1.11** & -0.80** & -0.01 & -1.71***\\
-\hspace{1em} & (0.53) & (0.35) & (0.09) & (0.52)\\
-\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & \vphantom{1} 2110856\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.16 & -1.18*** & -0.11*** & 0.56\\
+\hspace{1em} & (0.45) & (0.37) & (0.04) & (0.72)\\
+\hspace{1em}Observations & 6879691 & 2271317 & 548929 & \vphantom{1} 1899886\\
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (D): Vessels (\#)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & -1.06** & -0.76** & -0.01 & -1.63***\\
-\hspace{1em} & (0.50) & (0.33) & (0.09) & (0.48)\\
-\hspace{1em}Num.Obs. & 7643636 & 2523532 & 609884 & 2110856\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.19 & -1.17*** & -0.11*** & 0.62\\
+\hspace{1em} & (0.46) & (0.37) & (0.04) & (0.73)\\
+\hspace{1em}Observations & 6879691 & 2271317 & 548929 & 1899886\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month. Standard errors in parentheses are Conley (100 km cutoff). Each column shows results for different samples: (1) Global, (2) Gulf of Aden, (3) G. of Guinea, and (4) South East Asia.
+\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell (N = 2,093 unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis: 
+Global is the analysis using the whole sample. G. of Aden, G. of Guinea, and S.E. Asia restrict the sample to cells within each
+hotspot.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days. 
+All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).
 \end{tablenotes}
 \end{threeparttable}
 \end{adjustbox}

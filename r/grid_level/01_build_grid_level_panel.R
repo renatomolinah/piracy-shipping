@@ -40,6 +40,7 @@ piracy <- dbConnect(
 
 # Get data for clusters only ---------------------------------------------------
 with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20240327") %>% 
+  filter(date <= sql("DATE('2021-12-31')")) %>% 
   mutate(grid_id = paste0(lat_bin, "_", lon_bin),
          attack_cluster = case_when(hotspot_gulf_of_guinea == 1 ~ "GoG",
                                     hotspot_southeast_asia == 1 ~ "SEA",

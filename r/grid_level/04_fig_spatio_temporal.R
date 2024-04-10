@@ -195,7 +195,7 @@ make_spat_plot <- function(tracks, pars) {
                alpha = 0.1) +
     facet_wrap(~post) +
     geom_point(aes(x = focus_lon + 0.25, y = focus_lat + 0.25),
-               color = "black", shape = "X", size = 4) +
+               color = "black", shape = "X", size = 3) +
     guides(fill = guide_colorsteps(ticks = T)) +
     scale_fill_discrete(type = rev(colors)) +
     scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +

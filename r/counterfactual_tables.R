@@ -17,6 +17,7 @@ pacman::p_load(
   here,
   DBI,
   bigrquery,
+  kableExtra,
   modelsummary,
   tidyverse
 )
@@ -63,27 +64,65 @@ pred_info_local <- pred_info %>%
   collect() %>% 
   bind_rows(global_costs) %>% 
   mutate(year = as.character(year)) %>% 
-  mutate(hotspot = case_when(hotspot == "Guinea" ~ "Gulf of Guinea",
-                             hotspot == "Asia" ~ "South East Asia",
-                             hotspot == "Aden" ~ "Gulf of Aden",
+  mutate(hotspot = case_when(hotspot == "Guinea" ~ "G. of Guinea",
+                             hotspot == "Asia" ~ "Southeast Asia",
+                             hotspot == "Aden" ~ "G. of Aden",
                              T ~ hotspot),
-         hotspot = fct_relevel(hotspot, "Global", "Gulf of Aden", "South East Asia", "Gulf of Guinea")) %>% 
+         hotspot = fct_relevel(hotspot, "Global", "G. of Aden", "G. of Guinea", "Southeast Asia")) %>% 
   mutate(fuel = fuel / 1e3,
          labor = labor / 1e3,
          total = total / 1e3,
          nox = nox / 1e3,
-         sox = sox / 1e3)
+         sox = sox / 1e3) %>% 
+  rename(Hotspot = hotspot)
 
 ## VISUALIZE ###################################################################
 
 # X ----------------------------------------------------------------------------
-dsummary(((`Fuel (Million USD)` = fuel) + (`Labor (Million USD)` = labor) + (`Total  (Million USD)` = total)) * (`Hotspot` = hotspot) ~ sum * year, data = pred_info_local,
-         fmt = 0,
-         output = here("tables", "counterfactual_costs.tex"),
-         title = "Total costs of piracy to the shipping industry.\\label{tab:agg.cost}")
+counterfactual_costs <- dsummary((fuel + labor + total) * Hotspot ~ sum * year, data = pred_info_local,
+                                 output = "data.frame") %>% 
+  mutate_at(3:11, as.numeric) %>% 
+  mutate_at(3:11, ~scales::comma(., accuracy = 1)) %>% 
+  select(2:11)
+
+kbl(x = counterfactual_costs,
+    booktabs = TRUE,
+    label = "tab:agg.cost",
+    col.names = c("", 2013:2021),
+    caption = "Total Costs of Piracy to the Shipping Industry.",
+    linesep = "",
+    format = "latex") %>%
+  kable_styling() %>%
+  pack_rows("Fuel (Million USD)", 1, 4) %>% 
+  pack_rows("Labor (Million USD)", 5, 8) %>% 
+  pack_rows("Total (Million USD)", 9, 12) %>% 
+  cat(file = here("tables", "counterfactual_costs.tex"))
+
+add_adjust_box(here("tables", "counterfactual_costs.tex"),
+               before = "\\begin{tabular}",
+               after = "\\end{tabular}")
+
 
 # X ----------------------------------------------------------------------------
-dsummary(((`CO2 (Metric tones)` = co2) + (`NOx (Metric tones)` = nox) + (`SOx  (Metric tones)` = sox)) * (`Hotspot` = hotspot) ~ sum * year, data = pred_info_local,
-         fmt = 0, 
-         output = here("tables", "counterfactual_emissions.tex"),
-         title = "Total additional emission of air pollutants due to piracy.\\label{tab:emissions}")
+counterfactual_emissions <- dsummary((co2 / 1000 + nox + sox) * Hotspot ~ sum * year, data = pred_info_local,
+                                     output = "data.frame") %>% 
+  mutate_at(3:11, as.numeric) %>% 
+  mutate_at(3:11, ~scales::comma(., accuracy = 1)) %>% 
+  select(2:11)
+
+kbl(x = counterfactual_emissions,
+    booktabs = TRUE,
+    label = "tab:counterfactual_emissions",
+    col.names = c("", 2013:2021),
+    caption = "Total Emission of Air Pollutants due to Piracy",
+    linesep = "",
+    format = "latex") %>%
+  kable_styling() %>%
+  pack_rows("CO_2 (Thousand metric tons)", 1, 4) %>% 
+  pack_rows("NOx (Metric tons)", 5, 8) %>% 
+  pack_rows("SOx (Metric tons)", 9, 12) %>% 
+  cat(file = here("tables", "counterfactual_emissions.tex"))
+
+add_adjust_box(here("tables", "counterfactual_emissions.tex"),
+               before = "\\begin{tabular}",
+               after = "\\end{tabular}")

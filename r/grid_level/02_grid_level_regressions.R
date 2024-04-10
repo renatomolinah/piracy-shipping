@@ -50,16 +50,33 @@ by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance
                           data = reg_data %>% 
                             mutate(attack_cluster = ifelse(attack_cluster == "None", "Rest of the world", attack_cluster),
                                    attack_cluster = fct_relevel(attack_cluster, "GoA", "GoG", "SEA", "Rest of the world")),
-                          output = "dataframe")
+                          output = "dataframe") %>% 
+  mutate(
+    distance_km = as.numeric(distance_km),
+    time_hours = as.numeric(time_hours),
+    n_trips = as.numeric(n_trips),
+    n_vessels = as.numeric(n_vessels)
+  ) %>% 
+  mutate(across(c(distance_km, time_hours, n_trips, n_vessels), ~scales::comma(., accuracy = 0.1))) %>% 
+  select(-attack_cluster)
+
 
 kbl(x = by_cluster,
-    booktabs = T,
+    booktabs = TRUE,
     label = "grid_summary",
-    caption = "Summary statistics for daily ship transit by grid cell.",
-    col.names = c("", "", "Distance (km)", "Occupancy (hr)", "Voyages (#)", "Unique vessels (#)"),
+    caption = "Summary Statistics for Daily Ship Transit by Grid Cell.",
+    col.names = c("", "Distance (km)", "Occupancy (hr)", "Voyages (#)", "Unique vessels (#)"),
+    align = c("l", "r", "r", "r", "r"), # Set column alignments
     linesep = "",
-    format = "latex") %>% 
+    format = "latex") %>%
+  kable_styling() %>% # Removed position = "right" since it's not supported for standard tables
+  pack_rows("Gulf of Aden", 1, 4) %>% 
+  pack_rows("Gulf of Guinea", 5, 8) %>% 
+  pack_rows("Southeast Asia", 9, 12) %>% 
+  pack_rows("Rest of the World", 13, 16) %>% 
   cat(file = here("tables", "grid_summary_stats.tex"))
+
+processKBLoutput(here("tables", "grid_summary_stats.tex"))
 
 ## ESTIMATE ####################################################################
 # Full estimation --------------------------------------------------------------
@@ -94,11 +111,11 @@ fixest::models(mod) %>%
 
 ## BUILD TABLES ################################################################
 gm <- tribble(~raw, ~clean, ~fmt,
-              # "nobs", "Observations", 0,
+              "nobs", "Observations", 0#,
               # "vcov.type", "SE", 0,
-              "FE: grid_id", "FE: Grid ID", 0,
-              "FE: asam_subregion", "FE: ASAM subregion", 0,
-              "FE: year^month^asam_region", "FE: ASAM region-year-month", 0
+              # "FE: grid_id", "FE: Grid ID", 0,
+              # "FE: asam_subregion", "FE: ASAM subregion", 0,
+              # "FE: year^month^asam_region", "FE: ASAM region-year-month", 0
 )
 
 
@@ -111,11 +128,18 @@ msummary(list("Panel (A): Total Distance (km)" = mod[c(1, 13, 25, 37)],
          gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars =  c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
-         title = "Linear regression estimates for the average effect of piracy on grid-level ship transit.\\label{grid_reg}",
+         gof_map = gm, 
+         title = "Effect of Piracy on Grid-level Ship Transit.\\label{grid_reg}",
          notes = c(
-           paste("All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month.",
-                 "Standard errors in parentheses are Conley (100 km cutoff).",
-                 "Each column shows results for different samples: (1) Global, (2) Gulf of Aden, (3) G. of Guinea, and (4) South East Asia.")),
+           paste("The unit of observation is a grid cell (N = 2,093 unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis: 
+Global is the analysis using the whole sample. G. of Aden, G. of Guinea, and S.E. Asia restrict the sample to cells within each
+hotspot.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days. 
+All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).")),
          threeparttable = TRUE,
          shape = "rbind",
          escape = FALSE,
@@ -198,13 +222,20 @@ msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[c(1, 5, 9, 13)],
               "Panel (D): Vessels (\\#)" = sw_fe_mod[c(4, 8, 12, 16)]),
          coef_omit = "Intercept",
          coef_rename = c("TNE3" = "Encounters (3 mo)"),
-         gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars =  c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
          add_rows = fe_rows,
-         title = "Linear regression estimates for the average effect of piracy on grid-level ship transit for different FE specifications.\\label{grid_reg_fe}",
+         title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications.\\label{grid_reg_fe}",
          notes = c(
-           paste("Standard errors in parentheses are Conley (100 km cutoff).",
+           paste("The unit of observation is a grid cell (N = 2,093 unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis: 
+Global is the analysis using the whole sample. G. of Aden, G. of Guinea, and S.E. Asia restrict the sample to cells within each
+hotspot.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days. 
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).",
                  "Number of observations:", as.character(nobs(sw_fe_mod[[1]]) %>% format(big.mark = ",")),".")),
          threeparttable = TRUE,
          shape = "rbind",

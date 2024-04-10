@@ -16,6 +16,7 @@
 pacman::p_load(
   here,
   sf,
+  zoo,
   fixest,
   modelsummary,
   tidyverse
@@ -28,10 +29,6 @@ grid_level_panel <- readRDS(file = here("processed_data",
 # Define some windows
 bef_window <- 7
 aft_window <- 7
-
-# Questions for 2017-03-23 on 7.5_49.5:
-#   - Why is "number of previous atcks grid 1 month" jumping from 0 to 2?
-#   - Why are there no records of AIS activity in the area
 
 ## PROCESSING ------------------------------------------------------------------
 # Identify all dates with attacks
