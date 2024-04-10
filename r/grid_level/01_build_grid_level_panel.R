@@ -58,6 +58,11 @@ with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20240327") %>%
          number_previous_attacks_all_time,
          attack_cluster)
 
+grids_attacked_2013_2021 <- with_clusters %>%
+  filter(days_since_attack == 0) %>%
+  select(grid_id) %>%
+  distinct()
+
 # Get grid-level information from the tracks -----------------------------------
 track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>% 
   group_by(date, lat_bin, lon_bin) %>% 
@@ -70,6 +75,8 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
   
 # Combine both into the final panel --------------------------------------------
 gridded_panel <- with_clusters %>% 
+  inner_join(grids_attacked_2013_2021,
+             by = "grid_id") %>% 
   left_join(track_info,
             by = c("date", "lat_bin", "lon_bin"))
 

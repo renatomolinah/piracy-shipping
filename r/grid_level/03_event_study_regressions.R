@@ -27,8 +27,8 @@ grid_level_panel <- readRDS(file = here("processed_data",
                              "attacks_and_activity_by_grid.rds"))
 
 # Define some windows
-bef_window <- 7
-aft_window <- 7
+bef_window <- 5
+aft_window <- 5
 
 ## PROCESSING ------------------------------------------------------------------
 # Identify all dates with attacks
@@ -253,37 +253,3 @@ ggsave(plot = supp_plot_cluster,
        width = 18.4,
        height = 18.4,
        units = "cm")
-
-
-####### USING MULTIPLEG DYN estimator
-attacks2 <- grid_level_panel %>% 
-  filter(days_since_attack == 0) %>% 
-  group_by(grid_id) %>% 
-  arrange(date) %>%
-  # mutate(data_days = date - min(date)) %>% # Build a temporary variable that tells me how many days have passed between this observation and the first one, for each cell
-  # filter(data_days >= bef_window) %>%  # Remove attacks for which we don't have enough enough observations leading to it
-  select(grid_id, attack_date = date) %>% 
-  mutate(attack_id = paste(grid_id, attack_date)) %>% 
-  ungroup() %>% 
-  mutate(attacked = 1)
-
-
-full_panel <- grid_level_panel %>% 
-  left_join(attacks2, by = c("grid_id", "date" = "attack_date")) %>% 
-  replace_na(replace = list(attacked = 0)) %>% 
-  group_by(grid_id) %>% 
-  arrange(date) %>% 
-  mutate(attack_treatment = cumsum(attacked)) %>% 
-  ungroup() %>% 
-  mutate(distance_norm = distance_km / n_vessels)
-
-multiplegt <- did_multiplegt_dyn(df = full_panel,
-                                 outcome = "distance_norm",
-                                 group = "asam_subregion",
-                                 time = "date",
-                                 treatment = "attack_treatment",
-                                 effects = 7,
-                                 placebo = 7)
-
-saveRDS(full_panel,
-        "multiplegt_panel.rds")

@@ -131,7 +131,7 @@ msummary(list("Panel (A): Total Distance (km)" = mod[c(1, 13, 25, 37)],
          gof_map = gm, 
          title = "Effect of Piracy on Grid-level Ship Transit.\\label{grid_reg}",
          notes = c(
-           paste("The unit of observation is a grid cell (N = 2,093 unique cells). The sample spans from 2013 to 2021.
+           paste("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id)),"unique cells). The sample spans from 2013 to 2021.
 Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
 total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
 Each column is a different regression analysis: 
@@ -228,7 +228,7 @@ msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[c(1, 5, 9, 13)],
          add_rows = fe_rows,
          title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications.\\label{grid_reg_fe}",
          notes = c(
-           paste("The unit of observation is a grid cell (N = 2,093 unique cells). The sample spans from 2013 to 2021.
+           paste("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id)),"unique cells). The sample spans from 2013 to 2021.
 Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
 total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
 Each column is a different regression analysis: 
