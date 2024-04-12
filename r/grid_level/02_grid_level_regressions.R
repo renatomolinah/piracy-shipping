@@ -203,10 +203,33 @@ sw_fe_mod <- feols(data = reg_data,
                    vcov = vcov_conley(lat = "lat_bin",
                                       lon = "lon_bin",
                                       cutoff = 100),
-                   panel.id = ~grid_id + date)
+                   panel.id = ~grid_id + date,
+                   fsplit = ~attack_cluster,
+                   split.drop = "None",
+                   lean = TRUE)
 
-fixest::models(sw_fe_mod) %>% 
-  arrange(lhs)
+# Inspect models
+all_mods <- fixest::models(sw_fe_mod) %>% 
+  mutate(lhs = fct_relevel(lhs, c("distance_km", "time_hours", "n_trips", "n_vessels"))) %>% 
+  arrange(sample, lhs)
+
+all_mods
+
+full_sample_mods <- all_mods %>% 
+  filter(sample == "Full sample") %>%
+  pull(id)
+
+goa_sample_mods <- all_mods %>% 
+  filter(sample == "GoA") %>%
+  pull(id)
+
+gog_sample_mods <- all_mods %>% 
+  filter(sample == "GoG") %>%
+  pull(id)
+
+sea_sample_mods <- all_mods %>% 
+  filter(sample == "SEA") %>%
+  pull(id)
 
 fe_rows <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
@@ -216,30 +239,116 @@ fe_rows <- tribble(
   "ASAM Region-year-month FE",  "", "", "", "X",
 )
 
-msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[c(1, 5, 9, 13)],
-              "Panel (B): Occupancy (hr)" = sw_fe_mod[c(2, 6, 10, 14)],
-              "Panel (C): Voyages (\\#)" = sw_fe_mod[c(3, 7, 11, 15)],
-              "Panel (D): Vessels (\\#)" = sw_fe_mod[c(4, 8, 12, 16)]),
+# Full sample table
+msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[full_sample_mods[1:4]],
+              "Panel (B): Occupancy (hr)" = sw_fe_mod[full_sample_mods[5:8]],
+              "Panel (C): Voyages (\\#)" = sw_fe_mod[full_sample_mods[9:12]],
+              "Panel (D): Vessels (\\#)" = sw_fe_mod[full_sample_mods[13:16]]),
          coef_omit = "Intercept",
          coef_rename = c("TNE3" = "Encounters (3 mo)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars =  c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
          add_rows = fe_rows,
-         title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications.\\label{grid_reg_fe}",
+         title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications for a Global Sample.\\label{grid_reg_fe}",
          notes = c(
-           paste("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id)),"unique cells). The sample spans from 2013 to 2021.
+           paste0("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id)),"unique cells). The sample spans from 2013 to 2021.
 Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
 total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
-Each column is a different regression analysis: 
-Global is the analysis using the whole sample. G. of Aden, G. of Guinea, and S.E. Asia restrict the sample to cells within each
-hotspot.
-Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days. 
+Each column is a different regression analysis adding fixed-effects by grid ID, then group, and finally time.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days.
 Numbers in parentheses are Conley Standard Errors (100 km cutoff).",
-                 "Number of observations:", as.character(nobs(sw_fe_mod[[1]]) %>% format(big.mark = ",")),".")),
+                 " Number of observations: ", as.character(nobs(sw_fe_mod[[full_sample_mods[1]]]) %>% format(big.mark = ",")),
+                 ".")),
          threeparttable = TRUE,
          shape = "rbind",
          escape = FALSE,
          output = here("tables", "gridcell-dist-time_FEs.tex"))
 
 add_adjust_box(here("tables", "gridcell-dist-time_FEs.tex"))
+
+
+
+# GOA table
+msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[goa_sample_mods[1:4]],
+              "Panel (B): Occupancy (hr)" = sw_fe_mod[goa_sample_mods[5:8]],
+              "Panel (C): Voyages (\\#)" = sw_fe_mod[goa_sample_mods[9:12]],
+              "Panel (D): Vessels (\\#)" = sw_fe_mod[goa_sample_mods[13:16]]),
+         coef_omit = "Intercept",
+         coef_rename = c("TNE3" = "Encounters (3 mo)"),
+         gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         stars =  c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.2f",
+         add_rows = fe_rows,
+         title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications for the Gulf of Aden.\\label{grid_reg_fe_goa}",
+         notes = c(
+           paste0("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id[reg_data$attack_cluster == "GoA"])),"unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis adding fixed-effects by grid ID, then group, and finally time.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).",
+                  " Number of observations: ", as.character(nobs(sw_fe_mod[[goa_sample_mods[1]]]) %>% format(big.mark = ",")),
+                  ".")),
+         threeparttable = TRUE,
+         shape = "rbind",
+         escape = FALSE,
+         output = here("tables", "gridcell-dist-time_FEs_GoA.tex"))
+
+add_adjust_box(here("tables", "gridcell-dist-time_FEs_GoA.tex"))
+
+# GoG table
+msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[gog_sample_mods[1:4]],
+              "Panel (B): Occupancy (hr)" = sw_fe_mod[gog_sample_mods[5:8]],
+              "Panel (C): Voyages (\\#)" = sw_fe_mod[gog_sample_mods[9:12]],
+              "Panel (D): Vessels (\\#)" = sw_fe_mod[gog_sample_mods[13:16]]),
+         coef_omit = "Intercept",
+         coef_rename = c("TNE3" = "Encounters (3 mo)"),
+         gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         stars =  c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.2f",
+         add_rows = fe_rows,
+         title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications for the Gulf of Guinea.\\label{grid_reg_fe_gog}",
+         notes = c(
+           paste0("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id[reg_data$attack_cluster == "GoG"])),"unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis adding fixed-effects by grid ID, then group, and finally time.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).",
+                  " Number of observations: ", as.character(nobs(sw_fe_mod[[gog_sample_mods[1]]]) %>% format(big.mark = ",")),
+                  ".")),
+         threeparttable = TRUE,
+         shape = "rbind",
+         escape = FALSE,
+         output = here("tables", "gridcell-dist-time_FEs_GoG.tex"))
+
+add_adjust_box(here("tables", "gridcell-dist-time_FEs_GoG.tex"))
+
+# SEA table
+msummary(list("Panel (A): Total Distance (km)" = sw_fe_mod[sea_sample_mods[1:4]],
+              "Panel (B): Occupancy (hr)" = sw_fe_mod[sea_sample_mods[5:8]],
+              "Panel (C): Voyages (\\#)" = sw_fe_mod[sea_sample_mods[9:12]],
+              "Panel (D): Vessels (\\#)" = sw_fe_mod[sea_sample_mods[13:16]]),
+         coef_omit = "Intercept",
+         coef_rename = c("TNE3" = "Encounters (3 mo)"),
+         gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         stars =  c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.2f",
+         add_rows = fe_rows,
+         title = "Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications for Southeast Asia.\\label{grid_reg_fe_sea}",
+         notes = c(
+           paste0("The unit of observation is a grid cell (N =",length(unique(reg_data$grid_id[reg_data$attack_cluster == "SEA"])),"unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis adding fixed-effects by grid ID, then group, and finally time.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).",
+                  " Number of observations: ", as.character(nobs(sw_fe_mod[[sea_sample_mods[1]]]) %>% format(big.mark = ",")),
+                  ".")),
+         threeparttable = TRUE,
+         shape = "rbind",
+         escape = FALSE,
+         output = here("tables", "gridcell-dist-time_FEs_SEA.tex"))
+
+add_adjust_box(here("tables", "gridcell-dist-time_FEs_SEA.tex"))

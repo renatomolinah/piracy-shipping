@@ -46,19 +46,19 @@ grid_level_panel <- readRDS(file = here("processed_data",
                                         "attacks_and_activity_by_grid.rds"))
 
 ## PROCESSING ##################################################################
-event_study_panel %>%
-  filter(attack_date <= ymd("2022-07-01")) %>% 
-  mutate(post = 1 * (event >= 0)) %>%
-  group_by(attack_cluster, attack_id, post) %>%
-  summarize(m = sum(n_trips, na.rm = T)) %>%
-  pivot_wider(names_from = post,
-              values_from = m,
-              names_prefix = "m_") %>%
-  mutate(m = m_1 - m_0,
-         mp = m / m_0) %>%
-  arrange(m) %>% 
-  group_by(attack_cluster) %>%
-  slice_min(m)
+# event_study_panel %>%
+#   filter(attack_date <= ymd("2022-07-01")) %>% 
+#   mutate(post = 1 * (event >= 0)) %>%
+#   group_by(attack_cluster, attack_id, post) %>%
+#   summarize(m = sum(n_trips, na.rm = T)) %>%
+#   pivot_wider(names_from = post,
+#               values_from = m,
+#               names_prefix = "m_") %>%
+#   mutate(m = m_1 - m_0,
+#          mp = m / m_0) %>%
+#   arrange(m) %>% 
+#   group_by(attack_cluster) %>%
+#   slice_min(m)
 
 # # A tibble: 4 × 6
 # # Groups:   attack_cluster [4]
@@ -158,7 +158,7 @@ make_ts_plot <- function(grid_activity, pars) {
     geom_point(aes(y = n_trips)) +
     geom_line(aes(y = n_trips_w), 
               linewidth = 1,
-              color = "steelblue") +
+              color = "cadetblue") +
     theme_minimal(base_size = 7) +
     theme(axis.title.x = element_blank()) +
     labs(y = "# Voyages")
@@ -189,15 +189,17 @@ make_spat_plot <- function(tracks, pars) {
                           bins = 10,
                           contour_var = "ndensity") +
     geom_sf(data = coast, inherit.aes = F) +
-    geom_point(aes(group = trip_id),
-               pch = ".",
+    geom_point(pch = ".",
                color = "black",
-               alpha = 0.1) +
+               alpha = 0.2) +
     facet_wrap(~post) +
     geom_point(aes(x = focus_lon + 0.25, y = focus_lat + 0.25),
-               color = "black", shape = "X", size = 3) +
+               color = "darkorange3", shape = "X", size = 3) +
     guides(fill = guide_colorsteps(ticks = T)) +
-    scale_fill_discrete(type = rev(colors)) +
+    # scale_fill_discrete(type = rev(colors)) +
+    # scale_fill_discrete(type = wesanderson::wes_palette("Zissou1", n = 10, type = "continuous")) +
+    # scale_fill_viridis_d(option = "inferno") +
+    scale_fill_discrete_sequential("Teal") +
     scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +
     scale_y_continuous(limits = c(focus_lat - 3, focus_lat + 3), expand = expansion(0.01, 0)) +
     theme_map() +
@@ -245,3 +247,31 @@ ggsave(plot = sea_plot,
        width = 12.1,
        height = 8,
        units = "cm")
+
+
+tracks2 <- tracks %>%
+  mutate(lon_bin = (floor(lon / 0.25) * 0.25) + 0.125,
+         lat_bin = (floor(lat / 0.25) * 0.25) + 0.125) %>%
+  group_by(post, lat_bin, lon_bin) %>%
+  summarize(h = n_distinct(mmsi), .groups = "drop") %>% 
+  complete(lat_bin, lon_bin, post)
+
+
+ggplot(tracks2, aes(x = lon_bin, y = lat_bin, fill = h)) +
+  geom_raster() +
+  geom_sf(data = coast, inherit.aes = F) +
+  geom_point(data = tracks %>% 
+               mutate(post = fct_relevel(post, "Before encounter", "After encounter")),
+             mapping = aes(x = lon, y = lat), pch = ".", inherit.aes = F) +
+  facet_wrap(~post) +
+  geom_point(aes(x = focus_lon + 0.25, y = focus_lat + 0.25),
+             color = "black", shape = "X", size = 3) +
+  guides(fill = guide_colorsteps(ticks = T)) +
+  # scale_fill_discrete(type = rev(colors)) +
+  # scale_fill_discrete(type = wesanderson::wes_palette("Zissou1", n = 10, type = "continuous")) +
+  scale_fill_viridis_c(option = "mako", trans = "log10", na.value = 0) +
+  scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +
+  scale_y_continuous(limits = c(focus_lat - 3, focus_lat + 3), expand = expansion(0.01, 0)) +
+  theme_map() +
+  theme(panel.spacing.x = unit(2, "lines")) +
+  labs(fill = "Density")
