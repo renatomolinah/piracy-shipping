@@ -79,6 +79,14 @@ asam_regions <- asam_subregions() %>%
   summarize() %>% 
   ungroup()
 
+eez <- st_read(dsn = here("data/World_EEZ_v12_20231025_gpkg/eez_v12.gpkg")) %>% 
+  select(iso_sov = ISO_SOV1) %>% 
+  rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
+
+territorial_seas <- st_read(dsn = "data/World_12NM_v4_20231025_gpkg/eez_12nm_v4.gpkg") %>% 
+  select(iso_sov = ISO_SOV1) %>% 
+  rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
+
 track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>% 
   mutate(year = sql("EXTRACT(YEAR FROM date)")) %>% 
   select(year, lon_bin, lat_bin, trip_id) %>% 
@@ -133,6 +141,8 @@ total_grided <- local_grided %>%
 saveRDS(object = total_grided,
         file = here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
 
+# total_grided <- readRDS(here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
+
 # Get cost by ASAM region
 total_by_asam <- total_grided %>% 
   st_as_sf(coords = c("lon_bin", "lat_bin"),
@@ -142,6 +152,44 @@ total_by_asam <- total_grided %>%
   group_by(asam_region) %>% 
   summarize_all(sum, na.rm = T) %>% 
   mutate(asam_region = as.character(asam_region))
+
+total <- total_grided %>% 
+  ungroup() %>% 
+  summarize_all(sum, na.rm = T)
+
+# Get costs by EEZ
+total_grided_by_eez <- total_grided %>% 
+  st_as_sf(coords = c("lon_bin", "lat_bin"),
+           crs = 4326) %>% 
+  st_join(eez, join = st_intersects) %>% 
+  bind_cols(st_coordinates(.)) %>% 
+  st_drop_geometry() %>% 
+  rename(lon_bin = X, lat_bin = Y) %>% 
+  drop_na(iso_sov)
+
+total_by_eez <- total_grided_by_eez %>%
+  ungroup() %>% 
+  select(-iso_sov) %>% 
+  summarize_all(sum, na.rm = T) 
+
+# Get costs by territorial seas (24 N)
+total_grided_by_sea <- total_grided %>% 
+  st_as_sf(coords = c("lon_bin", "lat_bin"),
+           crs = 4326) %>% 
+  st_join(territorial_seas, join = st_intersects) %>% 
+  bind_cols(st_coordinates(.)) %>% 
+  st_drop_geometry() %>% 
+  rename(lon_bin = X, lat_bin = Y) %>% 
+  drop_na(iso_sov)
+
+total_by_sea <- total_grided_by_sea %>% 
+  select(-iso_sov) %>% 
+  summarize_all(sum, na.rm = T) 
+
+# Some stats by EEZ and sea:
+
+(total_by_eez$public / total$public) * 100
+(total_by_sea$public / total$public) * 100
 
 ## VISUALIZE ###################################################################
 
@@ -160,9 +208,12 @@ make_map <- function(data,
             color = "white") +
     geom_sf(data = coast,
             fill = "black",
-            color = "black") +
+            color = "transparent") +
     geom_tile(data = data,
               aes(x = lon_bin, y = lat_bin, fill = {{var}})) +
+    geom_sf(data = eez,
+            color = "white",
+            fill = "transparent") +
     geom_sf(data = asam_regions,
             fill = "transparent",
             color = "white") +
@@ -177,8 +228,8 @@ make_map <- function(data,
                   label.size = 0.1,
                   label.padding = unit(0.1, "lines")) +
     scale_fill_viridis_c(option = option, trans = "log10") +
-    scale_color_brewer(palette = "Paired") +
-    # scale_color_manual(values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6)]) +
+    # scale_color_brewer(palette = "Paired") +
+    scale_color_manual(values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6)]) +
     scale_x_continuous(expand = c(0, 1)) +
     scale_y_continuous(expand = c(0, 1)) +
     theme_map() +
@@ -210,9 +261,7 @@ cost_map <- make_map(data = total_grided,
 co2_map <- make_map(total_grided,
                     var = co2,
                     option = "D",
-                    # legend = bquote(atop(CO[2],"(Metric tons) log10-transformed"))
-                    legend = expression(CO[2]~"(Metric tons)")
-                    )
+                    legend = expression(CO[2]~"(Metric tons)"))
 nox_map <- make_map(total_grided,
                     var = nox,
                     option = "E",
@@ -270,3 +319,37 @@ ggsave(plot = p,
        width = 18.4,
        height = 18.4,
        units = "cm")
+
+ggsave(plot = total_map,
+       filename = here("figures", "total_map.png"),
+       width = 15,
+       height = 8,
+       units = "cm")
+
+
+tbl(piracy, "full_pred_global_v_20240404") %>% 
+  select(year, matches("total|co2|sox|nox")) %>%
+  group_by(year) %>%
+  summarize_all(sum) %>%
+  select(-year) %>%
+  summarize_all(mean) %>% 
+  mutate(p_total = p_total / 1e3,
+         np_total = np_total / 1e3,
+         p_nox = p_nox / 1e3,
+         np_nox = np_nox / 1e3,
+         p_sox = p_sox / 1e3,
+         np_sox = np_sox / 1e3) %>% 
+  mutate(p_private = p_total,
+         np_private = np_total,
+         p_public = (p_co2 * sc_co2 / 1e6) + (p_nox * sc_nox / 1e6) + (p_sox * sc_sox / 1e6),
+         np_public = (np_co2 * sc_co2 / 1e6) + (np_nox * sc_nox / 1e6) + (np_sox * sc_sox / 1e6),
+         p_total = p_private + p_public,
+         np_total = np_private + np_public,
+         d_private = p_private - np_private,
+         d_public = p_public - np_public,
+         d_total = p_total - np_total) %>% 
+  select(p_private, np_private, p_public, np_public, p_total, np_total, d_private, d_public, d_total) %>% 
+  mutate(p_pct = (d_total / p_total) * 100,
+         np_pct = (d_total / np_total) * 100)
+
+
