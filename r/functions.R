@@ -404,3 +404,4 @@ generate_asam_with_hotspots <- function(asam_data_processed,
     dplyr::filter(attack_in_hotspot) %>%
     dplyr::select(-attack_in_hotspot)
 }
+

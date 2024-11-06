@@ -376,5 +376,77 @@ list(
     pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez_v_20240307", 
                   # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
                   shipping_activity_by_year_eez_bq)
+  ),
+  # For each route, find the 5 degree pixels and dates that vessels travel along
+  tar_target(
+    name = route_pixel_dates_sql,
+    "sql/route_pixel_dates.sql",
+    format = "file"
+  ),
+  # Run this query and save the data on BigQuery
+  tar_target(
+    name = route_pixel_dates_bq,
+    run_gfw_query(sql = route_pixel_dates_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 5),
+                  bq_table_name = "route_pixel_dates_v_20241105")
+  ),
+  # For each route, find the pixels that vessels travel through across all time
+  tar_target(
+    name = route_pixels_all_time_sql,
+    "sql/route_pixels_all_time.sql",
+    format = "file"
+  ),
+  # Run this query and save the data on BigQuery
+  tar_target(
+    name = route_pixels_all_time_bq,
+    run_gfw_query(sql = route_pixels_all_time_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "route_pixels_all_timev_20241105")
+  ),
+  # For all combinations of route and every possible date,
+  # determine if an attack happened along the route on that date
+  # Define routes as the pixels that voyages passed through across all time
+  tar_target(
+    name = route_all_time_date_has_attack_sql,
+    "sql/route_all_time_date_has_attack.sql",
+    format = "file"
+  ),
+  # Run this query and save the data on BigQuery
+  tar_target(
+    name = route_all_time_date_has_attack_bq,
+    run_gfw_query(sql = route_all_time_date_has_attack_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "route_all_time_date_has_attack_v_20241105")
+  ),
+  # For all combinations of route and every possible date,
+  # find pixels that voyages passed through before or on each date
+  #  so if a route hadn't actually been traversed before a particular date, there won't be any rows for that route-date
+  tar_target(
+    name = route_prior_date_pixels_sql,
+    "sql/route_prior_date_pixels.sql",
+    format = "file"
+  ),
+  # Run this query and save the data on BigQuery
+  tar_target(
+    name = route_prior_date_pixels_bq,
+    run_gfw_query(sql = route_prior_date_pixels_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "route_prior_date_pixels_v_20241105")
+  ),
+  # For all combinations of route and every possible date,
+  # determine if an attack happened along the route on that date
+  # using routes as the pixels that voyages passed through before or on each date
+  tar_target(
+    name = route_prior_date_has_attack_sql,
+    "sql/route_prior_date_has_attack.sql",
+    format = "file"
+  ),
+  # Run this query and save the data on BigQuery
+  tar_target(
+    name = route_prior_date_has_attack_bq,
+    run_gfw_query(sql = route_prior_date_has_attack_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "route_prior_date_has_attack_v_20241105")
   )
 )
