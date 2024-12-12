@@ -31,7 +31,7 @@ WITH
     lon_bin,
     1 pixel_date_has_attack
   FROM
-    `emlab-gcp.piracy.gridded_pirate_attacks_5_v_20240314`
+    `emlab-gcp.piracy.{gridded_attack_table}`
   WHERE
     days_since_attack = 0
         GROUP BY

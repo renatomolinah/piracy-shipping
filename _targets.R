@@ -377,7 +377,7 @@ list(
                   # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
                   shipping_activity_by_year_eez_bq)
   ),
-  # For each route, find the 5 degree pixels and dates that vessels travel along
+  # For each route, find the 3 degree pixels and dates that vessels travel along
   tar_target(
     name = route_pixel_dates_sql,
     "sql/route_pixel_dates.sql",
@@ -388,7 +388,7 @@ list(
     name = route_pixel_dates_bq,
     run_gfw_query(sql = route_pixel_dates_sql %>%
                     readr::read_file() %>%
-                    glue::glue(pixel_size = 5),
+                    glue::glue(pixel_size = 3),
                   bq_table_name = "route_pixel_dates_v_20241105")
   ),
   # For each route, find the pixels that vessels travel through across all time
@@ -404,6 +404,14 @@ list(
                     readr::read_file(),
                   bq_table_name = "route_pixels_all_timev_20241105")
   ),
+  tar_target(
+    name = gridded_pirate_attacks_3_bq,
+    run_gfw_query(sql = gridded_pirate_attacks_sql %>%
+                    readr::read_file() %>%
+                    glue::glue(pixel_size = 3,
+                               hotspots = hotspots_sql),
+                  bq_table_name = "gridded_pirate_attacks_3_v_20241105")
+  ),
   # For all combinations of route and every possible date,
   # determine if an attack happened along the route on that date
   # Define routes as the pixels that voyages passed through across all time
@@ -416,7 +424,8 @@ list(
   tar_target(
     name = route_all_time_date_has_attack_bq,
     run_gfw_query(sql = route_all_time_date_has_attack_sql %>%
-                    readr::read_file(),
+                    readr::read_file() %>%
+                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20241105"),
                   bq_table_name = "route_all_time_date_has_attack_v_20241105")
   ),
   # For all combinations of route and every possible date,
@@ -446,7 +455,8 @@ list(
   tar_target(
     name = route_prior_date_has_attack_bq,
     run_gfw_query(sql = route_prior_date_has_attack_sql %>%
-                    readr::read_file(),
+                    readr::read_file() %>%
+                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20241105"),
                   bq_table_name = "route_prior_date_has_attack_v_20241105")
   )
 )
