@@ -44,7 +44,7 @@ cluster <- "asam_subregion"
 
 wrap <- function(outcome) {
   out_file <- here("output_data", paste0("es_mod_clust_", outcome, ".rds"))
-  
+
   if(!file.exists(out_file)) {
     print(paste("File", out_file, "not found, proceeding to estimate model"))
     reg <- did_multiplegt_dyn(df = grid_level_panel,
@@ -55,7 +55,7 @@ wrap <- function(outcome) {
                               time = time,
                               cluster = cluster,
                               treatment = treatment)
-    
+
     saveRDS(reg, file = out_file)
   }
 }

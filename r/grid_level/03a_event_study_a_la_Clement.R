@@ -118,7 +118,7 @@ files <- list.files("output_data", pattern = "es_mod", full.names = T)
 
 mods <- map(files, readRDS)
 
-es_plot_clement <- mods |>
+es_plot_clement <- mods |>us
   map_dfr(build_coef_table) |>
   build_event_study_plot()
 
