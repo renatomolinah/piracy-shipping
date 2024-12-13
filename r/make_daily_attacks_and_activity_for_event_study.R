@@ -33,7 +33,8 @@ activity <- tbl(piracy, "ungridded_data_v_20240228")
 route_info <- tbl(piracy, "voyage_info_v_20240228")
 attacks_all <- tbl(piracy, "route_all_time_date_has_attack_v_20241105")
 attacks_prev <- tbl(piracy, "route_prior_date_has_attack_v_20241105")
-hotspots <- tbl(piracy, "voyage_data_5_v_20240327")
+voyage_data <- tbl(piracy, "voyage_data_5_v_20240327")
+hotspots <- tbl(piracy, "gridded_data_3_v_20240312")
 
 attacks <- attacks_all %>% 
   select(date, from_country, from_port, to_country, to_port) %>% 
@@ -49,8 +50,15 @@ basic_route_info <- route_info %>%
 
 # Get the routes that go through GoA
 GoA_routes <- hotspots %>% 
-  filter(hotspot_gulf_of_aden) %>%
-  select(from_country, from_port, to_country, to_port) %>% 
+  filter(hotspot_gulf_of_aden == 1 |
+           hotspot_gulf_of_guinea == 1 |
+           hotspot_southeast_asia == 1) %>%
+  select(trip_id, hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) %>% 
+  left_join(select(voyage_data,
+                   trip_id, from_country, from_port, to_country, to_port) %>% 
+              distinct(),
+            by = join_by(trip_id)) %>% 
+  select(from_country, from_port, to_country, to_port, hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) %>% 
   distinct()
   
 
@@ -67,7 +75,8 @@ daily_attacks <- attacks_all %>%
   ) %>% 
   # Keep only routes that pass through the GoA
   inner_join(GoA_routes, by = join_by(from_country, from_port, to_country, to_port)) %>% 
-  group_by(date, from_country, from_port, to_country, to_port) %>% 
+  group_by(date, from_country, from_port, to_country, to_port,
+           hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) %>% 
   summarize(attack = any(route_has_attack),
             days_with_attack = sum(ifelse(route_has_attack, 1, 0)),
             .groups = "drop")
@@ -89,6 +98,7 @@ panel <- daily_attacks %>%
   left_join(daily_activity, by = join_by(date, from_country, from_port, to_country, to_port)) %>% 
   select(date,
          from_country, from_port, to_country, to_port,
+         hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia,
          attack, days_with_attack,
          hours, distance_km, main_fuel_consumption_mt_inst, aux_fuel_consumption_mt_inst,
          n_trips, n_vessels) %>% 
@@ -106,3 +116,4 @@ local_panel <- collect(panel)
 
 saveRDS(local_panel,
         here("processed_data", "daily_attacks_and_activity_for_event_study.rds"))
+# 
