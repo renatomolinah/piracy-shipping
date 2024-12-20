@@ -31,7 +31,7 @@ piracy <- dbConnect(
   bigquery(),
   project = "emlab-gcp",
   dataset = "piracy",
-  billing = "emlab-gcp",
+  billing = "mex-fisheries",
   use_legacy_sql = FALSE,
   allowLargeResults = TRUE
 )
@@ -39,13 +39,13 @@ piracy <- dbConnect(
 ## PROCESSING ##################################################################
 
 # Get data for clusters only ---------------------------------------------------
-with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20240327") %>% 
-  filter(date <= sql("DATE('2021-12-31')")) %>% 
+with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20240327") %>%
+  filter(date <= sql("DATE('2021-12-31')")) %>%
   mutate(grid_id = paste0(lat_bin, "_", lon_bin),
          attack_cluster = case_when(hotspot_gulf_of_guinea == 1 ~ "GoG",
                                     hotspot_southeast_asia == 1 ~ "SEA",
                                     hotspot_gulf_of_aden == 1 ~ "GoA",
-                                    T ~ "None")) %>% 
+                                    T ~ "None")) %>%
   select(date,
          grid_id,
          lat_bin,
@@ -64,19 +64,19 @@ grids_attacked_2013_2021 <- with_clusters %>%
   distinct()
 
 # Get grid-level information from the tracks -----------------------------------
-track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>% 
-  group_by(date, lat_bin, lon_bin) %>% 
+track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
+  group_by(date, lat_bin, lon_bin) %>%
   summarize(time_hours = sum(hours, na.rm = T),
             distance_km = sum(distance_km, na.rm = T),
             n_vessels = n_distinct(mmsi),
             n_trips = n_distinct(trip_id),
             n_ais_messages = sum(ais_messages, na.rm = T),
             .groups = "drop")
-  
+
 # Combine both into the final panel --------------------------------------------
-gridded_panel <- with_clusters %>% 
+gridded_panel <- with_clusters %>%
   inner_join(grids_attacked_2013_2021,
-             by = "grid_id") %>% 
+             by = "grid_id") %>%
   left_join(track_info,
             by = c("date", "lat_bin", "lon_bin"))
 
@@ -84,19 +84,19 @@ local_gridded_panel <- collect(gridded_panel)
 
 # Add FAO zone info  -----------------------------------------------------------
 sf_use_s2(F)
-asam_regions <- asam_subregions() %>% 
+asam_regions <- asam_subregions() %>%
   select(asam_region = REGION,
          asam_subregion = SUBREGION)
 
-grid_regions <- local_gridded_panel %>% 
-  select(grid_id, lat_bin, lon_bin) %>% 
-  distinct() %>% 
+grid_regions <- local_gridded_panel %>%
+  select(grid_id, lat_bin, lon_bin) %>%
+  distinct() %>%
   st_as_sf(coords = c("lon_bin", "lat_bin"),
-           crs = 4326) %>% 
+           crs = 4326) %>%
   st_join(asam_regions, join = st_nearest_feature) %>%
   st_drop_geometry()
 
-final <- local_gridded_panel %>% 
+final <- local_gridded_panel %>%
   left_join(grid_regions, by = "grid_id")
 
 ## EXPORT ######################################################################
