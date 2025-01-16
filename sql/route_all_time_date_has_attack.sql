@@ -1,3 +1,5 @@
+CREATE TEMPORARY FUNCTION
+  fraction_route_trips_through_pixel_min_threshold() AS ({fraction_route_trips_through_pixel_min_threshold});
 WITH
   # Create table with all dates in our study period
   all_dates AS(
@@ -15,14 +17,10 @@ WITH
     to_port,
     to_country
   FROM
-    `emlab-gcp.piracy.route_pixel_dates_v_20241105`
-  GROUP BY
-    lon_bin,
-    lat_bin,
-    from_port,
-    from_country,
-    to_port,
-    to_country),
+    `emlab-gcp.piracy.route_pixels_all_time_v_20250116`
+  WHERE
+    fraction_route_trips_through_pixel >= fraction_route_trips_through_pixel_min_threshold()
+  ),
   # Find the date and pixels that have an attack
   attack_pixel_dates AS(
   SELECT
