@@ -83,7 +83,8 @@ hostilit_Ds <- c("PIRATE ASAULT",
                 "KIDNAPPING",
                 "ATTEMPTED BOARDING",
                 "HIJACKING",
-                "MOTHERSHIP ACTIVITY")
+                "MOTHERSHIP ACTIVITY",
+                "SUSPICIOUS APPROACH")
 
 # Nouns from GTP
 nouns <- c("Alarm",
@@ -123,7 +124,6 @@ verbs <- c("Attack",
            "Robbed",
            "Steal",
            "Stole",
-           "Stolen",
            "Threaten",
            "Threatened",
            "Tie",
@@ -140,7 +140,12 @@ keywords <- c(nouns, verbs, adverbs) |>
 
 # Now vectors of unique values to exclude --------------------------------------
 exclude_hostility_ <- c(
-  "MILITARY"
+  "MILITARY",
+  "ASSAULT",
+  "DRUG SMUGGLING",
+  "MISSILE ATTACK",
+  "EXPLOSION",
+  "DETAINED"
 )
 
 exclude_keywords <- c(
@@ -153,7 +158,19 @@ exclude_keywords <- c(
   "ON THE PIER",
   "AT THE PORT",
   "AT THE DOCK",
-  "AT THE PIER")
+  "AT THE PIER",
+  "YARD",
+  "BERTHED",
+  "DOCKED",
+  "BARGE",
+  "BARGES",
+  "YACHT",
+  "YACHTS",
+  "SAILING YACHT",
+  "SAILING",
+  "SAILBOAT",
+  "SAILING VESSEL",
+  "SAILBOATS")
 
 # Implement filters ------------------------------------------------------------
 clean_encounters <- all_encounters |> 
@@ -165,7 +182,8 @@ clean_encounters <- all_encounters |>
   # EXCLUDE THESE
   filter(!str_detect(hostility_, paste(exclude_hostility_, collapse = "|")),
          !str_detect(descriptio, paste(exclude_keywords, collapse = "|")),
-         !hostilityt == 0)
+         !hostilityt == 0) |> 
+  drop_na(victim_d)
 
 
 # How many did we remove?
