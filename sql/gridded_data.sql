@@ -34,7 +34,9 @@ WITH
     FROM
       timestamp) wind_year
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20240228`),
+    `emlab-gcp.piracy.ungridded_data_v_20250210`
+    # Only keep data from list of filtered trips
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)),
   # Load 5x5 degree wind data
   wind_info AS(
   SELECT
@@ -96,9 +98,7 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
-  WHERE
-    encounter_type != 'Suspicious Approach'
+    `emlab-gcp.piracy.asam_data_v_20250210`
   GROUP BY
     attack_date,
     attack_lat_bin,

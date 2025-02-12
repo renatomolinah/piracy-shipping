@@ -18,7 +18,7 @@ WITH
     departure_timestamp,
     arrival_timestamp
   FROM
-    `emlab-gcp.piracy.voyage_info_v_20240228` ),
+    `emlab-gcp.piracy.voyage_info_v_20250210` ),
   # Select good segments
   good_segments AS (
   SELECT
@@ -30,7 +30,7 @@ WITH
     AND NOT overlapping_and_short ),
   # Select the AIS messages
   # Get all data from 'current' AIS messages table, which includes data for the last 10 years
-  # At the time of this query in February 2024, this archive version includes 2014-2024 data
+  # At the time of this query in February 2025, this archive version includes 2013-2014 data
   ais_info_current AS(
   SELECT
     ssvid mmsi,
@@ -56,7 +56,7 @@ WITH
     AND _partitiontime <= '2021-12-31'),
   # Select the AIS messages
   # Get all data from 'archive' table, which includes data prior to last 10 years
-  # At the time of this query in February 2024, this archive version includes 2013 data
+  # At the time of this query in February 2025, this archive version includes 2013-2014 data
   ais_info_archive AS(
   SELECT
     ssvid mmsi,

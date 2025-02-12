@@ -5,7 +5,7 @@ WITH
     lat_bin,
     lon_bin
   FROM
-    `emlab-gcp.piracy.gridded_pirate_attacks_5_v_20240314`
+    `emlab-gcp.piracy.gridded_pirate_attacks_5_v_20250210`
   WHERE
     days_since_attack = 0
   GROUP BY

@@ -43,7 +43,7 @@ list(
   tar_target(
     name = asam_data_processed,
     process_asam_data(asam_data,
-                      table_name = "asam_data_v_20240228")
+                      table_name = "asam_data_v_20250210")
   ),
   # Create hotspot cluster bounding boxes, using attacks from 2010 - 2021
   tar_target(
@@ -110,7 +110,7 @@ list(
     name = voyage_info_bq,
     run_gfw_query(sql = voyage_info_sql %>%
                     readr::read_file(),
-                  bq_table_name = "voyage_info_v_20240228", 
+                  bq_table_name = "voyage_info_v_20250210", 
                   # Trigger re-run of this if timestamp changes for vessel_info_bq
                   vessel_info_bq)
   ),
@@ -125,9 +125,28 @@ list(
     name = ungridded_data_bq,
     run_gfw_query(sql = ungridded_data_bq_sql %>%
                     readr::read_file(),
-                  bq_table_name = "ungridded_data_v_20240228",
+                  bq_table_name = "ungridded_data_v_20250210",
                   # Trigger re-run of this if timestamp changes for vessel_info_bq
                   vessel_info_bq,
+                  # Trigger re-run of this if timestamp changes for voyage_info_bq
+                  voyage_info_bq)
+  ),
+  # Keep only these trips
+  # Apply some rules-of-thumb filters to remove potentially erroneous trips
+  # i.e., trips > 60 days, distance greater than earth's circumfrence, from port = to port, 
+  # distance greater than4x average trip distance
+  tar_target(
+    name = keep_these_trips_bq_sql,
+    "sql/keep_these_trips.sql",
+    format = "file"
+  ),
+  tar_target(
+    name = keep_these_trips_bq,
+    run_gfw_query(sql = keep_these_trips_bq_sql %>%
+                    readr::read_file(),
+                  bq_table_name = "keep_these_trips_v_20250210",
+                  # Trigger re-run of this if timestamp changes for ungridded_data_bq
+                  ungridded_data_bq,
                   # Trigger re-run of this if timestamp changes for voyage_info_bq
                   voyage_info_bq)
   ),
@@ -135,42 +154,48 @@ list(
   # This will eventually further be aggregated to the voyage-level for the voyage-level analysis
   # This loads the SQL query
   tar_target(
-    name = gridded_data_5_sql,
-    "sql/gridded_data_5.sql",
+    name = gridded_data_sql,
+    "sql/gridded_data.sql",
     format = "file"
   ),
   # Run the query and save it on BQ
   tar_target(
     name = gridded_data_5_bq,
-    run_gfw_query(sql = gridded_data_5_sql %>%
+    run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_5_v_20240307", 
+                  bq_table_name = "gridded_data_5_v_20250210", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
-                  ungridded_data_bq)
+                  ungridded_data_bq, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # For robustness check, make another version of this table that is 3x3 degrees
   tar_target(
     name = gridded_data_3_bq,
-    run_gfw_query(sql = gridded_data_5_sql %>%
+    run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_3_v_20240312", 
+                  bq_table_name = "gridded_data_3_v_20250210", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
-                  ungridded_data_bq)
+                  ungridded_data_bq, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # For robustness check, make another version of this table that is 7x7 degrees
   tar_target(
     name = gridded_data_7_bq,
-    run_gfw_query(sql = gridded_data_5_sql %>%
+    run_gfw_query(sql = gridded_data_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 7,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_7_v_20240312", 
+                  bq_table_name = "gridded_data_7_v_20250210", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
-                  ungridded_data_bq)
+                  ungridded_data_bq, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # Aggregate ungridded data to level of shipping activity date and 0.5x0.5 degree pixels
   # This will be the basis of the grid-level analysis
@@ -187,9 +212,11 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_data_0_5_v_20240307", 
+                  bq_table_name = "gridded_data_0_5_v_20250210", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
-                  ungridded_data_bq)
+                  ungridded_data_bq, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # Generate some gridded pirate attack data, for the grid-level analysis
   tar_target(
@@ -203,9 +230,9 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 0.5,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_pirate_attacks_0_5_v_20240327", 
-                  # Trigger re-run of this if process_asam_data is run
-                  process_asam_data)
+                  bq_table_name = "gridded_pirate_attacks_0_5_v_20250210", 
+                  # Trigger re-run of this if asam_data_processed is run
+                  asam_data_processed)
   ),
   # Also make a 5x5 degree version, for making figures
   tar_target(
@@ -214,9 +241,9 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_pirate_attacks_5_v_20240314", 
-                  # Trigger re-run of this if process_asam_data is run
-                  process_asam_data)
+                  bq_table_name = "gridded_pirate_attacks_5_v_20250210", 
+                  # Trigger re-run of this if asam_data_processed is run
+                  asam_data_processed)
   ),
   # Here we summarize aggregate spatial shipping activity at 0.5x0.5 degrees, for making a global map
   tar_target(
@@ -229,14 +256,14 @@ list(
     name = aggregate_spatial_shipping_activity_bq,
     run_gfw_query(sql = aggregate_spatial_shipping_activity_sql %>%
                     readr::read_file(),
-                  bq_table_name = "aggregate_spatial_shipping_activity_v_20240307", 
+                  bq_table_name = "aggregate_spatial_shipping_activity_v_20250210", 
                   # Trigger re-run of this if timestamp changes for gridded_data_0_5_bq
                   gridded_data_0_5_bq)
   ),
   # Pull gridded shipipng data locally
   tar_target(
     name = aggregate_spatial_shipping_activity,
-    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity_v_20240307", 
+    pull_gfw_data_locally(bq_table_name = "aggregate_spatial_shipping_activity_v_20250210", 
                   # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
                   aggregate_spatial_shipping_activity_bq)
   ),
@@ -254,13 +281,15 @@ list(
     run_gfw_query(sql = total_rolling_route_attacks_per_trip_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5),
-                  bq_table_name = "total_rolling_route_attacks_per_trip_5_degrees_v_20240314", 
+                  bq_table_name = "total_rolling_route_attacks_per_trip_5_degrees_v_20250210", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
                   # Trigger re-run of timestamp changes ov voyage_info_bq
                   voyage_info_bq,
                   # Trigger re-run of timestamp changes ov asam_data_processed
-                  asam_data_processed)
+                  asam_data_processed, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # Also do 3 degree version
   tar_target(
@@ -268,13 +297,15 @@ list(
     run_gfw_query(sql = total_rolling_route_attacks_per_trip_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3),
-                  bq_table_name = "total_rolling_route_attacks_per_trip_3_degrees_v_20240314", 
+                  bq_table_name = "total_rolling_route_attacks_per_trip_3_degrees_v_20250210", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
                   # Trigger re-run of timestamp changes ov voyage_info_bq
                   voyage_info_bq,
                   # Trigger re-run of timestamp changes ov asam_data_processed
-                  asam_data_processed)
+                  asam_data_processed, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # Process the average number of attacks that occurred along previous trips for each route, by trip, over a rolling time window
   tar_target(
@@ -290,13 +321,15 @@ list(
     run_gfw_query(sql = average_rolling_route_attacks_per_trip_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 5),
-                  bq_table_name = "average_rolling_route_attacks_per_trip_5_degrees_v_20240314", 
+                  bq_table_name = "average_rolling_route_attacks_per_trip_5_degrees_v_20250210", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
                   # Trigger re-run of timestamp changes ov voyage_info_bq
                   voyage_info_bq,
                   # Trigger re-run of timestamp changes ov asam_data_processed
-                  asam_data_processed)
+                  asam_data_processed, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # Also do 3 degree version
   tar_target(
@@ -304,13 +337,15 @@ list(
     run_gfw_query(sql = average_rolling_route_attacks_per_trip_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3),
-                  bq_table_name = "average_rolling_route_attacks_per_trip_3_degrees_v_20240314", 
+                  bq_table_name = "average_rolling_route_attacks_per_trip_3_degrees_v_20250210", 
                   # Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq,
                   # Trigger re-run of timestamp changes ov voyage_info_bq
                   voyage_info_bq,
                   # Trigger re-run of timestamp changes ov asam_data_processed
-                  asam_data_processed)
+                  asam_data_processed, 
+                  # Trigger re-run of this if timestamp changes for keep_these_trips_bq
+                  keep_these_trips_bq)
   ),
   # Process voyage-level data, which aggregates gridded data
   tar_target(
@@ -323,7 +358,7 @@ list(
     name = voyage_data_bq,
     run_gfw_query(sql = voyage_data_sql %>%
                     readr::read_file(),
-                  bq_table_name = "voyage_data_5_v_20240327", 
+                  bq_table_name = "voyage_data_5_v_20250210", 
                   #Trigger re-run of this if timestamp changes for gridded_data_5_bq
                   gridded_data_5_bq, 
                   #Trigger re-run of this if timestamp changes for gridded_data_3_bq
@@ -342,7 +377,7 @@ list(
   # Pull voyage-level data from BigQuery to local environment
   tar_target(
     name = voyage_data,
-    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20240327", 
+    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20250210", 
                           # Trigger re-run of this if timestamp changes for voyage_data_bq
                           voyage_data_bq)
   ),
@@ -366,14 +401,14 @@ list(
     name = shipping_activity_by_year_eez_bq,
     run_gfw_query(sql = shipping_activity_by_year_eez_sql %>%
                     readr::read_file(),
-                  bq_table_name = "shipping_activity_by_year_eez_v_20240307", 
+                  bq_table_name = "shipping_activity_by_year_eez_v_20250210", 
                   # Trigger re-run of this if timestamp changes for ungridded_data_bq
                   ungridded_data_bq)
   ),
   # Pull the annual shipping activty by EEZ data locally
   tar_target(
     name = shipping_activity_by_year_eez,
-    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez_v_20240307", 
+    pull_gfw_data_locally(bq_table_name = "shipping_activity_by_year_eez_v_20250210", 
                   # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
                   shipping_activity_by_year_eez_bq)
   ),
@@ -389,7 +424,7 @@ list(
     run_gfw_query(sql = route_pixel_dates_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3),
-                  bq_table_name = "route_pixel_dates_v_20241105")
+                  bq_table_name = "route_pixel_dates_v_20250210")
   ),
   # For each route, find the pixels that vessels travel through across all time
   tar_target(
@@ -403,7 +438,7 @@ list(
     run_gfw_query(sql = route_pixels_all_time_sql %>%
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3),
-                  bq_table_name = "route_pixels_all_time_v_20250116")
+                  bq_table_name = "route_pixels_all_time_v_20250210")
   ),
   tar_target(
     name = gridded_pirate_attacks_3_bq,
@@ -411,7 +446,7 @@ list(
                     readr::read_file() %>%
                     glue::glue(pixel_size = 3,
                                hotspots = hotspots_sql),
-                  bq_table_name = "gridded_pirate_attacks_3_v_20241105")
+                  bq_table_name = "gridded_pirate_attacks_3_v_20250210")
   ),
   # For all combinations of route and every possible date,
   # determine if an attack happened along the route on that date
@@ -426,18 +461,18 @@ list(
     name = route_all_time_date_has_attack_50p_threshold_bq,
     run_gfw_query(sql = route_all_time_date_has_attack_sql %>%
                     readr::read_file() %>%
-                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20241105",
+                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20250210",
                                fraction_route_trips_through_pixel_min_threshold = 0.5),
-                  bq_table_name = "route_all_time_date_has_attack_50p_threshold_v_20250116")
+                  bq_table_name = "route_all_time_date_has_attack_50p_threshold_v_20250210")
   ),
   # Run this query and save the data on BigQuery
   tar_target(
     name = route_all_time_date_has_attack_90p_threshold_bq,
     run_gfw_query(sql = route_all_time_date_has_attack_sql %>%
                     readr::read_file() %>%
-                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20241105",
+                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20250210",
                                fraction_route_trips_through_pixel_min_threshold = 0.9),
-                  bq_table_name = "route_all_time_date_has_attack_90p_threshold_v_20250116")
+                  bq_table_name = "route_all_time_date_has_attack_90p_threshold_v_20250210")
   ),
   # For all combinations of route and every possible date,
   # find pixels that voyages passed through before or on each date
@@ -452,7 +487,7 @@ list(
     name = route_prior_date_pixels_bq,
     run_gfw_query(sql = route_prior_date_pixels_sql %>%
                     readr::read_file(),
-                  bq_table_name = "route_prior_date_pixels_v_20241105")
+                  bq_table_name = "route_prior_date_pixels_v_20250210")
   ),
   # For all combinations of route and every possible date,
   # determine if an attack happened along the route on that date
@@ -467,7 +502,7 @@ list(
     name = route_prior_date_has_attack_bq,
     run_gfw_query(sql = route_prior_date_has_attack_sql %>%
                     readr::read_file() %>%
-                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20241105"),
-                  bq_table_name = "route_prior_date_has_attack_v_20241105")
+                    glue::glue(gridded_attack_table = "gridded_pirate_attacks_3_v_20250210"),
+                  bq_table_name = "route_prior_date_has_attack_v_20250210")
   )
 )

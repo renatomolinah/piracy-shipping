@@ -84,7 +84,9 @@ WITH
   # Join the voyage info with vessel info,
   # as well as starting anchorage info and ending achorage info
 SELECT
-  * EXCEPT(from_anchorage_position,
+# There are some duplicates in  archive_proto_voyages_c4
+# Ensure no duplicates enter the final table, and that there is only one row per trip_id
+  DISTINCT * EXCEPT(from_anchorage_position,
     to_anchorage_position),
   ST_DISTANCE(from_anchorage_position,
     # set use_spheroid as TRUE so that the function measures distance on the surface of the WGS84 spheroid
@@ -105,4 +107,5 @@ USING
   (to_anchorage_id)
   # Filter to only voyages that have different starting and ending ports
 WHERE
-  NOT from_port = to_port
+  NOT (from_port = to_port
+    AND from_country = to_country)

@@ -30,38 +30,195 @@ pull_gfw_data_locally <- function(bq_table_name, ...){
 # "Anti-shipping Activity Messages (ASAM) include the locations and descriptive accounts of specific hostile acts against ships and mariners. 
 # The reports may be useful for recognition, prevention and avoidance of potential hostile activity."
 
-process_asam_data <- function(asam_data,
+# A quick function to table unique values
+get_values <- function(data, var) {
+  data |> 
+    pull(var = var) |> 
+    str_to_upper() |>
+    str_squish() |>
+    str_trim() |>
+    table() |>
+    data.frame() |>
+    arrange(desc(Freq))
+}
+
+process_asam_data <- function(all_encounters,
                               # Name to save this table as in BQ
                               table_name){
-  processed_asam_data <- asam_data %>%
-    dplyr::mutate(date = lubridate::as_date(dateofocc)) %>%
-    dplyr::select(-dateofocc) %>%
-    dplyr::group_by(reference) %>%
-    # Remove duplicates
-    dplyr::filter(row_number() == 1) %>%
-    dplyr::ungroup() %>%
+  
+  ## Adapted from piracy-shipping/scratch/clean_pirate_encounters.R
+  ## PROCESSING ##################################################################
+  
+  # Find unique values -----------------------------------------------------------
+  # get_values(all_encounters, "hostility_") # To find all types of hostiles
+  # get_values(all_encounters, "hostilit_D") # To find all types of hostilities
+  # Take a list of descriptions, pass it to GPT and asked for a list of nouns, verbs, and adverbs associated with violecne and piracyv
+  
+  # Build vectors of unique values to keep ---------------------------------------
+  # List of hostiles
+  hostiles <- c("PIRATE",
+                "PIRATES",
+                "ROBBER",
+                "ROBBERS",
+                "THIEF",
+                "THIEVES",
+                "BOARDING",
+                "BOARDER",
+                "BOARDERS",
+                "ROBBERY",
+                "INTRUDERS",
+                "ATTACK",
+                "ATTACKER",
+                "ATTACKERS",
+                "HIJACKER",
+                "HIJACKERS",
+                "HIJACKING",
+                "KIDNAPPERS",
+                "ARMED",
+                "GUNMEN",
+                "BANDITS",
+                "GUERRILLAS",
+                "STOWAWAY",
+                "STOWAWAYS",
+                "REBEL",
+                "REBELS",
+                "TERRORIST",
+                "TERRORISTS",
+                # Transliterations
+                "PRIATES",
+                "ROBBER(S)"
+  )
+  
+  # Types of hostilities
+  hostilit_Ds <- c("PIRATE ASAULT",
+                   "ROBBERY",
+                   "KIDNAPPING",
+                   "ATTEMPTED BOARDING",
+                   "HIJACKING",
+                   "MOTHERSHIP ACTIVITY",
+                   "SUSPICIOUS APPROACH")
+  
+  # Nouns from GTP
+  nouns <- c("Alarm",
+             "Assault",
+             "Attack",
+             "Gunpoint",
+             "Guns",
+             "Hijacking",
+             "Hostage",
+             "Kidnapping",
+             "Knife",
+             "Knives",
+             "Lock",
+             "Mothership",
+             "Pirate",
+             "Pirates",
+             "Robbers",
+             "Robbery") |> 
+    stringr::str_to_upper()
+  
+  # Verbs from HPT
+  verbs <- c("Attack",
+             "Attacked",
+             "Boarded",
+             "Detain",
+             "Detained",
+             "Escape",
+             "Escaped",
+             "Fled",
+             "Kill",
+             "Killed",
+             "Murder",
+             "Murdered",
+             "Punch",
+             "Punched",
+             "Robb",
+             "Robbed",
+             "Steal",
+             "Stole",
+             "Threaten",
+             "Threatened",
+             "Tie",
+             "Tied") |> 
+    stringr::str_to_upper()
+  
+  # Adverbs from GPT
+  adverbs <- c("Heavily",
+               "Violently") |> 
+    stringr::str_to_upper()
+  
+  keywords <- c(nouns, verbs, adverbs) |> 
+    unique()
+  
+  # Now vectors of unique values to exclude --------------------------------------
+  exclude_hostility_ <- c(
+    "MILITARY",
+    "ASSAULT",
+    "DRUG SMUGGLING",
+    "MISSILE ATTACK",
+    "EXPLOSION",
+    "DETAINED"
+  )
+  
+  exclude_keywords <- c(
+    "SUSPICIOUS APPROACH",
+    "IN THE PORT",
+    "IN THE DOCK",
+    "IN THE PIER",
+    "ON THE PORT",
+    "ON THE DOCK",
+    "ON THE PIER",
+    "AT THE PORT",
+    "AT THE DOCK",
+    "AT THE PIER",
+    "YARD",
+    "BERTHED",
+    "DOCKED",
+    "BARGE",
+    "BARGES",
+    "YACHT",
+    "YACHTS",
+    "SAILING YACHT",
+    "SAILING",
+    "SAILBOAT",
+    "SAILING VESSEL",
+    "SAILBOATS")
+  
+  # Implement filters ------------------------------------------------------------
+  clean_encounters <- all_encounters |> 
+    dplyr::mutate(across(-c(geometry),~stringr::str_to_upper(.))) |> 
+    # KEEP THESE
+    dplyr::filter(stringr::str_detect(hostility_, paste(hostiles, collapse = "|")) | 
+                    stringr::str_detect(hostilit_D, paste(hostilit_Ds, collapse = "|")) | 
+                    stringr::str_detect(descriptio, paste(keywords, collapse = "|"))) |> 
+    # EXCLUDE THESE
+    dplyr::filter(!stringr::str_detect(hostility_, paste(exclude_hostility_, collapse = "|")),
+           !stringr::str_detect(descriptio, paste(exclude_keywords, collapse = "|")),
+           !hostilityt == 0) |> 
+    tidyr::drop_na(victim_d) |>
+    dplyr::mutate(date = lubridate::as_date(dateofocc)) |>
     # Only include attacks in 2021 or before
     dplyr::filter(lubridate::year(date) <= 2021) %>%
     # Extract lat and lon columns
     dplyr::mutate(lon = sf::st_coordinates(.)[,1],
-                  lat = sf::st_coordinates(.)[,2]) %>%
+                  lat = sf::st_coordinates(.)[,2]) |>
     # Only extract necessary columns
     dplyr::select(asam_reference = reference,
                   encounter_type = hostilit_D,
                   date,
                   lon,
-                  lat) %>%
+                  lat) |>
     sf::st_set_geometry(NULL)
   
   # Upload table to BQ
   bigrquery::bq_table(project = billing_project,
                       table = table_name,
                       dataset = bq_dataset) %>% 
-    bigrquery::bq_table_upload(values = processed_asam_data,
-                               fields = bigrquery::as_bq_fields(processed_asam_data),
+    bigrquery::bq_table_upload(values = clean_encounters,
+                               fields = bigrquery::as_bq_fields(clean_encounters),
                                write_disposition = "WRITE_TRUNCATE")
   
-  return(processed_asam_data)
+  return(clean_encounters)
 }
 
 # Make theme for maps
@@ -88,11 +245,9 @@ make_map_with_attack_timeseries_figure <- function(asam_with_hotspots,
                                    attack_year_min = 2013,
                                    attack_year_max = 2021){
   
-  sf_use_s2(FALSE)
+  sf::sf_use_s2(FALSE)
   
   asam_data_processed_sf <- asam_with_hotspots %>%
-    # Only include encounters that are not suspicious approaches
-    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
     dplyr::filter(year >= attack_year_min,
                   year <= attack_year_max)
   
@@ -102,15 +257,15 @@ make_map_with_attack_timeseries_figure <- function(asam_with_hotspots,
   
   # Make ASAM region sf
   asam_regions <- asam::asam_subregions() %>% 
-    select(asam_region = REGION) %>% 
-    st_buffer(dist = 0.01) %>% 
-    group_by(asam_region) %>% 
-    summarize() %>% 
-    ungroup()
+    dplyr::select(asam_region = REGION) %>% 
+    sf::st_buffer(dist = 0.01) %>% 
+    dplyr::group_by(asam_region) %>% 
+    dplyr::summarize() %>% 
+    dplyr::ungroup()
   
   # Make hotspots into sf polygons for plotting
   hotspots_sf <- hotspots  %>%
-    mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+    dplyr::mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
                                cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
                                cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
              fct_relevel("Gulf of Guinea")) %>%
@@ -308,9 +463,7 @@ generate_hotspot_boundaries <- function(asam_data_processed,
   
   asam_filtered <- asam_data_processed %>%
     dplyr::filter(lubridate::year(date) >= year_min,
-                  lubridate::year(date) <= year_min + years_to_include) %>%
-    # Only include encounters that are not suspicious approaches
-    dplyr::filter(encounter_type != 'Suspicious Approach')
+                  lubridate::year(date) <= year_min + years_to_include)
   
   # Find DBSCAN clusters for attacks occurring during this range
   dbscan_clusters <- fpc::dbscan(asam_filtered %>%

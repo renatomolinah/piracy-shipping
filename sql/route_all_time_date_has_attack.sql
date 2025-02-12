@@ -17,7 +17,7 @@ WITH
     to_port,
     to_country
   FROM
-    `emlab-gcp.piracy.route_pixels_all_time_v_20250116`
+    `emlab-gcp.piracy.route_pixels_all_time_v_20250210`
   WHERE
     fraction_route_trips_through_pixel >= fraction_route_trips_through_pixel_min_threshold()
   ),

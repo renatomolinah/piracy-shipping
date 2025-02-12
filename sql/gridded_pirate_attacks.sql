@@ -12,10 +12,8 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
+    `emlab-gcp.piracy.asam_data_v_20250210`
   # Only select rows that correspond to anything except suspicious approaches
-  WHERE
-  encounter_type != 'Suspicious Approach'
   GROUP BY
     attack_date,
     attack_lat_bin,

@@ -8,7 +8,9 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20240228`
+    `emlab-gcp.piracy.ungridded_data_v_20250210`
+  # Only keep data from list of filtered trips
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)
   WHERE hours > 0 AND distance_km > 0
   GROUP BY
     date,

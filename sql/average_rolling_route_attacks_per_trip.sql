@@ -11,13 +11,11 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
-    # Select all relevant attacks for analysis (i.e., all except suspicious approaches)
+    `emlab-gcp.piracy.asam_data_v_20250210`
   WHERE
-    encounter_type != 'Suspicious Approach'
     # Do not need any attacks before 2012, since 12 month is our longest attack window
     # and 2013-01-01 is the start of our study
-    AND date >= '2012-01-01'
+   date >= '2012-01-01'
   GROUP BY
   attack_date,
   lat_bin,
@@ -32,7 +30,8 @@ WITH
     to_port,
     to_country,
   FROM
-    `emlab-gcp.piracy.voyage_info_v_20240228`),
+    `emlab-gcp.piracy.voyage_info_v_20250210`
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)),
   # For each route and departure date, get all of the unique lat_bin/lon_bin grids that all previous trips pass through, by previous_trip_id
   # For any given route and date window, this set of trip-by-grids represents the spatial areas over which each recent trip will add up recent attacks
   grids_per_trip_departure_date_and_route AS(
@@ -46,7 +45,7 @@ WITH
     lat_bin,
     lon_bin
   FROM
-    {ifelse(pixel_size == 5,'`emlab-gcp.piracy.gridded_data_5_v_20240307`','`emlab-gcp.piracy.gridded_data_3_v_20240312`')}
+    {ifelse(pixel_size == 5,'`emlab-gcp.piracy.gridded_data_5_v_20250210`','`emlab-gcp.piracy.gridded_data_3_v_20250210`')}
   LEFT JOIN
     voyage_info
   USING
