@@ -375,12 +375,13 @@ list(
                   average_rolling_route_attacks_per_trip_3_degrees_bq)
   ),
   # Pull voyage-level data from BigQuery to local environment
-  tar_target(
-    name = voyage_data,
-    pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20250210", 
-                          # Trigger re-run of this if timestamp changes for voyage_data_bq
-                          voyage_data_bq)
-  ),
+  # Don't do this for now, since it's ~15GB
+  # tar_target(
+  #   name = voyage_data,
+  #   pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20250210", 
+  #                         # Trigger re-run of this if timestamp changes for voyage_data_bq
+  #                         voyage_data_bq)
+  # ),
   # Make figure with global map showing attacks shipping activity
   # As well as time series of attack
   tar_target(

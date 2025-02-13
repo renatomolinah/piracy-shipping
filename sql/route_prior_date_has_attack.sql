@@ -22,7 +22,7 @@ WITH
     to_port,
     to_country
   FROM
-    `emlab-gcp.piracy.route_pixel_dates_v_20241105`
+    `emlab-gcp.piracy.route_pixel_dates_v_20250210`
   GROUP BY
     lon_bin,
     lat_bin,
