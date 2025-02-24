@@ -6,94 +6,79 @@ vessel_info AS(
   SELECT
     *
   FROM
-    `emlab-gcp.piracy.vessel_info` ),
+    `emlab-gcp.piracy.vessel_info_v_20240228` ),
   voyage_info AS(
   SELECT
-    * EXCEPT(voyage_mmsi,
-    departure_timestamp,
-    arrival_timestamp,
-    to_anchorage_id,
-    from_anchorage_id),
+    trip_id,
+    from_port,
+    from_country,
+    to_port,
+    to_country,
+    total_haversine_distance_km
   FROM
-    `emlab-gcp.piracy.voyage_info` ),
-  wind_info AS(
-  SELECT
-    EXTRACT(YEAR
-    FROM
-      date) year,
-    EXTRACT(MONTH
-    FROM
-      date) month,
-    lat_bin,
-    lon_bin,
-    wind_speed_ms,
-    wind_direction_degrees
-  FROM
-    `emlab-gcp.piracy.{wind_table_location}`),
+    `emlab-gcp.piracy.voyage_info_v_20250210` ),
   gridded_data AS(
   SELECT
-    *,
-  EXTRACT(MONTH
-    FROM
-      date) month
-  FROM
-    `emlab-gcp.piracy.{gridded_data_table_location}`
-    WHERE
-    hours > 0
-    AND distance_km >0
-    # Restrict analysis to 2022 and before
-    AND year <= 2022),
-    gridded_data_with_wind AS(
-    SELECT 
     *
-    EXCEPT(wind_direction_degrees,heading),
-  COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector,
-    FROM
-    gridded_data
-      # Add wind info
-LEFT JOIN
-  wind_info
-USING
-  (month,
-    year,
-    lat_bin,
-    lon_bin)),
+  FROM
+    `emlab-gcp.piracy.gridded_data_5_v_20250210`),
+  # We will add fuel prices based on the voyage departure date
   fuel_prices AS(
   SELECT
-    *
+    * EXCEPT(date),
+    date departure_date
   FROM
-    `emlab-gcp.piracy.fuel_prices`),
+    `emlab-gcp.piracy.fuel_prices_v_20240228`),
   aggregated AS(
   SELECT
     mmsi,
     trip_id,
-    date,
-    month,
-    year,
+    departure_date,
     SUM(hours) hours,
     SUM(distance_km) distance_km,
     SUM(ais_messages) ais_messages,
-    AVG(wind_speed_ms) wind_speed_ms,
     AVG(wind_vector) wind_vector,
+    AVG(wind_speed_ms) wind_speed_ms,
     SUM(grid_area_km2) voyage_grid_area_km2,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
     SUM(main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) total_fuel_consumption_mt_inst,
-    SUM(number_previous_attacks_grid_all_time) number_previous_attacks_all_time,
-    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months,
-    SUM(number_previous_attacks_grid_12_months_all_encounters) number_previous_attacks_12_months_all_encounter_types,
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_5_degrees,
+    SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_5_degrees,
+    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_5_degrees,
     MIN(days_since_attack) days_since_attack,
     SUM(hotspot_southeast_asia) hotspot_southeast_asia,
     SUM(hotspot_gulf_of_aden) hotspot_gulf_of_aden,
     SUM(hotspot_gulf_of_guinea) hotspot_gulf_of_guinea
   FROM
-    gridded_data_with_wind
+    gridded_data
   GROUP BY
     mmsi,
     trip_id,
-    date,
-    month,
+    departure_date,
     year),
+    # For robustness check, add number_previous_attacks_* for 3 degree version of gridded dataset
+  aggregated_3_degrees AS(
+  SELECT
+    trip_id,
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_3_degrees,
+    SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_3_degrees,
+    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_3_degrees
+  FROM
+    `emlab-gcp.piracy.gridded_data_3_v_20250210`
+  GROUP BY
+    trip_id),
+    # For robustness check, add number_previous_attacks_* for 7 degree version of gridded dataset
+  aggregated_7_degrees AS(
+  SELECT
+    trip_id,
+    SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_7_degrees,
+    SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_7_degrees,
+    SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_7_degrees
+  FROM
+    `emlab-gcp.piracy.gridded_data_7_v_20250210`
+  GROUP BY
+    trip_id),
   aggregated_with_voyage_fuel AS(
   SELECT
     *,
@@ -112,34 +97,49 @@ USING
   vessel_info
 USING
   (mmsi)),
-average_route_attacks_per_route_and_trip AS(
+# For each trip, this summarize the total number of attacks in the grids
+# that voyages have previously passed through for that route (including the current voyage),
+# over different rolling windows
+# Load 5 degree version
+total_rolling_route_attacks_per_trip_5_degrees AS(
 SELECT
-*
+  *
 FROM 
-`emlab-gcp.piracy.average_route_attacks_per_route_and_trip`
+`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_5_degrees_v_20250210`
+),
+# Load 3 degree version
+total_rolling_route_attacks_per_trip_3_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_3_degrees_v_20250210`
+),
+# For each trip, this summarize the average number of attacks previous trips and grids
+# that voyages have previously passed through for that route (not including the current voyage),
+# over different rolling windows
+# Load 5 degree version
+average_rolling_route_attacks_per_trip_5_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.average_rolling_route_attacks_per_trip_5_degrees_v_20250210`
+),
+# Load 3 degree version
+average_rolling_route_attacks_per_trip_3_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.average_rolling_route_attacks_per_trip_3_degrees_v_20250210`
 )
 SELECT
-  * EXCEPT(month,
-      main_fuel_consumption_mt_inst,
+  * EXCEPT(main_fuel_consumption_mt_inst,
       aux_fuel_consumption_mt_inst,
       main_fuel_consumption_mt_voyage,
       aux_fuel_consumption_mt_voyage,
       price_usd_mt,
       hotspot_southeast_asia,
       hotspot_gulf_of_aden,
-      hotspot_gulf_of_guinea,
-  average_route_attacks_last_3_months,
-  average_route_attacks_last_6_months,
-  average_route_attacks_last_9_months,
-  average_route_attacks_last_12_months,
-  average_route_attacks_last_24_months,
-  average_route_attacks_last_3_months_all_encounter_types),
-  IFNULL(average_route_attacks_last_3_months,0) average_route_attacks_last_3_months,
-  IFNULL(average_route_attacks_last_6_months,0) average_route_attacks_last_6_months,
-  IFNULL(average_route_attacks_last_9_months,0) average_route_attacks_last_9_months,
-  IFNULL(average_route_attacks_last_12_months,0) average_route_attacks_last_12_months,
-  IFNULL(average_route_attacks_last_24_months,0) average_route_attacks_last_24_months,
-  IFNULL(average_route_attacks_last_3_months_all_encounter_types,0) average_route_attacks_last_3_months_all_encounter_types,
+      hotspot_gulf_of_guinea),
   price_usd_mt * total_fuel_consumption_mt_voyage total_fuel_cost_usd_voyage,
   3.17 * total_fuel_consumption_mt_voyage emissions_co2_mt_voyage,
   87 * main_fuel_consumption_mt_voyage + 57 * aux_fuel_consumption_mt_voyage emissions_nox_kg_voyage,
@@ -153,14 +153,38 @@ SELECT
   IF(hotspot_gulf_of_guinea>0,TRUE,FALSE) hotspot_gulf_of_guinea
 FROM
   aggregated_with_voyage_fuel
+# Add attack indicators for 3 degree robustness check
+LEFT JOIN
+aggregated_3_degrees
+USING(trip_id)
+# Add attack indicators for 3 degree robustness check
+LEFT JOIN
+aggregated_7_degrees
+USING(trip_id)
+# Add attack indicators for total previous attacks along previous grids
 LEFT  JOIN
-average_route_attacks_per_route_and_trip
+total_rolling_route_attacks_per_trip_5_degrees
 USING
 (trip_id)
+LEFT  JOIN
+total_rolling_route_attacks_per_trip_3_degrees
+USING
+(trip_id)
+# Add attack indicators for average previous attacks along previous trips and previous grids
+LEFT  JOIN
+average_rolling_route_attacks_per_trip_5_degrees
+USING
+(trip_id)
+LEFT  JOIN
+average_rolling_route_attacks_per_trip_3_degrees
+USING
+(trip_id)
+# Add monthly fuel prices
 LEFT JOIN
   fuel_prices
 USING
-  (date)
+  (departure_date)
+# Add voyage info
     LEFT JOIN
   voyage_info
 USING

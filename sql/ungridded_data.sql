@@ -1,3 +1,6 @@
+# Query description:
+# This generates the unguided data (e.g., AIS-ping-level) for 2013-2021, for all of our vessels of interest, 
+# matched to all of our voyages of interest. This also calculates ping-level fuel consumption
 #standardSQL
 WITH
   vessel_info AS(
@@ -7,15 +10,15 @@ WITH
     aux_engine_power,
     design_speed
   FROM
-    `emlab-gcp.piracy.vessel_info` ),
+    `emlab-gcp.piracy.vessel_info_v_20240228` ),
   voyage_info AS(
   SELECT
-    voyage_mmsi,
+    mmsi,
     trip_id,
     departure_timestamp,
     arrival_timestamp
   FROM
-    `emlab-gcp.piracy.voyage_info` ),
+    `emlab-gcp.piracy.voyage_info_v_20250210` ),
   # Select good segments
   good_segments AS (
   SELECT
@@ -26,10 +29,11 @@ WITH
     good_seg
     AND NOT overlapping_and_short ),
   # Select the AIS messages
-  # Get all data for 2014 and beyond
+  # Get all data from 'current' AIS messages table, which includes data for the last 10 years
+  # At the time of this query in February 2025, this archive version includes 2013-2014 data
   ais_info_current AS(
   SELECT
-    CAST(ssvid AS INT64) mmsi,
+    ssvid mmsi,
     lat,
     lon,
     timestamp,
@@ -40,16 +44,22 @@ WITH
   FROM
     `world-fishing-827.pipe_production_v20201001.research_messages`
     # Only use good segments for AIS messages
-    WHERE seg_id IN (
+  WHERE
+    seg_id IN (
     SELECT
       seg_id
     FROM
-      good_segments)),
-        # Select the AIS messages
-  # Get all data for 2012 and 2013
+      good_segments)
+    # date filters that explicitly account for the study period of interest only, 
+    # not the intersection between study period of interest and data availability in the table (which can change)
+    AND _partitiontime >= '2013-01-01'
+    AND _partitiontime <= '2021-12-31'),
+  # Select the AIS messages
+  # Get all data from 'archive' table, which includes data prior to last 10 years
+  # At the time of this query in February 2025, this archive version includes 2013-2014 data
   ais_info_archive AS(
   SELECT
-    CAST(ssvid AS INT64) mmsi,
+    ssvid mmsi,
     lat,
     lon,
     timestamp,
@@ -60,20 +70,27 @@ WITH
   FROM
     `world-fishing-827.pipe_production_v20201001.archive_research_messages`
     # Only use good segments for AIS messages
-    WHERE seg_id IN (
+  WHERE
+    seg_id IN (
     SELECT
       seg_id
     FROM
-      good_segments)),
+      good_segments)
+    # date filters that explicitly account for the study period of interest only, 
+    # not the intersection between study period of interest and data availability in the table (which can change)
+    AND _partitiontime >= '2013-01-01'
+    AND _partitiontime <= '2021-12-31'),
   ais_info AS(
-    SELECT
+  SELECT
     *
-    FROM
+  FROM
     ais_info_current
-    UNION ALL(
-      SELECT * FROM ais_info_archive
-    )
-  ),
+  UNION ALL (
+    SELECT
+      *
+    FROM
+      ais_info_archive ) ),
+  # Filter AIS messages to just those broadcast by our vessels of interest (e.g., cargo vessels)
   shipping_ais_info AS(
   SELECT
     *
@@ -83,23 +100,20 @@ WITH
     vessel_info
   USING
     (mmsi)),
+  # Now JOIN those AIS messages to the voyage data, so that each AIS message is assigned to a voyage
   shipping_ais_info_with_voyages AS(
   SELECT
-    * EXCEPT(voyage_mmsi)
-  FROM
-    shipping_ais_info
-  JOIN
-    voyage_info
-  ON
-    shipping_ais_info.mmsi = voyage_info.voyage_mmsi
-    AND shipping_ais_info.timestamp > voyage_info.departure_timestamp
-    AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
-SELECT
-  * EXCEPT(engine_power,
-    aux_engine_power,
-    design_speed,
+    shipping_ais_info.mmsi mmsi,
+    trip_id,
+    departure_timestamp,
+    arrival_timestamp,
+    lat,
+    lon,
+    timestamp,
+    hours,
     implied_speed_knots,
-    arrival_timestamp),
+    heading,
+    distance_km,
   # Calculate fuel consumption
   # main_sfc is always 206; aux_sfc is always 221
   # sfc from here:https://www.sciencedirect.com/science/article/pii/S1361920909001072#bib18
@@ -108,5 +122,15 @@ SELECT
     IF
       (implied_speed_knots/design_speed>1,1,implied_speed_knots/design_speed), 3))*206*engine_power/1000000 main_fuel_consumption_mt_inst,
   hours*0.5*221*aux_engine_power/1000000 aux_fuel_consumption_mt_inst
+  FROM
+    shipping_ais_info
+  JOIN
+    voyage_info
+  ON
+    shipping_ais_info.mmsi = voyage_info.mmsi
+    AND shipping_ais_info.timestamp >= voyage_info.departure_timestamp
+    AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
+SELECT
+  * 
 FROM
   shipping_ais_info_with_voyages

@@ -12,10 +12,8 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
+    `emlab-gcp.piracy.asam_data_v_20250210`
   # Only select rows that correspond to anything except suspicious approaches
-  WHERE
-  encounter_type != 'Suspicious Approach'
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -76,6 +74,7 @@ SELECT
   SUM(number_attacks) number_previous_attacks_all_time,
   SUM(IF(days_since_attack <= 30*1,number_attacks,0)) number_previous_attacks_grid_1_month,
   SUM(IF(days_since_attack <= 30*3,number_attacks,0)) number_previous_attacks_grid_3_months,
+  SUM(IF(days_since_attack <= 30*6,number_attacks,0)) number_previous_attacks_grid_6_months,
   SUM(IF(days_since_attack <= 30*12,number_attacks,0)) number_previous_attacks_grid_12_months,
   {hotspots_sql}
 FROM

@@ -1,7 +1,7 @@
-# This function pulls the necessary GFW data and optionally saves it locally as a CSV
+# This function pulls the necessary GFW data
 # This requires special permissions, and is also very expensive to run, so will not be done often
 # You can add any additional arguments for glue to make substitutions to the query, as necessary
-run_gfw_query <- function(sql, bq_table_name, download_data = FALSE, ...){
+run_gfw_query <- function(sql, bq_table_name, ...){
   
   
   # Run query and save on BQ. We don't pull this locally yet.
@@ -14,13 +14,15 @@ run_gfw_query <- function(sql, bq_table_name, download_data = FALSE, ...){
                               allowLargeResults = TRUE,
                               write_disposition = "WRITE_TRUNCATE")
   
-  # Now we download data locally, if desired
-  if(download_data) return(bigrquery::bq_project_query(billing_project, 
-                                                       glue::glue("SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name}")) %>%
-                             bigrquery::bq_table_download(n_max = Inf))
-  
-  # If data is not to be pulled locally, simply return current system time
-  if(!download_data) return(Sys.time())
+  # Return sys.time, for targets to know that something chabged
+  Sys.time()
+}
+
+# This function pulls GFW data locally from a specific table
+pull_gfw_data_locally <- function(bq_table_name, ...){
+  bigrquery::bq_project_query(billing_project, 
+                              glue::glue("SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name}")) %>%
+    bigrquery::bq_table_download(n_max = Inf)
 }
 
 # Code to process ASAM piracy data, and upload it to BigQuery
@@ -28,135 +30,335 @@ run_gfw_query <- function(sql, bq_table_name, download_data = FALSE, ...){
 # "Anti-shipping Activity Messages (ASAM) include the locations and descriptive accounts of specific hostile acts against ships and mariners. 
 # The reports may be useful for recognition, prevention and avoidance of potential hostile activity."
 
-process_asam_data <- function(asam_data){
-  processed_asam_data <- asam_data %>%
-    dplyr::mutate(date = lubridate::as_date(dateofocc)) %>%
-    dplyr::select(-dateofocc) %>%
-    dplyr::group_by(reference) %>%
-    # Remove duplicates
-    dplyr::filter(row_number() == 1) %>%
-    dplyr::ungroup() %>%
-    # Only include attacks in 2022 or before
-    dplyr::filter(lubridate::year(date) <= 2022) %>%
+# A quick function to table unique values
+get_values <- function(data, var) {
+  data |> 
+    pull(var = var) |> 
+    str_to_upper() |>
+    str_squish() |>
+    str_trim() |>
+    table() |>
+    data.frame() |>
+    arrange(desc(Freq))
+}
+
+process_asam_data <- function(all_encounters,
+                              # Name to save this table as in BQ
+                              table_name){
+  
+  ## Adapted from piracy-shipping/scratch/clean_pirate_encounters.R
+  ## PROCESSING ##################################################################
+  
+  # Find unique values -----------------------------------------------------------
+  # get_values(all_encounters, "hostility_") # To find all types of hostiles
+  # get_values(all_encounters, "hostilit_D") # To find all types of hostilities
+  # Take a list of descriptions, pass it to GPT and asked for a list of nouns, verbs, and adverbs associated with violecne and piracyv
+  
+  # Build vectors of unique values to keep ---------------------------------------
+  # List of hostiles
+  hostiles <- c("PIRATE",
+                "PIRATES",
+                "ROBBER",
+                "ROBBERS",
+                "THIEF",
+                "THIEVES",
+                "BOARDING",
+                "BOARDER",
+                "BOARDERS",
+                "ROBBERY",
+                "INTRUDERS",
+                "ATTACK",
+                "ATTACKER",
+                "ATTACKERS",
+                "HIJACKER",
+                "HIJACKERS",
+                "HIJACKING",
+                "KIDNAPPERS",
+                "ARMED",
+                "GUNMEN",
+                "BANDITS",
+                "GUERRILLAS",
+                "STOWAWAY",
+                "STOWAWAYS",
+                "REBEL",
+                "REBELS",
+                "TERRORIST",
+                "TERRORISTS",
+                # Transliterations
+                "PRIATES",
+                "ROBBER(S)"
+  )
+  
+  # Types of hostilities
+  hostilit_Ds <- c("PIRATE ASAULT",
+                   "ROBBERY",
+                   "KIDNAPPING",
+                   "ATTEMPTED BOARDING",
+                   "HIJACKING",
+                   "MOTHERSHIP ACTIVITY",
+                   "SUSPICIOUS APPROACH")
+  
+  # Nouns from GTP
+  nouns <- c("Alarm",
+             "Assault",
+             "Attack",
+             "Gunpoint",
+             "Guns",
+             "Hijacking",
+             "Hostage",
+             "Kidnapping",
+             "Knife",
+             "Knives",
+             "Lock",
+             "Mothership",
+             "Pirate",
+             "Pirates",
+             "Robbers",
+             "Robbery") |> 
+    stringr::str_to_upper()
+  
+  # Verbs from HPT
+  verbs <- c("Attack",
+             "Attacked",
+             "Boarded",
+             "Detain",
+             "Detained",
+             "Escape",
+             "Escaped",
+             "Fled",
+             "Kill",
+             "Killed",
+             "Murder",
+             "Murdered",
+             "Punch",
+             "Punched",
+             "Robb",
+             "Robbed",
+             "Steal",
+             "Stole",
+             "Threaten",
+             "Threatened",
+             "Tie",
+             "Tied") |> 
+    stringr::str_to_upper()
+  
+  # Adverbs from GPT
+  adverbs <- c("Heavily",
+               "Violently") |> 
+    stringr::str_to_upper()
+  
+  keywords <- c(nouns, verbs, adverbs) |> 
+    unique()
+  
+  # Now vectors of unique values to exclude --------------------------------------
+  exclude_hostility_ <- c(
+    "MILITARY",
+    "ASSAULT",
+    "DRUG SMUGGLING",
+    "MISSILE ATTACK",
+    "EXPLOSION",
+    "DETAINED"
+  )
+  
+  exclude_keywords <- c(
+    "SUSPICIOUS APPROACH",
+    "IN THE PORT",
+    "IN THE DOCK",
+    "IN THE PIER",
+    "ON THE PORT",
+    "ON THE DOCK",
+    "ON THE PIER",
+    "AT THE PORT",
+    "AT THE DOCK",
+    "AT THE PIER",
+    "YARD",
+    "BERTHED",
+    "DOCKED",
+    "BARGE",
+    "BARGES",
+    "YACHT",
+    "YACHTS",
+    "SAILING YACHT",
+    "SAILING",
+    "SAILBOAT",
+    "SAILING VESSEL",
+    "SAILBOATS")
+  
+  # Implement filters ------------------------------------------------------------
+  clean_encounters <- all_encounters |> 
+    dplyr::mutate(across(-c(geometry),~stringr::str_to_upper(.))) |> 
+    # KEEP THESE
+    dplyr::filter(stringr::str_detect(hostility_, paste(hostiles, collapse = "|")) | 
+                    stringr::str_detect(hostilit_D, paste(hostilit_Ds, collapse = "|")) | 
+                    stringr::str_detect(descriptio, paste(keywords, collapse = "|"))) |> 
+    # EXCLUDE THESE
+    dplyr::filter(!stringr::str_detect(hostility_, paste(exclude_hostility_, collapse = "|")),
+           !stringr::str_detect(descriptio, paste(exclude_keywords, collapse = "|")),
+           !hostilityt == 0) |> 
+    tidyr::drop_na(victim_d) |>
+    dplyr::mutate(date = lubridate::as_date(dateofocc)) |>
+    # Only include attacks in 2021 or before
+    dplyr::filter(lubridate::year(date) <= 2021) %>%
     # Extract lat and lon columns
     dplyr::mutate(lon = sf::st_coordinates(.)[,1],
-                  lat = sf::st_coordinates(.)[,2]) %>%
+                  lat = sf::st_coordinates(.)[,2]) |>
     # Only extract necessary columns
     dplyr::select(asam_reference = reference,
                   encounter_type = hostilit_D,
                   date,
                   lon,
-                  lat) %>%
+                  lat) |>
     sf::st_set_geometry(NULL)
   
   # Upload table to BQ
   bigrquery::bq_table(project = billing_project,
-                      table = "asam_data",
+                      table = table_name,
                       dataset = bq_dataset) %>% 
-    bigrquery::bq_table_upload(values = processed_asam_data,
-                               fields = bigrquery::as_bq_fields(processed_asam_data),
+    bigrquery::bq_table_upload(values = clean_encounters,
+                               fields = bigrquery::as_bq_fields(clean_encounters),
                                write_disposition = "WRITE_TRUNCATE")
   
-  return(processed_asam_data)
+  return(clean_encounters)
 }
 
-# Make global map, which will include ASAM attacks and eventually shipping activity
-make_global_map_figure <- function(asam_data_processed,
+# Make theme for maps
+theme_map <- function(){
+  theme_minimal() %+replace%
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          strip.background = element_rect(fill=NA,color=NA))
+}
+
+
+# Make Figure that has two panels:
+# A: global map, which includes ASAM attacks, shipping activity, and hotspots
+# B: Time series of ASAM attacks, by hotspots
+make_map_with_attack_timeseries_figure <- function(asam_with_hotspots,
                                    hotspots,
                                    aggregate_spatial_shipping_activity,
-                                   map_projection,
                                    attack_year_min = 2013,
-                                   attack_year_max = 2022){
+                                   attack_year_max = 2021){
   
-  shipping_data_stars <- aggregate_spatial_shipping_activity %>%
-    stars::st_as_stars(dims  = c('lon_bin','lat_bin'))%>%
-    sf::st_set_crs(4326) %>%
-    sf::st_as_sf()%>%
-    sf::st_transform(map_projection)
+  sf::sf_use_s2(FALSE)
   
-  asam_data_processed_sf <- asam_data_processed %>%
-    sf::st_as_sf(coords = c("lon","lat"),
-                 crs = sf::st_crs(4326)) %>%
-    sf::st_transform(map_projection) %>%
-    dplyr::filter(lubridate::year(date) >= attack_year_min,
-                  lubridate::year(date) <= attack_year_max)
+  asam_data_processed_sf <- asam_with_hotspots %>%
+    dplyr::filter(year >= attack_year_min,
+                  year <= attack_year_max)
   
-  # Load world land
-  world_land <- sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)) %>%
-    sf::st_wrap_dateline(options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"), quiet = TRUE) %>%
-    sf::st_transform(map_projection)
+  # Make coast and coastline sf objects
+  coast <- rnaturalearth::ne_countries(returnclass = "sf")
+  coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
   
-  # Create bounding box of world, to use as outline in the projected maps
-  # vectors of latitudes and longitudes that go once around the 
-  # globe in 1-degree steps
-  lats <- c(90:-90, -90:90, 90)
-  longs <- c(rep(c(180, -180), each = 181), 180)
+  # Make ASAM region sf
+  asam_regions <- asam::asam_subregions() %>% 
+    dplyr::select(asam_region = REGION) %>% 
+    sf::st_buffer(dist = 0.01) %>% 
+    dplyr::group_by(asam_region) %>% 
+    dplyr::summarize() %>% 
+    dplyr::ungroup()
   
-  world_bbox_sf <- 
-    list(cbind(longs, lats)) %>%
-    sf::st_polygon() %>%
-    sf::st_sfc( # create sf geometry list column
-      crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-    ) %>% 
-    sf::st_sf() %>%
-    sf::st_transform(map_projection)
+  # Make hotspots into sf polygons for plotting
+  hotspots_sf <- hotspots  %>%
+    dplyr::mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+                               cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                               cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
+             fct_relevel("Gulf of Guinea")) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
+    sf::st_as_sf(sf_column_name = "geometry", crs = 4326)
   
-  plot <- ggplot2::ggplot()  +
-    ggplot2::geom_sf(data = shipping_data_stars,
-                     aes(fill = hours,
-                         color = hours)) +
-    scale_fill_gradient2("Shipping hours",
-                         trans = "log10",
-                         labels = scales::comma,
-                         breaks = c(100,1000,10000,100000,1e6),
-                         low = "white",
-                         high = "dodgerblue4") +
-    scale_color_gradient2(trans = "log10",
-                          low = "white",
-                          high = "dodgerblue4",
-                          guide = 'none') +
-    ggnewscale::new_scale_color() +
-    ggplot2::geom_sf(data = world_land,
-                     color = "darkgrey",
-                     fill = "darkgrey") +
-    ggplot2::geom_sf(data = asam_data_processed_sf,
-                     size = 0.01) + 
-    ggplot2::geom_sf(data = hotspots  %>%
-                       mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-                                                  cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                                                  cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
-                                fct_relevel("Gulf of Guinea")) %>%
-                       dplyr::rowwise() %>%
-                       dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min), c(lon_max,lat_min), c(lon_max,lat_max), c(lon_min,lat_max), c(lon_min,lat_min)))))) %>%
-                       sf::st_as_sf(sf_column_name = "geometry", crs = 4326) %>%
-                       sf::st_transform(map_projection),
-                     fill = NA,
-                     linewidth = 1.025,
-                     aes(color = as.factor(cluster)))+
-    ggplot2::geom_sf(data = world_bbox_sf,
-                     fill = NA,
-                     color = "black") +
-    scale_color_brewer("Hotspot",
-                       type ="qual",
-                       palette = "Dark2")+ 
-    ggplot2::theme(panel.grid = element_blank(),
-                   panel.background = element_blank(),
-                   axis.text = element_blank(),
-                   axis.ticks = element_blank())+
-    guides(fill  = guide_legend(order = 1,
-                                reverse=TRUE),
-           color = guide_legend(order = 2))
+  # First make global map
+  map <- ggplot() +
+    geom_tile(data = aggregate_spatial_shipping_activity,
+              aes(x = lon_bin, 
+                  y = lat_bin, 
+                  fill = hours)) +
+    geom_sf(data = asam_regions,
+            fill = "transparent",
+            color = "white") +
+    geom_sf(data = coastline,
+            color = "white") +
+    geom_sf(data = coast,
+            fill = "black",
+            color = "black") +
+  ggplot2::geom_sf(data = hotspots_sf,
+                   fill = NA,
+                   linewidth = 1.025,
+                   aes(color = cluster)) +
+    geom_point(data = asam_data_processed_sf,
+               aes(x = lon, 
+                   y = lat),
+               color = "red",
+               size = 0.01) +
+    labs(x = "",
+         y = "") +
+    scale_x_continuous(expand = c(0, 1)) +
+    scale_y_continuous(expand = c(0, 1)) +
+    theme_map() +
+    theme(panel.background = element_rect(fill = "black"),
+          legend.position = "bottom",
+          legend.direction = "horizontal")  +
+    ggplot2::scale_fill_viridis_c("Shipping hours",
+                                  trans = "pseudo_log",
+                                  breaks = c(0,100,10000,1e6),
+                                  option = "mako") +
+    scale_color_manual(values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6)]) +
+    guides(fill = guide_colorbar(title.position = "top",
+                                 title.hjust = 0.5,
+                                 frame.colour = "black",
+                                 ticks.colour = "black",
+                                 barwidth = unit(7, "cm"),
+                                 barheight = unit(0.5, "cm")),
+           color = "none") +
+    theme(plot.margin = unit(c(0.25,0,0,0), "cm"))
   
-  ggplot2::ggsave(filename = "figures/map.png",
-                  plot,
-                  height = 3,
-                  width = 7,
+  # Now make time series of attacks
+  timeseries <- plot <- asam_data_processed_sf %>%
+    dplyr::group_by(year,cluster) %>%
+    dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+                                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+                                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
+                                             TRUE ~ "Rest of world")  %>%
+                    forcats::fct_relevel(c("Gulf of Guinea",
+                                           "Gulf of Aden",
+                                           "Southeast Asia"))) %>%
+    ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
+    ggplot2::geom_bar(position = "stack", stat="identity",color="black", linewidth = 0.25)  +
+    ggplot2::scale_fill_manual("Hotspot",
+                               values = RColorBrewer::brewer.pal(8,"Dark2")[c(2,4,6,8)]) +
+    ggplot2::labs(x = "",
+                  y = "Number of encounters\n") +
+    ggplot2::theme(legend.position = c(0.9,1.1)) +
+    ggplot2::scale_x_continuous(breaks = seq(2013,2021,1)) +
+    theme(legend.box.background = element_rect(fill = 'white', color = 'white'))
+  
+  combined_figure <- cowplot::plot_grid(map,
+                                        timeseries,
+                                        ncol = 1,
+                                        rel_heights = c(0.67,0.33),
+                                        #label_y = 1.1,
+                                        labels = c("A","B"))
+  
+  
+  ggplot2::ggsave(filename = "figures/map_with_attack_timeseries.png",
+                  combined_figure,
+                  height = 7,
+                  width = 6,
                   dpi = 300)
   
   return(plot)
 }
 process_wind_data <- function(wind_file,
                               pixel_size,
+                              # Name to save this table on BigQuery
                               table_name){
   # ERA5 monthly averaged data downloaded from Copernicus
   # We get the u10 and v10 wind components, which come at monthly 0.25x0.25 degree resolution
@@ -221,7 +423,9 @@ process_wind_data <- function(wind_file,
 # The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide, 
 # covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
 # Downloaded from https://bunkerindex.com/prices/bix-world.php
-process_fuel_data <- function(fuel_file){
+process_fuel_data <- function(fuel_file,
+                              # Name to save this table on BigQuery
+                              table_name){
   # Load fuel price data
   fuel_price_data <- fuel_file %>%
     read_csv() %>%
@@ -242,7 +446,7 @@ process_fuel_data <- function(fuel_file){
   
   # Upload table to BQ
   bigrquery::bq_table(project = billing_project,
-                      table = "fuel_prices",
+                      table = table_name,
                       dataset = bq_dataset) %>% 
     bigrquery::bq_table_upload(values = interpolated_fuel_price_data,
                                fields = bigrquery::as_bq_fields(interpolated_fuel_price_data),
@@ -253,33 +457,30 @@ process_fuel_data <- function(fuel_file){
 
 # Generate piracy attack hotspot boundaries
 # use dbscan to generate clusters, focusing on a specified year range
-generate_asam_with_hotspots <- function(asam_data_processed,
+generate_hotspot_boundaries <- function(asam_data_processed,
                                         year_min = 2010,
                                         years_to_include = 12){
   
   asam_filtered <- asam_data_processed %>%
     dplyr::filter(lubridate::year(date) >= year_min,
-           lubridate::year(date) <= year_min + years_to_include) %>%
-    # Only include encounters that are not suspicious approaches
-    dplyr::filter(encounter_type != 'Suspicious Approach')
+                  lubridate::year(date) <= year_min + years_to_include)
   
   # Find DBSCAN clusters for attacks occurring during this range
   dbscan_clusters <- fpc::dbscan(asam_filtered %>%
                                    dplyr::select(lon,lat),
                                  eps = 10, #km
                                  MinPts = 300)
-
-  asam_filtered %>%
+  
+  asam_with_clusters <- asam_filtered %>%
     dplyr::mutate(cluster_number = dbscan_clusters$cluster)%>%
     dplyr::mutate(cluster = dplyr::case_when(cluster_number == 1 ~ "hotspot_southeast_asia",
                                              cluster_number == 2 ~ "hotspot_gulf_of_aden",
                                              cluster_number == 3 ~ "hotspot_gulf_of_guinea",
                                              TRUE ~ "0"))
-}
-
-# Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
-# Round this up or down to nearest 5 degrees, to match units of analysis
-generate_hotspot_boundaries <- function(asam_with_clusters){
+  
+  # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
+  # Round this up or down to nearest 5 degrees, to match units of analysis
+  
   purrr::map(unique(asam_with_clusters$cluster),function(x){
     temp_df <- asam_with_clusters %>%
       dplyr::filter(cluster == x)
@@ -293,6 +494,31 @@ generate_hotspot_boundaries <- function(asam_with_clusters){
     dplyr::filter(cluster != "0")
 }
 
+assign_hotspot_to_asam <- function(asam_data_processed,
+                                   hotspots){
+  
+  asam_data_processed  %>%
+    dplyr::cross_join(hotspots) %>%
+    dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
+    dplyr::select(asam_reference,
+                  cluster,
+                  attack_in_hotspot) %>%
+    tidyr::pivot_wider(names_from = cluster,
+                       values_from = attack_in_hotspot) %>%
+    dplyr::mutate(rest_of_world = ifelse(!hotspot_southeast_asia &
+                                           !hotspot_gulf_of_aden &
+                                           !hotspot_gulf_of_guinea,
+                                         TRUE,
+                                         FALSE)) %>%
+    tidyr::pivot_longer(cols = c(hotspot_southeast_asia,
+                                 hotspot_gulf_of_aden,
+                                 hotspot_gulf_of_guinea,
+                                 rest_of_world),
+                        names_to = "cluster",
+                        values_to = "attack_in_hotspot")
+  
+}
+
 # Code to generate SQL for assigning lat/lon to hotspots
 generate_hotspot_sql <- function(hotspots){
   hotspots %>%
@@ -300,23 +526,19 @@ generate_hotspot_sql <- function(hotspots){
     .$cluster_filter %>% paste0(.,collapse = ", ")
 }
 
-
-make_encounter_time_series_figure <- function(asam_data_processed,
-                                           hotspots,
-                                           attack_year_min = 2005,
-                                           attack_year_max = 2022){
+# Take ASAM data and add hotspot info, based on the hotspots boundaries
+generate_asam_with_hotspots <- function(asam_data_processed,
+                                        hotspots){
   
-  # Assign all 2005+ attacks to a hotspot cluster
-  plot_data<-asam_data_processed  %>%
-    # Only include encounters that are not suspicious approaches
-    dplyr::filter(encounter_type != 'Suspicious Approach') %>%
-    dplyr::mutate(year = lubridate::year(date)) %>%
-    dplyr::filter(year >= attack_year_min) %>%
-    dplyr::filter(year <= attack_year_max) %>%
+  asam_data_processed   %>%
+    dplyr::mutate(year = lubridate::year(date))%>%
     dplyr::cross_join(hotspots) %>%
     dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
     dplyr::select(asam_reference,
+                  encounter_type,
                   year,
+                  lon,
+                  lat,
                   cluster,
                   attack_in_hotspot) %>%
     tidyr::pivot_wider(names_from = cluster,
@@ -332,33 +554,7 @@ make_encounter_time_series_figure <- function(asam_data_processed,
                                  rest_of_world),
                         names_to = "cluster",
                         values_to = "attack_in_hotspot") %>%
-    dplyr::filter(attack_in_hotspot)
-  
-  plot <- plot_data %>%
-    dplyr::group_by(year,cluster) %>%
-    dplyr::summarize(number_attacks = n_distinct(asam_reference)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(cluster = dplyr::case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-                                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea",
-                                             TRUE ~ "Rest of world")  %>%
-                    forcats::fct_relevel(c("Gulf of Guinea",
-                                           "Gulf of Aden",
-                                           "Southeast Asia"))) %>%
-    ggplot2::ggplot(aes(x = year, y = number_attacks, fill = cluster)) +
-    ggplot2::geom_bar(position = "stack", stat="identity",color="black", linewidth = 0.25)  +
-    ggplot2::scale_fill_brewer("Hotspot",
-                               type ="qual",
-                               palette = "Dark2") +
-    ggplot2::labs(x = "",
-                  y = "Number of encounters\n") +
-    ggplot2::scale_x_continuous(breaks = seq(2005,2022,2))
-  
-  ggplot2::ggsave(filename = "figures/encounter_time_series.png",
-                  plot,
-                  height = 4,
-                  width = 7,
-                  dpi = 300)
-  
-  return(plot)
+    dplyr::filter(attack_in_hotspot) %>%
+    dplyr::select(-attack_in_hotspot)
 }
+
