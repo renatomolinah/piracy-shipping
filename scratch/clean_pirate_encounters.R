@@ -20,13 +20,14 @@ pacman::p_load(
 )
 
 # Load data --------------------------------------------------------------------
-all_encounters <- st_read("/Users/jcvd/Library/CloudStorage/Box-Box/piracy-shipping/Analysis-New/ASAM_N_shp") |> 
-  st_drop_geometry()
+all_encounters <- st_read("/Users/jcvd/Library/CloudStorage/Box-Box/piracy-shipping/Analysis-New/ASAM_N_shp") |>
+  st_drop_geometry() |>
+  filter(between(year(dateofocc), 2012, 2021))
 
 # A quick function to table unique values
 get_values <- function(data, var) {
-  data |> 
-    pull(var = var) |> 
+  data |>
+    pull(var = var) |>
     str_to_upper() |>
     str_squish() |>
     str_trim() |>
@@ -102,7 +103,7 @@ nouns <- c("Alarm",
            "Pirate",
            "Pirates",
            "Robbers",
-           "Robbery") |> 
+           "Robbery") |>
   str_to_upper()
 
 # Verbs from HPT
@@ -127,15 +128,15 @@ verbs <- c("Attack",
            "Threaten",
            "Threatened",
            "Tie",
-           "Tied") |> 
+           "Tied") |>
   str_to_upper()
 
 # Adverbs from GPT
 adverbs <- c("Heavily",
-             "Violently") |> 
+             "Violently") |>
   str_to_upper()
 
-keywords <- c(nouns, verbs, adverbs) |> 
+keywords <- c(nouns, verbs, adverbs) |>
   unique()
 
 # Now vectors of unique values to exclude --------------------------------------
@@ -173,16 +174,16 @@ exclude_keywords <- c(
   "SAILBOATS")
 
 # Implement filters ------------------------------------------------------------
-clean_encounters <- all_encounters |> 
-  mutate_all(str_to_upper) |> 
+clean_encounters <- all_encounters |>
+  mutate_all(str_to_upper) |>
   # KEEP THESE
-  filter(str_detect(hostility_, paste(hostiles, collapse = "|")) | 
-           str_detect(hostilit_D, paste(hostilit_Ds, collapse = "|")) | 
-           str_detect(descriptio, paste(keywords, collapse = "|"))) |> 
+  filter(str_detect(hostility_, paste(hostiles, collapse = "|")) |
+           str_detect(hostilit_D, paste(hostilit_Ds, collapse = "|")) |
+           str_detect(descriptio, paste(keywords, collapse = "|"))) |>
   # EXCLUDE THESE
   filter(!str_detect(hostility_, paste(exclude_hostility_, collapse = "|")),
          !str_detect(descriptio, paste(exclude_keywords, collapse = "|")),
-         !hostilityt == 0) |> 
+         !hostilityt == 0) |>
   drop_na(victim_d)
 
 
