@@ -37,7 +37,7 @@ time <- "date"
 treatment <- "number_previous_attacks_grid_1_month"
 
 wrap <- function(outcome) {
-  out_file <- here("output_data", paste0("es_mod_", outcome, ".rds"))
+  out_file <- here("output_data", paste0("es_mod_", outcome, "_2025.rds"))
 
   if(!file.exists(out_file)) {
     print(paste("File", out_file, "not found, proceeding to estimate model"))
@@ -118,7 +118,7 @@ files <- list.files("output_data", pattern = "es_mod", full.names = T)
 
 mods <- map(files, readRDS)
 
-es_plot_clement <- mods |>us
+es_plot_clement <- mods |>
   map_dfr(build_coef_table) |>
   build_event_study_plot()
 

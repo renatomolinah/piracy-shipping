@@ -24,11 +24,12 @@ pacman::p_load(
 
 # Load data --------------------------------------------------------------------
 grid_level_panel <- readRDS(file = here("processed_data",
-                             "attacks_and_activity_by_grid.rds"))
+                             "attacks_and_activity_by_grid.rds")) |> 
+  filter(!attack_cluster == "None")
 
 # Define some windows
 bef_window <- 5
-aft_window <- 5
+aft_window <- 10
 
 ## PROCESSING ------------------------------------------------------------------
 # Identify all dates with attacks

@@ -21,7 +21,23 @@ pacman::p_load(
 
 # Load data --------------------------------------------------------------------
 all_encounters <- st_read("/Users/jcvd/Library/CloudStorage/Box-Box/piracy-shipping/Analysis-New/ASAM_N_shp/") |>
-  st_drop_geometry()
+  st_drop_geometry() |>
+  filter(between(year(dateofocc), 2012, 2021)) |> 
+  arrange(dateofocc)
+
+optB <- st_read("data/Asam_data_download_ASAM_shp_20250305") |> 
+  st_drop_geometry() |>
+  filter(between(year(dateofocc), 2012, 2021)) |> 
+  arrange(dateofocc)
+
+optC <- st_read("data/Asam_data_download.gdb") |> 
+  st_drop_geometry() |>
+  filter(between(year(dateofocc), 2012, 2021)) |> 
+  arrange(dateofocc)
+
+all_encounters |> filter(reference == "2015-174") |> pull(descriptio)
+optB |> filter(reference == "2015-174") |> pull(descriptio)
+optC |> filter(reference == "2015-174") |> pull(description)
 
 interns <- c(
   "Grayson",

@@ -86,7 +86,9 @@ mod <- feols(data = reg_data,
                c(distance_km,
                  time_hours,
                  n_trips,
-                 n_vessels) ~
+                 n_vessels,
+                 distance_km / n_vessels,
+                 time_hours / n_vessels) ~
                # Regressors
                sw(TNE3, TNE6, TNE12) | 
                # Fixed effects
