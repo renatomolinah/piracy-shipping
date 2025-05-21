@@ -37,7 +37,7 @@ list(
   # Load ASAM data that was verified by JC's students
   tar_file_read(
     name = asam_data,
-    command = here::here("processed/clean_asam_data.gpkg"),
+    command = here::here("data/processed/clean_asam_data.gpkg"),
     read = sf::read_sf(!!.x) |>
       # Standard is to have geometry column called geom
       dplyr::rename(geometry = geom) |>
