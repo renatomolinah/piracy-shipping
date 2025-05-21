@@ -457,40 +457,41 @@ process_fuel_data <- function(fuel_file,
 
 # Generate piracy attack hotspot boundaries
 # use dbscan to generate clusters, focusing on a specified year range
-generate_hotspot_boundaries <- function(asam_data_processed,
-                                        year_min = 2010,
-                                        years_to_include = 12){
+generate_hotspot_boundaries <- function(asam_data,
+                                        year_min = 2012,
+                                        years_to_include = 9){
   
-  asam_filtered <- asam_data_processed %>%
+  asam_filtered <- asam_data |>
     dplyr::filter(lubridate::year(date) >= year_min,
                   lubridate::year(date) <= year_min + years_to_include)
   
   # Find DBSCAN clusters for attacks occurring during this range
-  dbscan_clusters <- fpc::dbscan(asam_filtered %>%
-                                   dplyr::select(lon,lat),
-                                 eps = 10, #km
-                                 MinPts = 300)
+  dbscan_clusters <- fpc::dbscan(asam_data |>
+                                   dplyr::select(lon,lat) |>
+                                   sf::st_drop_geometry(),
+                                 eps = 10,
+                                 MinPts = 200)
   
-  asam_with_clusters <- asam_filtered %>%
-    dplyr::mutate(cluster_number = dbscan_clusters$cluster)%>%
+  asam_with_clusters <- asam_data |>
+    dplyr::mutate(cluster_number = dbscan_clusters$cluster) |>
     dplyr::mutate(cluster = dplyr::case_when(cluster_number == 1 ~ "hotspot_southeast_asia",
-                                             cluster_number == 2 ~ "hotspot_gulf_of_aden",
-                                             cluster_number == 3 ~ "hotspot_gulf_of_guinea",
+                                             cluster_number == 2 ~ "hotspot_gulf_of_guinea",
+                                             cluster_number == 3 ~ "hotspot_gulf_of_aden",
                                              TRUE ~ "0"))
   
   # Creat bounding box for each cluster, filter out 0 cluster since those are non-clustered attacks
   # Round this up or down to nearest 5 degrees, to match units of analysis
   
   purrr::map(unique(asam_with_clusters$cluster),function(x){
-    temp_df <- asam_with_clusters %>%
+    temp_df <- asam_with_clusters |>
       dplyr::filter(cluster == x)
     data.frame(cluster = x,
                lon_min = floor(min(temp_df$lon)/5)*5,
                lat_min = floor(min(temp_df$lat)/5)*5,
                lon_max = ceiling(max(temp_df$lon)/5)*5,
                lat_max = ceiling(max(temp_df$lat)/5)*5)
-  }) %>%
-    dplyr::bind_rows() %>%
+  }) |>
+    dplyr::bind_rows() |>
     dplyr::filter(cluster != "0")
 }
 
@@ -521,9 +522,10 @@ assign_hotspot_to_asam <- function(asam_data_processed,
 
 # Code to generate SQL for assigning lat/lon to hotspots
 generate_hotspot_sql <- function(hotspots){
-  hotspots %>%
-    mutate(cluster_filter = glue::glue("(CASE WHEN (lat_bin <= {lat_max} AND lat_bin >= {lat_min} AND lon_bin <= {lon_max} AND lon_bin >= {lon_min}) THEN 1 ELSE 0 END) {cluster}")) %>%
-    .$cluster_filter %>% paste0(.,collapse = ", ")
+  hotspots |>
+    dplyr::mutate(cluster_filter = glue::glue("(CASE WHEN (lat_bin <= {lat_max} AND lat_bin >= {lat_min} AND lon_bin <= {lon_max} AND lon_bin >= {lon_min}) THEN 1 ELSE 0 END) {cluster}")) |>
+    dplyr::pull(cluster_filter) |>
+    paste0(collapse = ", ")
 }
 
 # Take ASAM data and add hotspot info, based on the hotspots boundaries
@@ -534,8 +536,7 @@ generate_asam_with_hotspots <- function(asam_data_processed,
     dplyr::mutate(year = lubridate::year(date))%>%
     dplyr::cross_join(hotspots) %>%
     dplyr::mutate(attack_in_hotspot = ifelse(lat <= lat_max & lat >= lat_min & lon <= lon_max & lon >= lon_min,TRUE,FALSE)) %>%
-    dplyr::select(asam_reference,
-                  encounter_type,
+    dplyr::select(reference,
                   year,
                   lon,
                   lat,
@@ -558,3 +559,21 @@ generate_asam_with_hotspots <- function(asam_data_processed,
     dplyr::select(-attack_in_hotspot)
 }
 
+# Function to upload an arbitrary df to BQ
+upload_df_to_bq <- function(df_to_upload,
+                            table_name,
+                            bq_dateset,
+                            bq_project){
+  
+  table <- bigrquery::bq_table(project = bq_project,
+                      table = table_name,
+                      dataset = bq_dataset)
+  
+    bigrquery::bq_table_upload(table,
+                               values = df_to_upload,
+                               fields = bigrquery::as_bq_fields(df_to_upload),
+                               write_disposition = "WRITE_TRUNCATE")
+    
+    # Return metadata, so targets can keep track of everything
+    bigrquery::bq_table_meta(table)
+}

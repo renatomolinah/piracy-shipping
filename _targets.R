@@ -1,9 +1,10 @@
 # Load packages required to define the pipeline:
 library(targets)
+library(tarchetypes)
 # Set target options:
 tar_option_set(
   # Load necessary packages
-  packages = c("tidyverse")
+  packages = c("sf")
 )
 # Source all necessary functions
 tar_source("r/functions.R")
@@ -34,32 +35,47 @@ ggplot2::theme_set(ggplot2::theme_minimal(base_size = 7))
 # Note: Any target name that includes _bq at the end creates a table on BigQuery
 # in the emlab-gcp.piracy dataset
 list(
-  # Process ASAM encounter data
+  # Set version of model run
   tar_target(
-    name = asam_file,
-    glue::glue("{data_directory}/raw/asam_data_download/ASAM_events.shp"),
-    format = "file"
+    name = model_version,
+    "20250521"
   ),
-  tar_target(
+  # Load ASAM data that was verified by JC's students
+  tar_file_read(
     name = asam_data,
-    sf::st_read(asam_file)
+    command = here::here("processed_data/clean_asam_data.gpkg"),
+    read = sf::read_sf(!!.x) |>
+      # Standard is to have geometry column called geom
+      dplyr::rename(geometry = geom) |>
+      # Ensure date of occurrance is in UTC, not local time (see: https://github.com/renatomolinah/piracy-shipping/pull/9)
+      dplyr::mutate(dateofocc = lubridate::with_tz(dateofocc, tzone = "UTC")) |>
+      # Also make clean mdy date column
+      dplyr::mutate(date = format(dateofocc,"%m/%d/%Y") |> lubridate::mdy()) |>
+      # Create lon and lat columns: https://stackoverflow.com/a/61745776
+      # We'll need these for BQ
+      {\(.) dplyr::mutate(., lon = sf::st_coordinates(.)[,1], lat = sf::st_coordinates(.)[,2])}()
   ),
+  # Upload ASAM data to BQ
   tar_target(
-    name = asam_data_processed,
-    process_asam_data(asam_data,
-                      table_name = "asam_data_v_20250210")
+    name = asam_data_bq,
+    upload_df_to_bq(df_to_upload = asam_data |>
+                      # Don't need geometry column anymore
+                      sf::st_drop_geometry(),
+                                glue::glue("asam_data_v_{20250521}"),
+                                bq_dateset = bq_dateset,
+                                bq_project = project_location)
   ),
-  # Create hotspot cluster bounding boxes, using attacks from 2010 - 2021
+  # Create hotspot cluster bounding boxes, using attacks from 2012 - 2021
   tar_target(
     name = hotspots,
-    generate_hotspot_boundaries(asam_data_processed,
-                                year_min = 2010,
-                                years_to_include = 12)
+    generate_hotspot_boundaries(asam_data,
+                                year_min = 2012,
+                                years_to_include = 9)
   ),
-  # # Using hotspot cluster bounding boxes, assign hotspot to each asam attack
+  # Using hotspot cluster bounding boxes, assign hotspot to each asam attack
   tar_target(
     name = asam_with_hotspots,
-    generate_asam_with_hotspots(asam_data_processed, hotspots)
+    generate_asam_with_hotspots(asam_data, hotspots)
   ),
   # Create SQL code for hotspot cluster bounding boxes
   # This will go into the gridded SQL queries
