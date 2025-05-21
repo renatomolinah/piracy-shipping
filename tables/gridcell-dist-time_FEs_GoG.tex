@@ -1,0 +1,43 @@
+\begin{table}
+
+\caption{Effect of Piracy on Grid-level Ship Transit For Different Fixed-effects Specifications for the Gulf of Guinea.\label{grid_reg_fe_gog}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & (1) & (2) & (3) & (4)\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 28.59 & -4.80*** & -4.80*** & -4.58***\\
+\hspace{1em} & (23.12) & (1.64) & (1.64) & (1.32)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): Occupancy (hr)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 6.84 & -0.33 & -0.33 & -0.26\\
+\hspace{1em} & (4.69) & (0.63) & (0.63) & (0.62)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): Voyages (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.94 & -0.10*** & -0.10*** & -0.11***\\
+\hspace{1em} & (0.64) & (0.03) & (0.03) & (0.04)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (D): Vessels (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.91 & -0.10*** & -0.10*** & -0.10***\\
+\hspace{1em} & (0.63) & (0.03) & (0.03) & (0.04)\\
+ &  &  &  & \\
+Grid ID FE &  & X & X & X\\
+ASAM Subregion FE &  &  & X & X\\
+ASAM Region-year-month FE &  &  &  & X\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell (N =134unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis adding fixed-effects by grid ID, then group, and finally time.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff). Number of observations: 440,458.
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}

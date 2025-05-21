@@ -1,0 +1,46 @@
+\begin{table}
+
+\caption{Effect of Piracy on Grid-level Ship Transit.\label{grid_reg}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & (1) & (2) & (3) & (4)\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & -4.90 & -26.50* & -4.58*** & -3.69\\
+\hspace{1em} & (11.53) & (13.78) & (1.32) & (21.18)\\
+\hspace{1em}Observations & 1939330 & 305691 & 440458 & \vphantom{3} 489763\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): Occupancy (hr)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 8.42 & -0.70 & -0.26 & 15.97\\
+\hspace{1em} & (6.73) & (1.20) & (0.62) & (9.89)\\
+\hspace{1em}Observations & 1939330 & 305691 & 440458 & \vphantom{2} 489763\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): Voyages (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.32 & -0.67** & -0.11*** & 0.79\\
+\hspace{1em} & (0.44) & (0.34) & (0.04) & (0.68)\\
+\hspace{1em}Observations & 1939330 & 305691 & 440458 & \vphantom{1} 489763\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (D): Vessels (\#)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.35 & -0.65* & -0.10*** & 0.83\\
+\hspace{1em} & (0.45) & (0.34) & (0.04) & (0.69)\\
+\hspace{1em}Observations & 1939330 & 305691 & 440458 & 489763\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell (N = 590 unique cells). The sample spans from 2013 to 2021.
+Each panel examines a measure of grid-level ship transit in terms of total distance in kilometers (km), 
+total occupancy time in hours (hr), and the number of unique voyages or vessels transiting through the grid cell. 
+Each column is a different regression analysis: 
+Global is the analysis using the whole sample. G. of Aden, G. of Guinea, and S.E. Asia restrict the sample to cells within each
+hotspot.
+Encounters (3mo) is the count of pirate encounters recorded within the grid cell in the preceding 90 days. 
+All specifications include Fixed-effects by Grid ID, ASAM Subregion, and ASAM region by year by month.
+Numbers in parentheses are Conley Standard Errors (100 km cutoff).
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}

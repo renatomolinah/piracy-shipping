@@ -12,7 +12,10 @@ tar_source("r/functions.R")
 # emLab's Google Shared Drive where targets interm rds objects will live
 # This path will need to be modified by each user, since everyone has a different path to this directory
 # Uncomment this line, and run it for your personal machine
+
+# targets::tar_config_set(store = "/Users/juancarlosvillasenorderbez/Library/CloudStorage/GoogleDrive-juancarlos@ucsb.edu/Shared drives/emlab/projects/current-projects/piracy/data/_targets")
 # targets::tar_config_set(store = "/Users/Shared/nextcloud/emLab/projects/current-projects/piracy/data/_targets")
+
 
 # The data directory for raw data is set in relation to the targets directory
 data_directory <- targets::tar_config_get("store") |>
