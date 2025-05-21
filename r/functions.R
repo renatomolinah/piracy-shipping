@@ -41,186 +41,6 @@ get_values <- function(data, var) {
     data.frame() |>
     arrange(desc(Freq))
 }
-
-process_asam_data <- function(all_encounters,
-                              # Name to save this table as in BQ
-                              table_name){
-  
-  ## Adapted from piracy-shipping/scratch/clean_pirate_encounters.R
-  ## PROCESSING ##################################################################
-  
-  # Find unique values -----------------------------------------------------------
-  # get_values(all_encounters, "hostility_") # To find all types of hostiles
-  # get_values(all_encounters, "hostilit_D") # To find all types of hostilities
-  # Take a list of descriptions, pass it to GPT and asked for a list of nouns, verbs, and adverbs associated with violecne and piracyv
-  
-  # Build vectors of unique values to keep ---------------------------------------
-  # List of hostiles
-  hostiles <- c("PIRATE",
-                "PIRATES",
-                "ROBBER",
-                "ROBBERS",
-                "THIEF",
-                "THIEVES",
-                "BOARDING",
-                "BOARDER",
-                "BOARDERS",
-                "ROBBERY",
-                "INTRUDERS",
-                "ATTACK",
-                "ATTACKER",
-                "ATTACKERS",
-                "HIJACKER",
-                "HIJACKERS",
-                "HIJACKING",
-                "KIDNAPPERS",
-                "ARMED",
-                "GUNMEN",
-                "BANDITS",
-                "GUERRILLAS",
-                "STOWAWAY",
-                "STOWAWAYS",
-                "REBEL",
-                "REBELS",
-                "TERRORIST",
-                "TERRORISTS",
-                # Transliterations
-                "PRIATES",
-                "ROBBER(S)"
-  )
-  
-  # Types of hostilities
-  hostilit_Ds <- c("PIRATE ASAULT",
-                   "ROBBERY",
-                   "KIDNAPPING",
-                   "ATTEMPTED BOARDING",
-                   "HIJACKING",
-                   "MOTHERSHIP ACTIVITY",
-                   "SUSPICIOUS APPROACH")
-  
-  # Nouns from GTP
-  nouns <- c("Alarm",
-             "Assault",
-             "Attack",
-             "Gunpoint",
-             "Guns",
-             "Hijacking",
-             "Hostage",
-             "Kidnapping",
-             "Knife",
-             "Knives",
-             "Lock",
-             "Mothership",
-             "Pirate",
-             "Pirates",
-             "Robbers",
-             "Robbery") |> 
-    stringr::str_to_upper()
-  
-  # Verbs from HPT
-  verbs <- c("Attack",
-             "Attacked",
-             "Boarded",
-             "Detain",
-             "Detained",
-             "Escape",
-             "Escaped",
-             "Fled",
-             "Kill",
-             "Killed",
-             "Murder",
-             "Murdered",
-             "Punch",
-             "Punched",
-             "Robb",
-             "Robbed",
-             "Steal",
-             "Stole",
-             "Threaten",
-             "Threatened",
-             "Tie",
-             "Tied") |> 
-    stringr::str_to_upper()
-  
-  # Adverbs from GPT
-  adverbs <- c("Heavily",
-               "Violently") |> 
-    stringr::str_to_upper()
-  
-  keywords <- c(nouns, verbs, adverbs) |> 
-    unique()
-  
-  # Now vectors of unique values to exclude --------------------------------------
-  exclude_hostility_ <- c(
-    "MILITARY",
-    "ASSAULT",
-    "DRUG SMUGGLING",
-    "MISSILE ATTACK",
-    "EXPLOSION",
-    "DETAINED"
-  )
-  
-  exclude_keywords <- c(
-    "SUSPICIOUS APPROACH",
-    "IN THE PORT",
-    "IN THE DOCK",
-    "IN THE PIER",
-    "ON THE PORT",
-    "ON THE DOCK",
-    "ON THE PIER",
-    "AT THE PORT",
-    "AT THE DOCK",
-    "AT THE PIER",
-    "YARD",
-    "BERTHED",
-    "DOCKED",
-    "BARGE",
-    "BARGES",
-    "YACHT",
-    "YACHTS",
-    "SAILING YACHT",
-    "SAILING",
-    "SAILBOAT",
-    "SAILING VESSEL",
-    "SAILBOATS")
-  
-  # Implement filters ------------------------------------------------------------
-  clean_encounters <- all_encounters |> 
-    dplyr::mutate(across(-c(geometry),~stringr::str_to_upper(.))) |> 
-    # KEEP THESE
-    dplyr::filter(stringr::str_detect(hostility_, paste(hostiles, collapse = "|")) | 
-                    stringr::str_detect(hostilit_D, paste(hostilit_Ds, collapse = "|")) | 
-                    stringr::str_detect(descriptio, paste(keywords, collapse = "|"))) |> 
-    # EXCLUDE THESE
-    dplyr::filter(!stringr::str_detect(hostility_, paste(exclude_hostility_, collapse = "|")),
-           !stringr::str_detect(descriptio, paste(exclude_keywords, collapse = "|")),
-           !hostilityt == 0) |> 
-    tidyr::drop_na(victim_d) |>
-    dplyr::mutate(date = lubridate::as_date(dateofocc)) |>
-    # Only include attacks in 2021 or before
-    dplyr::filter(lubridate::year(date) <= 2021) %>%
-    # Extract lat and lon columns
-    dplyr::mutate(lon = sf::st_coordinates(.)[,1],
-                  lat = sf::st_coordinates(.)[,2]) |>
-    # Only extract necessary columns
-    dplyr::select(asam_reference = reference,
-                  encounter_type = hostilit_D,
-                  date,
-                  lon,
-                  lat) |>
-    sf::st_set_geometry(NULL)
-  
-  # Upload table to BQ
-  bigrquery::bq_table(project = billing_project,
-                      table = table_name,
-                      dataset = bq_dataset) %>% 
-    bigrquery::bq_table_upload(values = clean_encounters,
-                               fields = bigrquery::as_bq_fields(clean_encounters),
-                               write_disposition = "WRITE_TRUNCATE")
-  
-  return(clean_encounters)
-}
-
 # Make theme for maps
 theme_map <- function(){
   theme_minimal() %+replace%
@@ -357,100 +177,89 @@ make_map_with_attack_timeseries_figure <- function(asam_with_hotspots,
   return(plot)
 }
 process_wind_data <- function(wind_file,
-                              pixel_size,
-                              # Name to save this table on BigQuery
-                              table_name){
+                              pixel_size){
   # ERA5 monthly averaged data downloaded from Copernicus
   # We get the u10 and v10 wind components, which come at monthly 0.25x0.25 degree resolution
   # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview
   # Load u component
   wind_u <- raster::stack(wind_file,
-                          varname = "u10")%>%
+                          varname = "u10") |>
     # Need to rotate from 0-360 to -180-180, since original NC is provided in 0-360
-    raster::rotate() %>%
-    stars::st_as_stars() %>%
-    sf::st_as_sf() %>%
+    raster::rotate() |>
+    stars::st_as_stars() |>
+    sf::st_as_sf() |>
     dplyr::mutate(component = "u_ms")
   
   # Load v component
   wind_v <- raster::stack(wind_file,
-                          varname = "v10")%>%
+                          varname = "v10") |>
     # Need to rotate from 0-360 to -180-180, since original NC is provided in 0-360
-    raster::rotate() %>%
-    stars::st_as_stars() %>%
-    sf::st_as_sf() %>%
+    raster::rotate() |>
+    stars::st_as_stars() |>
+    sf::st_as_sf() |>
     dplyr::mutate(component = "v_ms")
   
   # Put it all together into tidy tibble
-  all_wind_data <- bind_rows(wind_u, wind_v) %>%
+  all_wind_data <- dplyr::bind_rows(wind_u, wind_v) |>
     # Take lower left corner for lat and lon
-    mutate(bbox = map(geometry,~sf::st_bbox(.)),
-           lon = map_dbl(bbox,~.$xmin),
-           lat = map_dbl(bbox,~.$ymin)) %>%
-    dplyr::select(-bbox) %>%
-    sf::st_set_geometry(NULL)%>% 
-    tidyr::pivot_longer(cols = -c(lon,lat,component)) %>%
-    mutate(date = lubridate::ymd(name)) %>%
-    dplyr::select(-name) %>%
-    pivot_wider(names_from = "component",
+    dplyr::mutate(bbox = purrr::map(geometry,~sf::st_bbox(.)),
+           lon = purrr::map_dbl(bbox,~.$xmin),
+           lat = purrr::map_dbl(bbox,~.$ymin)) |>
+    dplyr::select(-bbox) |>
+    sf::st_set_geometry(NULL) |>
+    tidyr::pivot_longer(cols = -c(lon,lat,component)) |>
+    dplyr::mutate(date = lubridate::ymd(name)) |>
+    dplyr::select(-name) |>
+    tidyr::pivot_wider(names_from = "component",
                 values_from = "value")
   
-  wind_data_aggregated <- all_wind_data %>%
+  wind_data_aggregated <- all_wind_data |>
     dplyr::mutate(lat_bin = floor(lat/pixel_size) * pixel_size,
-                  lon_bin = floor(lon/pixel_size) * pixel_size) %>%
+                  lon_bin = floor(lon/pixel_size) * pixel_size) |>
     # https://help.marine.copernicus.eu/en/articles/5487266-how-to-average-winds#
     # The vector mean wind speed is obtained by first averaging u and v over the period of interest and then calculating the wind_speed from the averaged u and v.
     # The vector average should be used when the wind direction matters as well. For example in the transport of particles by the wind, because winds in opposite directions cancel out in terms of transport:
-    dplyr::group_by(date,lat_bin,lon_bin) %>%
-    summarize(u_ms = mean(u_ms,na.rm=TRUE),
-              v_ms = mean(v_ms,na.rm=TRUE)) %>%
-    ungroup() %>%
+    dplyr::group_by(date,lat_bin,lon_bin) |>
+    dplyr::summarize(u_ms = mean(u_ms,na.rm=TRUE),
+              v_ms = mean(v_ms,na.rm=TRUE)) |>
+    dplyr::ungroup() %>%
     dplyr::mutate(wind_speed_ms =sqrt(u_ms^2 + v_ms^2),
                   # https://disc.gsfc.nasa.gov/information/data-in-action?title=Derive%20Wind%20Speed%20and%20Direction%20With%20MERRA-2%20Wind%20Components#:~:text=The%20U%20wind%20component%20is,wind%20comes%20from%20the%20north.
-                  wind_direction_degrees = atan(v_ms/u_ms)) %>%
+                  wind_direction_degrees = atan(v_ms/u_ms)) |>
     dplyr::ungroup()
-  
-  # Upload table to BQ
-  bigrquery::bq_table(project = billing_project,
-                      table = table_name,
-                      dataset = bq_dataset) %>% 
-    bigrquery::bq_table_upload(values = wind_data_aggregated,
-                               fields = bigrquery::as_bq_fields(wind_data_aggregated),
-                               write_disposition = "WRITE_TRUNCATE")
-  
-  return(Sys.time())
 }
+
+#   # Upload table to BQ
+#   bigrquery::bq_table(project = billing_project,
+#                       table = table_name,
+#                       dataset = bq_dataset) %>% 
+#     bigrquery::bq_table_upload(values = wind_data_aggregated,
+#                                fields = bigrquery::as_bq_fields(wind_data_aggregated),
+#                                write_disposition = "WRITE_TRUNCATE")
+#   
+#   return(Sys.time())
+# }
 # The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide, 
 # covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
 # Downloaded from https://bunkerindex.com/prices/bix-world.php
-process_fuel_data <- function(fuel_file,
-                              # Name to save this table on BigQuery
-                              table_name){
+process_fuel_data <- function(fuel_file){
   # Load fuel price data
-  fuel_price_data <- fuel_file %>%
-    read_csv() %>%
+  fuel_price_data <- fuel_file |>
+    readr::read_csv() |>
     dplyr::select(date = Date,
                   price_usd_mt = Price) %>%
     dplyr::mutate(date = lubridate::mdy(date))
   
   # All dates
-  date_range <- tibble(date = seq(min(fuel_price_data$date),
+  date_range <- tibble::tibble(date = seq(min(fuel_price_data$date),
                                   max(fuel_price_data$date), 
                                   by = 'day'))
   
   # Fill missing dates with last value
-  interpolated_fuel_price_data <- fuel_price_data%>%
-    right_join(date_range) %>%
-    arrange(date) %>% 
+  interpolated_fuel_price_data <- fuel_price_data |>
+    dplyr::right_join(date_range, by = "date") |>
+    dplyr::arrange(date) |>
     tidyr::fill(price_usd_mt,.direction ="down")
-  
-  # Upload table to BQ
-  bigrquery::bq_table(project = billing_project,
-                      table = table_name,
-                      dataset = bq_dataset) %>% 
-    bigrquery::bq_table_upload(values = interpolated_fuel_price_data,
-                               fields = bigrquery::as_bq_fields(interpolated_fuel_price_data),
-                               write_disposition = "WRITE_TRUNCATE")
   
   return(interpolated_fuel_price_data)
 }

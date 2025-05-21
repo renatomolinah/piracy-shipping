@@ -9,18 +9,12 @@ tar_option_set(
 # Source all necessary functions
 tar_source("r/functions.R")
 
-# Set directory where target objects will be saved
-# emLab's Google Shared Drive where targets interm rds objects will live
-# This path will need to be modified by each user, since everyone has a different path to this directory
-# Uncomment this line, and run it for your personal machine
-
-# targets::tar_config_set(store = "/Users/juancarlosvillasenorderbez/Library/CloudStorage/GoogleDrive-juancarlos@ucsb.edu/Shared drives/emlab/projects/current-projects/piracy/data/_targets")
-# targets::tar_config_set(store = "/Users/Shared/nextcloud/emLab/projects/current-projects/piracy/data/_targets")
-
-
-# The data directory for raw data is set in relation to the targets directory
-data_directory <- targets::tar_config_get("store") |>
-  stringr::str_remove_all("/_targets")
+# Set the data directory that is simlink'ed to Box
+# Box is where we'll store all data - including raw, processed, output, and the targets data store
+# For Gavin, I ran ln -s "/Users/gmcdonald/Library/CloudStorage/Box-Box/piracy-data" "/Users/gmcdonald/github/piracy-shipping/data"
+box_directory <- here::here("data")
+# Now set the targets store to a _targets folder in this Box directory
+targets::tar_config_set(store = file.path(box_directory,"_targets"))
 
 # Set up billing and project info for BigQuery
 # Not that this requires authentication, so not all users will be able to do this
@@ -43,7 +37,7 @@ list(
   # Load ASAM data that was verified by JC's students
   tar_file_read(
     name = asam_data,
-    command = here::here("processed_data/clean_asam_data.gpkg"),
+    command = here::here("processed/clean_asam_data.gpkg"),
     read = sf::read_sf(!!.x) |>
       # Standard is to have geometry column called geom
       dplyr::rename(geometry = geom) |>
@@ -61,7 +55,7 @@ list(
     upload_df_to_bq(df_to_upload = asam_data |>
                       # Don't need geometry column anymore
                       sf::st_drop_geometry(),
-                                glue::glue("asam_data_v_{20250521}"),
+                                paste0("asam_data_v_",model_version),
                                 bq_dateset = bq_dateset,
                                 bq_project = project_location)
   ),
@@ -84,27 +78,36 @@ list(
     generate_hotspot_sql(hotspots)
   ),
   # Process wind data
-  tar_target(
-    name = wind_file,
-    glue::glue("{data_directory}/raw/wind/era5_monthly_average_wind.nc"),
-    format = "file"
-  ),
-  tar_target(
+  tar_file_read(
     name = wind_data_processed_5,
-    process_wind_data(wind_file,
-                      pixel_size = 5,
-                      table_name = "wind_data_5_v_20240228")
+    command = here::here("data/raw/era5_wind/era5_monthly_average_wind.nc"),
+    read = process_wind_data(!!.x,
+                        pixel_size = 5)
   ),
-  # Process fuel data
+  # Upload wind data to BQ
   tar_target(
-    name = fuel_file,
-    glue::glue("{data_directory}/raw/bix_world_ifo_380_index.csv"),
-    format = "file"
+    name = wind_data_processed_5_bq,
+    upload_df_to_bq(df_to_upload = wind_data_processed_5 |>
+                      # Don't need geometry column anymore
+                      sf::st_drop_geometry(),
+                    paste0("wind_data_v_",model_version),
+                    bq_dateset = bq_dateset,
+                    bq_project = project_location)
   ),
-  tar_target(
+  # Process fuel data, downloaded from Bunker Index
+  # This interpolates missing dates using price from previous date
+  tar_file_read(
     name = fuel_data,
-    process_fuel_data(fuel_file,
-                      table_name = "fuel_prices_v_20240228")
+    command = here::here("data/raw/bunker_index/bix_world_ifo_380_index.csv"),
+    read = process_fuel_data(!!.x)
+  ),
+  # Upload fuel price data to BQ
+  tar_target(
+    fuel_data_bq,
+    upload_df_to_bq(df_to_upload = fuel_data,
+                    paste0("fuel_prices_v_",model_version),
+                    bq_dateset = bq_dateset,
+                    bq_project = project_location)
   ),
   # Get vessel info for shipping vessels in BigQuery
   tar_target(
