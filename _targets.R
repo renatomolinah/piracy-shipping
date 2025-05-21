@@ -20,8 +20,9 @@ data_directory <- targets::tar_config_get("store") |>
 
 # Set up billing and project info for BigQuery
 # Not that this requires authentication, so not all users will be able to do this
-billing_project <- "emlab-gcp" # emLab's billing project
+billing_project <- "mex-fisheries" # JC's UMiami billing project
 bq_dataset <- "piracy" # The dataset name for this project
+project_location <- "emlab-gcp" # Where the piracy project lives
 
 # Set ggplot theme for all plots
 ggplot2::theme_set(ggplot2::theme_minimal(base_size = 7))

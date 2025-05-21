@@ -7,7 +7,7 @@ run_gfw_query <- function(sql, bq_table_name, ...){
   # Run query and save on BQ. We don't pull this locally yet.
   bigrquery::bq_project_query(billing_project,
                               sql,
-                              destination_table = bigrquery::bq_table(project = billing_project,
+                              destination_table = bigrquery::bq_table(project = project_location,
                                                                       table = bq_table_name,
                                                                       dataset = bq_dataset),
                               use_legacy_sql = FALSE,
