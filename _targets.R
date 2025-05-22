@@ -43,7 +43,7 @@ list(
   ),
   tar_target(
     name = study_period_ending_date,
-    "2022-12-31"
+    "2023-12-31"
   ),
   # Load ASAM data that was verified by JC's students
   tar_file_read(
