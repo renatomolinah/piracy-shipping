@@ -1,21 +1,26 @@
 # This function pulls the necessary GFW data
 # This requires special permissions, and is also very expensive to run, so will not be done often
 # You can add any additional arguments for glue to make substitutions to the query, as necessary
-run_gfw_query <- function(sql, bq_table_name, ...){
+run_gfw_query <- function(sql,
+                          bq_data_project,
+                          bq_dataset, 
+                          bq_table_name,
+                          bq_billing_project,...){
   
+  table <- bigrquery::bq_table(project = bq_data_project,
+                               table = bq_table_name,
+                               dataset = bq_dataset)
   
   # Run query and save on BQ. We don't pull this locally yet.
-  bigrquery::bq_project_query(billing_project,
+  bigrquery::bq_project_query(bq_billing_project,
                               sql,
-                              destination_table = bigrquery::bq_table(project = project_location,
-                                                                      table = bq_table_name,
-                                                                      dataset = bq_dataset),
+                              destination_table = table,
                               use_legacy_sql = FALSE,
                               allowLargeResults = TRUE,
                               write_disposition = "WRITE_TRUNCATE")
   
-  # Return sys.time, for targets to know that something chabged
-  Sys.time()
+  # Return metadata, for targets to know that something chabged
+  bigrquery::bq_table_meta(table)
 }
 
 # This function pulls GFW data locally from a specific table
@@ -370,12 +375,12 @@ generate_asam_with_hotspots <- function(asam_data_processed,
 
 # Function to upload an arbitrary df to BQ
 upload_df_to_bq <- function(df_to_upload,
-                            table_name,
-                            bq_dateset,
-                            bq_project){
+                            bq_data_project,
+                            bq_dataset,
+                            bq_table_name){
   
-  table <- bigrquery::bq_table(project = bq_project,
-                      table = table_name,
+  table <- bigrquery::bq_table(project = bq_data_project,
+                      table = bq_table_name,
                       dataset = bq_dataset)
   
     bigrquery::bq_table_upload(table,

@@ -18,9 +18,9 @@ targets::tar_config_set(store = file.path(box_directory,"_targets"))
 
 # Set up billing and project info for BigQuery
 # Not that this requires authentication, so not all users will be able to do this
-billing_project <- "mex-fisheries" # JC's UMiami billing project
+bq_billing_project <- "mex-fisheries" # JC's UMiami billing project
+bq_data_project <- "emlab-gcp" # Where the piracy project lives
 bq_dataset <- "piracy" # The dataset name for this project
-project_location <- "emlab-gcp" # Where the piracy project lives
 
 # Set ggplot theme for all plots
 ggplot2::theme_set(ggplot2::theme_minimal(base_size = 7))
@@ -55,9 +55,10 @@ list(
     upload_df_to_bq(df_to_upload = asam_data |>
                       # Don't need geometry column anymore
                       sf::st_drop_geometry(),
-                                paste0("asam_data_v_",model_version),
-                                bq_dateset = bq_dateset,
-                                bq_project = project_location)
+                    bq_data_project = bq_data_project,
+                    bq_dataset = bq_dataset,
+                    bq_table_name = paste0("asam_data_v_",model_version)
+    )
   ),
   # Create hotspot cluster bounding boxes, using attacks from 2012 - 2021
   tar_target(
@@ -90,9 +91,9 @@ list(
     upload_df_to_bq(df_to_upload = wind_data_processed_5 |>
                       # Don't need geometry column anymore
                       sf::st_drop_geometry(),
-                    paste0("wind_data_v_",model_version),
-                    bq_dateset = bq_dateset,
-                    bq_project = project_location)
+                    bq_data_project = bq_data_project,
+                    bq_dataset = bq_dataset,
+                    bq_table_name = paste0("wind_data_v_",model_version))
   ),
   # Process fuel data, downloaded from Bunker Index
   # This interpolates missing dates using price from previous date
@@ -105,22 +106,19 @@ list(
   tar_target(
     fuel_data_bq,
     upload_df_to_bq(df_to_upload = fuel_data,
-                    paste0("fuel_prices_v_",model_version),
-                    bq_dateset = bq_dateset,
-                    bq_project = project_location)
-  ),
-  # Get vessel info for shipping vessels in BigQuery
-  tar_target(
-    name = vessel_info_sql,
-    "sql/vessel_info.sql",
-    format = "file"
+                    bq_data_project = bq_data_project,
+                    bq_dataset = bq_dataset,
+                    bq_table_name = paste0("fuel_prices_v_",model_version))
   ),
   # Generate vessel characteristic info and save on BigQuery
-  tar_target(
+  tar_file_read(
     name = vessel_info_bq,
-    run_gfw_query(sql = vessel_info_sql %>%
-                    readr::read_file(),
-                  bq_table_name = "vessel_info_v_20240228")
+    command = here::here("sql/vessel_info.sql"),
+    read = run_gfw_query(sql = readr::read_file(!!.x),
+                    bq_data_project = bq_data_project,
+                    bq_dataset = bq_dataset,
+                  bq_table_name = paste0("vessel_info_v_",model_version),
+                  bq_billing_project = bq_billing_project),
   ),
   # Get voyage trip info in BigQuery
   tar_target(
