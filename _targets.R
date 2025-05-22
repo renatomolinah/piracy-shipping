@@ -189,22 +189,20 @@ list(
   # Apply some rules-of-thumb filters to remove potentially erroneous trips
   # i.e., trips > 60 days, distance greater than earth's circumfrence, from port = to port,
   # distance greater than4x average trip distance
-  tar_target(
-    name = keep_these_trips_bq_sql,
-    "sql/keep_these_trips.sql",
-    format = "file"
-  ),
-  tar_target(
+  tar_file_read(
     name = keep_these_trips_bq,
-    run_gfw_query(
-      sql = keep_these_trips_bq_sql %>%
-        readr::read_file(),
-      bq_table_name = "keep_these_trips_v_20250210",
-      # Trigger re-run of this if timestamp changes for ungridded_data_bq
-      ungridded_data_bq,
-      # Trigger re-run of this if timestamp changes for voyage_info_bq
-      voyage_info_bq
-    )
+    command = here::here("sql/keep_these_trips.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("keep_these_trips_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Aggregate ungridded data to level of trip departure date and 5x5 degree pixels
   # This will eventually further be aggregated to the voyage-level for the voyage-level analysis
