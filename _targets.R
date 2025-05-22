@@ -102,17 +102,17 @@ list(
     name = hotspots_sql,
     generate_hotspot_sql(hotspots)
   ),
-  # Process wind data
+  # Process wind data to 5x5 degree grids
   tar_file_read(
-    name = wind_data_processed_5,
+    name = wind_data,
     command = here::here("data/raw/era5_wind/era5_monthly_average_wind.nc"),
     read = process_wind_data(!!.x, pixel_size = 5)
   ),
   # Upload wind data to BQ
   tar_target(
-    name = wind_data_processed_5_bq,
+    name = wind_data_bq,
     upload_df_to_bq(
-      df_to_upload = wind_data_processed_5 |>
+      df_to_upload = wind_data |>
         # Don't need geometry column anymore
         sf::st_drop_geometry(),
       bq_data_project = bq_data_project,
@@ -206,129 +206,151 @@ list(
   ),
   # Aggregate ungridded data to level of trip departure date and 5x5 degree pixels
   # This will eventually further be aggregated to the voyage-level for the voyage-level analysis
-  # This loads the SQL query
-  tar_target(
-    name = gridded_data_sql,
-    "sql/gridded_data.sql",
-    format = "file"
-  ),
-  # Run the query and save it on BQ
-  tar_target(
+  tar_file_read(
     name = gridded_data_5_bq,
-    run_gfw_query(
-      sql = gridded_data_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 5, hotspots = hotspots_sql),
-      bq_table_name = "gridded_data_5_v_20250210",
-      # Trigger re-run of this if timestamp changes for ungridded_data_bq
-      ungridded_data_bq,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/gridded_data.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 5,
+          hotspots = hotspots_sql,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          wind_table = wind_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_data_5_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # For robustness check, make another version of this table that is 3x3 degrees
-  tar_target(
+  tar_file_read(
     name = gridded_data_3_bq,
-    run_gfw_query(
-      sql = gridded_data_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 3, hotspots = hotspots_sql),
-      bq_table_name = "gridded_data_3_v_20250210",
-      # Trigger re-run of this if timestamp changes for ungridded_data_bq
-      ungridded_data_bq,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/gridded_data.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 3,
+          hotspots = hotspots_sql,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          wind_table = wind_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_data_3_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # For robustness check, make another version of this table that is 7x7 degrees
-  tar_target(
+  tar_file_read(
     name = gridded_data_7_bq,
-    run_gfw_query(
-      sql = gridded_data_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 7, hotspots = hotspots_sql),
-      bq_table_name = "gridded_data_7_v_20250210",
-      # Trigger re-run of this if timestamp changes for ungridded_data_bq
-      ungridded_data_bq,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/gridded_data.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 7,
+          hotspots = hotspots_sql,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          wind_table = wind_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_data_7_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Aggregate ungridded data to level of shipping activity date and 0.5x0.5 degree pixels
   # This will be the basis of the grid-level analysis
-  # This loads the SQL query
-  tar_target(
-    name = gridded_data_0_5_sql,
-    "sql/gridded_data_0_5.sql",
-    format = "file"
-  ),
-  # Run the query and save it on BQ
-  tar_target(
+  tar_file_read(
     name = gridded_data_0_5_bq,
-    run_gfw_query(
-      sql = gridded_data_0_5_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 0.5, hotspots = hotspots_sql),
-      bq_table_name = "gridded_data_0_5_v_20250210",
-      # Trigger re-run of this if timestamp changes for ungridded_data_bq
-      ungridded_data_bq,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/gridded_data_0_5.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 0.5,
+          hotspots = hotspots_sql,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_data_0_5_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Generate some gridded pirate attack data, for the grid-level analysis
-  tar_target(
-    name = gridded_pirate_attacks_sql,
-    "sql/gridded_pirate_attacks.sql",
-    format = "file"
-  ),
-  tar_target(
+  tar_file_read(
     name = gridded_pirate_attacks_0_5_bq,
-    run_gfw_query(
-      sql = gridded_pirate_attacks_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 0.5, hotspots = hotspots_sql),
-      bq_table_name = "gridded_pirate_attacks_0_5_v_20250210",
-      # Trigger re-run of this if asam_data_processed is run
-      asam_data_processed
-    )
+    command = here::here("sql/gridded_pirate_attacks.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 0.5,
+          hotspots = hotspots_sql,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_pirate_attacks_0_5_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Also make a 5x5 degree version, for making figures
-  tar_target(
-    name = gridded_pirate_attacks_5_bq,
-    run_gfw_query(
-      sql = gridded_pirate_attacks_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 5, hotspots = hotspots_sql),
-      bq_table_name = "gridded_pirate_attacks_5_v_20250210",
-      # Trigger re-run of this if asam_data_processed is run
-      asam_data_processed
-    )
+  tar_file_read(
+    name = gridded_pirate_attacks_0_5_bq,
+    command = here::here("sql/gridded_pirate_attacks.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 5,
+          hotspots = hotspots_sql,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_pirate_attacks_5_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Here we summarize aggregate spatial shipping activity at 0.5x0.5 degrees, for making a global map
-  tar_target(
-    name = aggregate_spatial_shipping_activity_sql,
-    "sql/aggregate_spatial_shipping_activity.sql",
-    format = "file"
-  ),
-  # Run this query and save to BigQuery
-  tar_target(
+  tar_file_read(
     name = aggregate_spatial_shipping_activity_bq,
-    run_gfw_query(
-      sql = aggregate_spatial_shipping_activity_sql %>%
-        readr::read_file(),
-      bq_table_name = "aggregate_spatial_shipping_activity_v_20250210",
-      # Trigger re-run of this if timestamp changes for gridded_data_0_5_bq
-      gridded_data_0_5_bq
-    )
+    command = here::here("sql/aggregate_spatial_shipping_activity.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          gridded_data_table = gridded_data_0_5_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_pirate_attacks_5_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Pull gridded shipipng data locally
   tar_target(
     name = aggregate_spatial_shipping_activity,
     pull_gfw_data_locally(
-      bq_table_name = "aggregate_spatial_shipping_activity_v_20250210",
-      # Trigger re-run of this if timestamp changes for aggregate_spatial_shipping_activity_bq
-      aggregate_spatial_shipping_activity_bq
+      bq_table_name = aggregate_spatial_shipping_activity_bq$tableReference$tableId
     )
   ),
   # Process the total number of attacks that occurred along each route, by trip, over a rolling time window

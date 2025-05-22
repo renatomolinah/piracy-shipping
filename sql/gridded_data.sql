@@ -34,9 +34,9 @@ WITH
     FROM
       timestamp) wind_year
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20250210`
+    `emlab-gcp.piracy.{ungridded_data_table}`
     # Only keep data from list of filtered trips
-  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)),
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.{keep_these_trips_table}`) USING(trip_id)),
   # Load 5x5 degree wind data
   wind_info AS(
   SELECT
@@ -51,7 +51,7 @@ WITH
     wind_speed_ms,
     wind_direction_degrees
   FROM
-    `emlab-gcp.piracy.wind_data_5_v_20240228`),
+    `emlab-gcp.piracy.{wind_table}`),
   # Now add wind data to AIS messages by appropriate location, month and year
   ais_positions_with_wind as(
     SELECT
@@ -98,7 +98,7 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data_v_20250210`
+    `emlab-gcp.piracy.{asam_data_table}`
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -112,7 +112,7 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
+    `emlab-gcp.piracy.{asam_data_table}`
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -126,8 +126,8 @@ WITH
     attack_info_base
   WHERE
     number_attacks >0
-    AND attack_date >= '2013-01-01'
-    AND attack_date <= '2021-12-31'
+    AND attack_date >= {study_period_starting_date}
+    AND attack_date <= {study_period_ending_date}
   GROUP BY
     lat_bin,
     lon_bin),
@@ -239,7 +239,7 @@ vessel_info AS(
     registry_vessel_type_any_cargo,
     registry_vessel_type_always_cargo
   FROM
-    `emlab-gcp.piracy.vessel_info` )
+    `emlab-gcp.piracy.{vessel_info_table}` )
 SELECT
     * EXCEPT(grid_attacked_in_study_period),
     EXTRACT(YEAR from departure_date) AS year,
