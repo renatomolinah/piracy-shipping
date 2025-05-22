@@ -7,7 +7,7 @@ tar_option_set(
   packages = c("sf")
 )
 # Source all necessary functions
-tar_source("r/functions.R")
+tar_source("r/targets_functions.R")
 
 # Set the data directory that is simlink'ed to Box
 # Box is where we'll store all data - including raw, processed, output, and the targets data store
@@ -43,7 +43,7 @@ list(
   ),
   tar_target(
     name = study_period_ending_date,
-    "2020-12-31"
+    "2022-12-31"
   ),
   # Load ASAM data that was verified by JC's students
   tar_file_read(
@@ -162,7 +162,7 @@ list(
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
-      bq_table_name = paste0("vessel_info_v_", model_version),
+      bq_table_name = paste0("voyage_info_v_", model_version),
       bq_billing_project = bq_billing_project
     ),
   ),
@@ -316,7 +316,7 @@ list(
   ),
   # Also make a 5x5 degree version, for making figures
   tar_file_read(
-    name = gridded_pirate_attacks_0_5_bq,
+    name = gridded_pirate_attacks_5_bq,
     command = here::here("sql/gridded_pirate_attacks.sql"),
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
