@@ -94,7 +94,7 @@ WITH
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
@@ -108,7 +108,7 @@ WITH
   attack_info_base_all_encounters AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
@@ -126,8 +126,8 @@ WITH
     attack_info_base
   WHERE
     number_attacks >0
-    AND attack_date >= {study_period_starting_date}
-    AND attack_date <= {study_period_ending_date}
+    AND attack_date >= '{study_period_starting_date}'
+    AND attack_date <= '{study_period_ending_date}'
   GROUP BY
     lat_bin,
     lon_bin),

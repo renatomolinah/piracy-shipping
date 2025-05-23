@@ -215,7 +215,7 @@ list(
           pixel_size = 5,
           hotspots = hotspots_sql,
           ungridded_data_table = ungridded_data_bq$tableReference$tableId,
-          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           wind_table = wind_data_bq$tableReference$tableId,
@@ -238,7 +238,7 @@ list(
           pixel_size = 3,
           hotspots = hotspots_sql,
           ungridded_data_table = ungridded_data_bq$tableReference$tableId,
-          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           wind_table = wind_data_bq$tableReference$tableId,
@@ -261,7 +261,7 @@ list(
           pixel_size = 7,
           hotspots = hotspots_sql,
           ungridded_data_table = ungridded_data_bq$tableReference$tableId,
-          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           wind_table = wind_data_bq$tableReference$tableId,
@@ -285,7 +285,7 @@ list(
           pixel_size = 0.5,
           hotspots = hotspots_sql,
           ungridded_data_table = ungridded_data_bq$tableReference$tableId,
-          keep_these_trips_table = keep_these_trips_bqtableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
@@ -486,8 +486,8 @@ list(
       asam_with_hotspots,
       hotspots,
       aggregate_spatial_shipping_activity,
-      attack_year_min = 2013,
-      attack_year_max = 2021
+      attack_year_min = 2012,
+      attack_year_max = 2023
     )
   ),
   # Summarize annual shipping activity by EEZ
