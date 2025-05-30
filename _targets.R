@@ -355,92 +355,95 @@ list(
     )
   ),
   # Process the total number of attacks that occurred along each route, by trip, over a rolling time window
-  tar_target(
-    name = total_rolling_route_attacks_per_trip_sql,
-    "sql/total_rolling_route_attacks_per_trip.sql",
-    format = "file"
-  ),
   # Run the query to generate total_rolling_route_attacks_per_trip_sql
-  # Save to BigQuery
   # First do 5 degree version
-  tar_target(
+  tar_file_read(
     name = total_rolling_route_attacks_per_trip_5_degrees_bq,
-    run_gfw_query(
-      sql = total_rolling_route_attacks_per_trip_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 5),
-      bq_table_name = "total_rolling_route_attacks_per_trip_5_degrees_v_20250210",
-      # Trigger re-run of this if timestamp changes for gridded_data_5_bq
-      gridded_data_5_bq,
-      # Trigger re-run of timestamp changes ov voyage_info_bq
-      voyage_info_bq,
-      # Trigger re-run of timestamp changes ov asam_data_processed
-      asam_data_processed,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/total_rolling_route_attacks_per_trip.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 5,
+          gridded_data_table = gridded_data_5_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "total_rolling_route_attacks_per_trip_5_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Also do 3 degree version
-  tar_target(
+  tar_file_read(
     name = total_rolling_route_attacks_per_trip_3_degrees_bq,
-    run_gfw_query(
-      sql = total_rolling_route_attacks_per_trip_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 3),
-      bq_table_name = "total_rolling_route_attacks_per_trip_3_degrees_v_20250210",
-      # Trigger re-run of this if timestamp changes for gridded_data_5_bq
-      gridded_data_5_bq,
-      # Trigger re-run of timestamp changes ov voyage_info_bq
-      voyage_info_bq,
-      # Trigger re-run of timestamp changes ov asam_data_processed
-      asam_data_processed,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/total_rolling_route_attacks_per_trip.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 3,
+          gridded_data_table = gridded_data_3_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "total_rolling_route_attacks_per_trip_3_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Process the average number of attacks that occurred along previous trips for each route, by trip, over a rolling time window
-  tar_target(
-    name = average_rolling_route_attacks_per_trip_sql,
-    "sql/average_rolling_route_attacks_per_trip.sql",
-    format = "file"
-  ),
   # Run the query to generate average_rolling_route_attacks_per_trip_sql
-  # Save to BigQuery
-  # First do 5 degree version
-  tar_target(
+  tar_file_read(
     name = average_rolling_route_attacks_per_trip_5_degrees_bq,
-    run_gfw_query(
-      sql = average_rolling_route_attacks_per_trip_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 5),
-      bq_table_name = "average_rolling_route_attacks_per_trip_5_degrees_v_20250210",
-      # Trigger re-run of this if timestamp changes for gridded_data_5_bq
-      gridded_data_5_bq,
-      # Trigger re-run of timestamp changes ov voyage_info_bq
-      voyage_info_bq,
-      # Trigger re-run of timestamp changes ov asam_data_processed
-      asam_data_processed,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/average_rolling_route_attacks_per_trip.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 5,
+          gridded_data_table = gridded_data_5_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "average_rolling_route_attacks_per_trip_5_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Also do 3 degree version
-  tar_target(
+  tar_file_read(
     name = average_rolling_route_attacks_per_trip_3_degrees_bq,
-    run_gfw_query(
-      sql = average_rolling_route_attacks_per_trip_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 3),
-      bq_table_name = "average_rolling_route_attacks_per_trip_3_degrees_v_20250210",
-      # Trigger re-run of this if timestamp changes for gridded_data_5_bq
-      gridded_data_5_bq,
-      # Trigger re-run of timestamp changes ov voyage_info_bq
-      voyage_info_bq,
-      # Trigger re-run of timestamp changes ov asam_data_processed
-      asam_data_processed,
-      # Trigger re-run of this if timestamp changes for keep_these_trips_bq
-      keep_these_trips_bq
-    )
+    command = here::here("sql/average_rolling_route_attacks_per_trip.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 3,
+          gridded_data_table = gridded_data_3_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "average_rolling_route_attacks_per_trip_3_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Process voyage-level data, which aggregates gridded data
   tar_target(
@@ -449,27 +452,31 @@ list(
     format = "file"
   ),
   # Run query to generate voyage-level data and save on BigQuery
-  tar_target(
+  tar_file_read(
     name = voyage_data_bq,
-    run_gfw_query(
-      sql = voyage_data_sql %>%
-        readr::read_file(),
-      bq_table_name = "voyage_data_5_v_20250210",
-      #Trigger re-run of this if timestamp changes for gridded_data_5_bq
-      gridded_data_5_bq,
-      #Trigger re-run of this if timestamp changes for gridded_data_3_bq
-      gridded_data_3_bq,
-      #Trigger re-run of this if timestamp changes for gridded_data_7_bq
-      gridded_data_7_bq,
-      # Trigger re-run of this if timestamp changes for total_rolling_route_attacks_per_trip_5_degrees_bq
-      total_rolling_route_attacks_per_trip_5_degrees_bq,
-      # Trigger re-run of this if timestamp changes for total_rolling_route_attacks_per_trip_3_degrees_bq
-      total_rolling_route_attacks_per_trip_3_degrees_bq,
-      # Trigger re-run of this if timestamp changes for average_rolling_route_attacks_per_trip_5_degrees_bq
-      average_rolling_route_attacks_per_trip_5_degrees_bq,
-      # Trigger re-run of this if timestamp changes for average_rolling_route_attacks_per_trip_3_degrees_bq
-      average_rolling_route_attacks_per_trip_3_degrees_bq
-    )
+    command = here::here("sql/voyage_data.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          fuel_price_table = fuel_data_bq$tableReference$tableId,
+          gridded_data_5_table = gridded_data_5_bq$tableReference$tableId,
+          gridded_data_3_table = gridded_data_3_bq$tableReference$tableId,
+          gridded_data_7_table = gridded_data_7_bq$tableReference$tableId,
+          total_rolling_route_attacks_per_trip_5_table = total_rolling_route_attacks_per_trip_5_bq$tableReference$tableId,
+          total_rolling_route_attacks_per_trip_3_table = total_rolling_route_attacks_per_trip_3_bq$tableReference$tableId,
+          average_rolling_route_attacks_per_trip_5_table = average_rolling_route_attacks_per_trip_5_bq$tableReference$tableId,
+          average_rolling_route_attacks_per_trip_3_table = average_rolling_route_attacks_per_trip_3_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "voyage_data_5_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # Pull voyage-level data from BigQuery to local environment
   # Don't do this for now, since it's ~15GB

@@ -6,7 +6,7 @@ vessel_info AS(
   SELECT
     *
   FROM
-    `emlab-gcp.piracy.vessel_info_v_20240228` ),
+    `emlab-gcp.piracy.{vessel_info_table}` ),
   voyage_info AS(
   SELECT
     trip_id,
@@ -16,19 +16,19 @@ vessel_info AS(
     to_country,
     total_haversine_distance_km
   FROM
-    `emlab-gcp.piracy.voyage_info_v_20250210` ),
+    `emlab-gcp.piracy.{voyage_info_table}` ),
   gridded_data AS(
   SELECT
     *
   FROM
-    `emlab-gcp.piracy.gridded_data_5_v_20250210`),
+    `emlab-gcp.piracy.{gridded_data_5_table}`),
   # We will add fuel prices based on the voyage departure date
   fuel_prices AS(
   SELECT
     * EXCEPT(date),
     date departure_date
   FROM
-    `emlab-gcp.piracy.fuel_prices_v_20240228`),
+    `emlab-gcp.piracy.{fuel_price_table}`),
   aggregated AS(
   SELECT
     mmsi,
@@ -65,7 +65,7 @@ vessel_info AS(
     SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_3_degrees,
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_3_degrees
   FROM
-    `emlab-gcp.piracy.gridded_data_3_v_20250210`
+    `emlab-gcp.piracy.{gridded_data_3_table}`
   GROUP BY
     trip_id),
     # For robustness check, add number_previous_attacks_* for 7 degree version of gridded dataset
@@ -76,7 +76,7 @@ vessel_info AS(
     SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_7_degrees,
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_7_degrees
   FROM
-    `emlab-gcp.piracy.gridded_data_7_v_20250210`
+    `emlab-gcp.piracy.{gridded_data_7_table}`
   GROUP BY
     trip_id),
   aggregated_with_voyage_fuel AS(
@@ -105,14 +105,14 @@ total_rolling_route_attacks_per_trip_5_degrees AS(
 SELECT
   *
 FROM 
-`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_5_degrees_v_20250210`
+`emlab-gcp.piracy.{total_rolling_route_attacks_per_trip_5_table}`
 ),
 # Load 3 degree version
 total_rolling_route_attacks_per_trip_3_degrees AS(
 SELECT
   *
 FROM 
-`emlab-gcp.piracy.total_rolling_route_attacks_per_trip_3_degrees_v_20250210`
+`emlab-gcp.piracy.{total_rolling_route_attacks_per_trip_3_table}`
 ),
 # For each trip, this summarize the average number of attacks previous trips and grids
 # that voyages have previously passed through for that route (not including the current voyage),
@@ -122,14 +122,14 @@ average_rolling_route_attacks_per_trip_5_degrees AS(
 SELECT
   *
 FROM 
-`emlab-gcp.piracy.average_rolling_route_attacks_per_trip_5_degrees_v_20250210`
+`emlab-gcp.piracy.{average_rolling_route_attacks_per_trip_5_table}`
 ),
 # Load 3 degree version
 average_rolling_route_attacks_per_trip_3_degrees AS(
 SELECT
   *
 FROM 
-`emlab-gcp.piracy.average_rolling_route_attacks_per_trip_3_degrees_v_20250210`
+`emlab-gcp.piracy.{average_rolling_route_attacks_per_trip_3_table}`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,

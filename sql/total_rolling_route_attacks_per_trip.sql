@@ -6,11 +6,11 @@ WITH
   gridded_attack_info AS(
   SELECT
     date attack_date,
-    asam_reference,
+    reference,
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data_v_20250210`),
+    `emlab-gcp.piracy.{asam_data_table}`),
   # For each trip_id, get the route departure port/country and arrival port/country
   voyage_info AS(
   SELECT
@@ -21,8 +21,8 @@ WITH
     to_port,
     to_country,
   FROM
-    `emlab-gcp.piracy.voyage_info_v_20250210`
-  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)),
+    `emlab-gcp.piracy.{voyage_info_table}`
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.{keep_these_trips_table}`) USING(trip_id)),
   # For each route and departure date, get all of the unique lat_bin/lon_bin grids that all trips pass through
   # For any given route and date window, this set of grids represents the spatial area over which ship captains will look at recent attacks
   grids_per_trip_departure_date_and_route AS(
@@ -35,7 +35,7 @@ WITH
     lat_bin,
     lon_bin
   FROM
-    {ifelse(pixel_size == 5,'`emlab-gcp.piracy.gridded_data_5_v_20250210`','`emlab-gcp.piracy.gridded_data_3_v_20250210`')}
+    `emlab-gcp.piracy.{gridded_data_table}`
   LEFT JOIN
     voyage_info
   USING
@@ -79,7 +79,7 @@ WITH
   total_unique_attacks_in_route_grids_prior_to_trip_past_3_months AS (
   SELECT
     trip_id,
-    COUNT(DISTINCT(asam_reference)) total_route_attacks_last_3_months
+    COUNT(DISTINCT(reference)) total_route_attacks_last_3_months
   FROM
     all_route_grids_prior_to_trip
   LEFT JOIN
@@ -100,7 +100,7 @@ WITH
   total_unique_attacks_in_route_grids_prior_to_trip_past_6_months AS (
   SELECT
     trip_id,
-    COUNT(DISTINCT(asam_reference)) total_route_attacks_last_6_months
+    COUNT(DISTINCT(reference)) total_route_attacks_last_6_months
   FROM
     all_route_grids_prior_to_trip
   LEFT JOIN
@@ -121,7 +121,7 @@ WITH
   total_unique_attacks_in_route_grids_prior_to_trip_past_12_months AS (
   SELECT
     trip_id,
-    COUNT(DISTINCT(asam_reference)) total_route_attacks_last_12_months
+    COUNT(DISTINCT(reference)) total_route_attacks_last_12_months
   FROM
     all_route_grids_prior_to_trip
   LEFT JOIN
