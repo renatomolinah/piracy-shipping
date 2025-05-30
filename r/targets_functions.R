@@ -30,9 +30,9 @@ run_gfw_query <- function(
 }
 
 # This function pulls GFW data locally from a specific table
-pull_gfw_data_locally <- function(bq_table_name, ...) {
+pull_gfw_data_locally <- function(bq_table_name, bq_billing_project, ...) {
   bigrquery::bq_project_query(
-    billing_project,
+    bq_billing_project,
     glue::glue("SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name}")
   ) |>
     bigrquery::bq_table_download(n_max = Inf)
@@ -161,7 +161,7 @@ make_map_with_attack_timeseries_figure <- function(
   # Now make time series of attacks
   timeseries <- asam_data_processed_sf |>
     dplyr::group_by(year, cluster) |>
-    dplyr::summarize(number_attacks = n_distinct(asam_reference)) |>
+    dplyr::summarize(number_attacks = dplyr::n_distinct(reference)) |>
     dplyr::ungroup() |>
     dplyr::mutate(
       cluster = dplyr::case_when(

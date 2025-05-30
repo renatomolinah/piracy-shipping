@@ -4,7 +4,7 @@ library(tarchetypes)
 # Set target options:
 tar_option_set(
   # Load necessary packages
-  packages = c("sf")
+  packages = c("sf", "ggplot2")
 )
 # Source all necessary functions
 tar_source("r/targets_functions.R")
@@ -350,7 +350,8 @@ list(
   tar_target(
     name = aggregate_spatial_shipping_activity,
     pull_gfw_data_locally(
-      bq_table_name = aggregate_spatial_shipping_activity_bq$tableReference$tableId
+      bq_table_name = aggregate_spatial_shipping_activity_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
     )
   ),
   # Process the total number of attacks that occurred along each route, by trip, over a rolling time window
