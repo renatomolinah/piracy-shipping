@@ -607,28 +607,6 @@ list(
   # For all combinations of route and every possible date,
   # determine if an attack happened along the route on that date
   # Define routes as the pixels that voyages passed through across all time
-  # Use 50% threshold - 50% of voyages need to have passed through pixel for it to be considered on the route
-  tar_file_read(
-    name = route_all_time_date_has_attack_50p_threshold_bq,
-    command = here::here("sql/route_all_time_date_has_attack.sql"),
-    read = run_gfw_query(
-      sql = readr::read_file(!!.x) |>
-        stringr::str_glue(
-          route_pixels_all_time_table = route_pixels_all_time_bq$tableReference$tableId,
-          gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
-          fraction_route_trips_through_pixel_min_threshold = 0.5,
-          study_period_starting_date = study_period_starting_date,
-          study_period_ending_date = study_period_ending_date
-        ),
-      bq_data_project = bq_data_project,
-      bq_dataset = bq_dataset,
-      bq_table_name = paste0(
-        "route_all_time_date_has_attack_50p_threshold_v_",
-        model_version
-      ),
-      bq_billing_project = bq_billing_project
-    )
-  ),
   # Use 90% threshold - 90% of voyages need to have passed through pixel for it to be considered on the route
   tar_file_read(
     name = route_all_time_date_has_attack_90p_threshold_bq,
@@ -646,6 +624,28 @@ list(
       bq_dataset = bq_dataset,
       bq_table_name = paste0(
         "route_all_time_date_has_attack_90p_threshold_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Use 75% threshold - 75% of voyages need to have passed through pixel for it to be considered on the route
+  tar_file_read(
+    name = route_all_time_date_has_attack_75p_threshold_bq,
+    command = here::here("sql/route_all_time_date_has_attack.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          route_pixels_all_time_table = route_pixels_all_time_bq$tableReference$tableId,
+          gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
+          fraction_route_trips_through_pixel_min_threshold = 0.75,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "route_all_time_date_has_attack_75p_threshold_v_",
         model_version
       ),
       bq_billing_project = bq_billing_project
