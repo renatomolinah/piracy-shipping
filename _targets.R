@@ -549,115 +549,140 @@ list(
     format = "file"
   ),
   # For each route, find the 3 degree pixels and dates that vessels travel along
-  tar_target(
-    name = route_pixel_dates_sql,
-    "sql/route_pixel_dates.sql",
-    format = "file"
-  ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  tar_file_read(
     name = route_pixel_dates_bq,
-    run_gfw_query(
-      sql = route_pixel_dates_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 3),
-      bq_table_name = "route_pixel_dates_v_20250210"
-    )
+    command = here::here("sql/route_pixel_dates.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 3,
+          gridded_data_table = gridded_data_0_5_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("route_pixel_dates_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # For each route, find the pixels that vessels travel through across all time
-  tar_target(
-    name = route_pixels_all_time_sql,
-    "sql/route_pixels_all_time.sql",
-    format = "file"
-  ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  tar_file_read(
     name = route_pixels_all_time_bq,
-    run_gfw_query(
-      sql = route_pixels_all_time_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 3),
-      bq_table_name = "route_pixels_all_time_v_20250210"
-    )
+    command = here::here("sql/route_pixels_all_time.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 3,
+          gridded_data_table = gridded_data_0_5_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("route_pixels_all_time_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   tar_target(
     name = gridded_pirate_attacks_3_bq,
     run_gfw_query(
-      sql = gridded_pirate_attacks_sql %>%
-        readr::read_file() %>%
-        glue::glue(pixel_size = 3, hotspots = hotspots_sql),
-      bq_table_name = "gridded_pirate_attacks_3_v_20250210"
+      sql = gridded_pirate_attacks_sql |>
+        readr::read_file() |>
+        stringr::str_glue(pixel_size = 3, hotspots = hotspots_sql),
+      bq_table_name = paste0("gridded_pirate_attacks_3_v_", model_version)
     )
   ),
   # For all combinations of route and every possible date,
   # determine if an attack happened along the route on that date
   # Define routes as the pixels that voyages passed through across all time
-  tar_target(
-    name = route_all_time_date_has_attack_sql,
-    "sql/route_all_time_date_has_attack.sql",
-    format = "file"
-  ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  # Use 50% threshold - 50% of voyages need to have passed through pixel for it to be considered on the route
+  tar_file_read(
     name = route_all_time_date_has_attack_50p_threshold_bq,
-    run_gfw_query(
-      sql = route_all_time_date_has_attack_sql %>%
-        readr::read_file() %>%
-        glue::glue(
-          gridded_attack_table = "gridded_pirate_attacks_3_v_20250210",
-          fraction_route_trips_through_pixel_min_threshold = 0.5
+    command = here::here("sql/route_all_time_date_has_attack.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          route_pixels_all_time_table = route_pixels_all_time_bqtableReference$tableId,
+          gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
+          fraction_route_trips_through_pixel_min_threshold = 0.5,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
         ),
-      bq_table_name = "route_all_time_date_has_attack_50p_threshold_v_20250210"
-    )
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "route_all_time_date_has_attack_50p_threshold_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  # Use 90% threshold - 90% of voyages need to have passed through pixel for it to be considered on the route
+  tar_file_read(
     name = route_all_time_date_has_attack_90p_threshold_bq,
-    run_gfw_query(
-      sql = route_all_time_date_has_attack_sql %>%
-        readr::read_file() %>%
-        glue::glue(
-          gridded_attack_table = "gridded_pirate_attacks_3_v_20250210",
-          fraction_route_trips_through_pixel_min_threshold = 0.9
+    command = here::here("sql/route_all_time_date_has_attack.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          route_pixels_all_time_table = route_pixels_all_time_bqtableReference$tableId,
+          gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
+          fraction_route_trips_through_pixel_min_threshold = 0.9,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
         ),
-      bq_table_name = "route_all_time_date_has_attack_90p_threshold_v_20250210"
-    )
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "route_all_time_date_has_attack_90p_threshold_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # For all combinations of route and every possible date,
   # find pixels that voyages passed through before or on each date
-  #  so if a route hadn't actually been traversed before a particular date, there won't be any rows for that route-date
-  tar_target(
-    name = route_prior_date_pixels_sql,
-    "sql/route_prior_date_pixels.sql",
-    format = "file"
-  ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  # so if a route hadn't actually been traversed before a particular date, there won't be any rows for that route-date
+  tar_file_read(
     name = route_prior_date_pixels_bq,
-    run_gfw_query(
-      sql = route_prior_date_pixels_sql %>%
-        readr::read_file(),
-      bq_table_name = "route_prior_date_pixels_v_20250210"
-    )
+    command = here::here("sql/route_prior_date_pixels.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          route_pixel_dates_table = route_pixel_dates_bq$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "route_prior_date_pixels_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   ),
   # For all combinations of route and every possible date,
   # determine if an attack happened along the route on that date
   # using routes as the pixels that voyages passed through before or on each date
-  tar_target(
-    name = route_prior_date_has_attack_sql,
-    "sql/route_prior_date_has_attack.sql",
-    format = "file"
-  ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  tar_file_read(
     name = route_prior_date_has_attack_bq,
-    run_gfw_query(
-      sql = route_prior_date_has_attack_sql %>%
-        readr::read_file() %>%
-        glue::glue(
-          gridded_attack_table = "gridded_pirate_attacks_3_v_20250210"
+    command = here::here("sql/route_prior_date_has_attack.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
+          route_pixel_dates_table = route_pixel_dates_bq$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
         ),
-      bq_table_name = "route_prior_date_has_attack_v_20250210"
-    )
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "route_prior_date_has_attack_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
   )
 )

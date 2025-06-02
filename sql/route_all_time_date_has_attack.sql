@@ -1,12 +1,10 @@
-CREATE TEMPORARY FUNCTION
-  fraction_route_trips_through_pixel_min_threshold() AS ({fraction_route_trips_through_pixel_min_threshold});
 WITH
   # Create table with all dates in our study period
   all_dates AS(
   SELECT
     *
   FROM
-    UNNEST(GENERATE_DATE_ARRAY('2013-01-01', '2022-12-31', INTERVAL 1 DAY)) AS date ),
+    UNNEST(GENERATE_DATE_ARRAY('{study_period_starting_date}', '{study_period_ending_date}', INTERVAL 1 DAY)) AS date ),
   # For each route, find the pixels they passed through at any point in time
   route_pixels_all_time AS(
   SELECT
@@ -17,9 +15,9 @@ WITH
     to_port,
     to_country
   FROM
-    `emlab-gcp.piracy.route_pixels_all_time_v_20250210`
+    `emlab-gcp.piracy.{route_pixels_all_time_table}`
   WHERE
-    fraction_route_trips_through_pixel >= fraction_route_trips_through_pixel_min_threshold()
+    fraction_route_trips_through_pixel >= {fraction_route_trips_through_pixel_min_threshold})
   ),
   # Find the date and pixels that have an attack
   attack_pixel_dates AS(
