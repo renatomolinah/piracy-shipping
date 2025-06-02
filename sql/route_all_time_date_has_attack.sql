@@ -17,7 +17,7 @@ WITH
   FROM
     `emlab-gcp.piracy.{route_pixels_all_time_table}`
   WHERE
-    fraction_route_trips_through_pixel >= {fraction_route_trips_through_pixel_min_threshold})
+    fraction_route_trips_through_pixel >= {fraction_route_trips_through_pixel_min_threshold}
   ),
   # Find the date and pixels that have an attack
   attack_pixel_dates AS(

@@ -60,6 +60,21 @@ download_year_of_voyage_data <- function(
     )))
   }
 
+  # If download is already complete, just skip this year
+  if (
+    file.exists(here::here(file.path(
+      "data/processed",
+      bq_table_name,
+      glue::glue("{bq_table_name}_{year}.parquet")
+    )))
+  ) {
+    return(file.path(
+      "data/processed",
+      bq_table_name,
+      glue::glue("{bq_table_name}_{year}.parquet")
+    ))
+  }
+
   bigrquery::bq_project_query(
     bq_billing_project,
     glue::glue(
@@ -235,14 +250,14 @@ make_map_with_attack_timeseries_figure <- function(
   )
 
   ggplot2::ggsave(
-    filename = "figures/map_with_attack_timeseries.png",
+    filename = here::here("figures/map_with_attack_timeseries.png"),
     combined_figure,
     height = 7,
     width = 6,
     dpi = 300
   )
 
-  return(plot)
+  return(combined_figure)
 }
 process_wind_data <- function(wind_file, pixel_size) {
   # ERA5 monthly averaged data downloaded from Copernicus

@@ -306,7 +306,9 @@ list(
         stringr::str_glue(
           pixel_size = 0.5,
           hotspots = hotspots_sql,
-          asam_data_table = asam_data_bq$tableReference$tableId
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
@@ -323,7 +325,9 @@ list(
         stringr::str_glue(
           pixel_size = 5,
           hotspots = hotspots_sql,
-          asam_data_table = asam_data_bq$tableReference$tableId
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
@@ -342,7 +346,10 @@ list(
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
-      bq_table_name = paste0("gridded_pirate_attacks_5_v_", model_version),
+      bq_table_name = paste0(
+        "aggregate_spatial_shipping_activity_v_",
+        model_version
+      ),
       bq_billing_project = bq_billing_project
     ),
   ),
@@ -352,7 +359,14 @@ list(
     pull_gfw_data_locally(
       bq_table_name = aggregate_spatial_shipping_activity_bq$tableReference$tableId,
       bq_billing_project = bq_billing_project
-    )
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/aggregate_spatial_shipping_activity_",
+          model_version,
+          ".csv"
+        )
+      ))
   ),
   # Process the total number of attacks that occurred along each route, by trip, over a rolling time window
   # Run the query to generate total_rolling_route_attacks_per_trip_sql
@@ -491,27 +505,15 @@ list(
       ),
     pattern = map(voyage_data_years)
   ),
-  # Pull voyage-level data from BigQuery to local environment
-  # Save as parquet, since it's huge
-  tar_target(
-    name = voyage_data_file,
-    pull_gfw_data_locally(
-      bq_table_name = voyage_data_bq$tableReference$tableId,
-      bq_billing_project = bq_billing_project
-    ) |>
-      save_as_csv(here::here(
-        paste0("data/processed/voyage_data_5_v_", model_version, ".parquet")
-      )),
-    format = "file"
-  ),
   # Make figure with global map showing attacks shipping activity
   # As well as time series of attack
-  tar_target(
+  tar_file_read(
     name = map_with_attack_timeseries_figure,
+    command = aggregate_spatial_shipping_activity,
     make_map_with_attack_timeseries_figure(
       asam_with_hotspots,
       hotspots,
-      aggregate_spatial_shipping_activity,
+      readr::read_csv(!!.x),
       attack_year_min = 2012,
       attack_year_max = 2023
     )
@@ -584,13 +586,22 @@ list(
       bq_billing_project = bq_billing_project
     ),
   ),
-  tar_target(
+  tar_file_read(
     name = gridded_pirate_attacks_3_bq,
-    run_gfw_query(
-      sql = gridded_pirate_attacks_sql |>
-        readr::read_file() |>
-        stringr::str_glue(pixel_size = 3, hotspots = hotspots_sql),
-      bq_table_name = paste0("gridded_pirate_attacks_3_v_", model_version)
+    command = here::here("sql/gridded_pirate_attacks.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 3,
+          hotspots = hotspots_sql,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_pirate_attacks_3_v_", model_version),
+      bq_billing_project = bq_billing_project
     )
   ),
   # For all combinations of route and every possible date,
@@ -603,7 +614,7 @@ list(
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
-          route_pixels_all_time_table = route_pixels_all_time_bqtableReference$tableId,
+          route_pixels_all_time_table = route_pixels_all_time_bq$tableReference$tableId,
           gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
           fraction_route_trips_through_pixel_min_threshold = 0.5,
           study_period_starting_date = study_period_starting_date,
@@ -616,7 +627,7 @@ list(
         model_version
       ),
       bq_billing_project = bq_billing_project
-    ),
+    )
   ),
   # Use 90% threshold - 90% of voyages need to have passed through pixel for it to be considered on the route
   tar_file_read(
@@ -625,7 +636,7 @@ list(
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
-          route_pixels_all_time_table = route_pixels_all_time_bqtableReference$tableId,
+          route_pixels_all_time_table = route_pixels_all_time_bq$tableReference$tableId,
           gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
           fraction_route_trips_through_pixel_min_threshold = 0.9,
           study_period_starting_date = study_period_starting_date,
@@ -649,7 +660,7 @@ list(
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
-          route_pixel_dates_table = route_pixel_dates_bq$tableId,
+          route_pixel_dates_table = route_pixel_dates_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -672,7 +683,7 @@ list(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
           gridded_attack_table = gridded_pirate_attacks_3_bq$tableReference$tableId,
-          route_pixel_dates_table = route_pixel_dates_bq$tableId,
+          route_pixel_dates_table = route_pixel_dates_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -683,6 +694,6 @@ list(
         model_version
       ),
       bq_billing_project = bq_billing_project
-    ),
+    )
   )
 )

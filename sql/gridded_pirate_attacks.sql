@@ -8,7 +8,7 @@ WITH
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
@@ -23,7 +23,7 @@ WITH
   SELECT
     *
   FROM
-    UNNEST(GENERATE_DATE_ARRAY('2013-01-01', '2022-12-31', INTERVAL 1 DAY)) AS date ),
+    UNNEST(GENERATE_DATE_ARRAY('{study_period_starting_date}', '{study_period_ending_date}', INTERVAL 1 DAY)) AS date ),
   # Find all lat/lon attack grid combos in our study period
   all_attack_grids AS(
   SELECT
