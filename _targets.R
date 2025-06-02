@@ -446,11 +446,6 @@ list(
     ),
   ),
   # Process voyage-level data, which aggregates gridded data
-  tar_target(
-    name = voyage_data_sql,
-    "sql/voyage_data.sql",
-    format = "file"
-  ),
   # Run query to generate voyage-level data and save on BigQuery
   tar_file_read(
     name = voyage_data_bq,
@@ -464,10 +459,10 @@ list(
           gridded_data_5_table = gridded_data_5_bq$tableReference$tableId,
           gridded_data_3_table = gridded_data_3_bq$tableReference$tableId,
           gridded_data_7_table = gridded_data_7_bq$tableReference$tableId,
-          total_rolling_route_attacks_per_trip_5_table = total_rolling_route_attacks_per_trip_5_bq$tableReference$tableId,
-          total_rolling_route_attacks_per_trip_3_table = total_rolling_route_attacks_per_trip_3_bq$tableReference$tableId,
-          average_rolling_route_attacks_per_trip_5_table = average_rolling_route_attacks_per_trip_5_bq$tableReference$tableId,
-          average_rolling_route_attacks_per_trip_3_table = average_rolling_route_attacks_per_trip_3_bq$tableReference$tableId
+          total_rolling_route_attacks_per_trip_5_table = total_rolling_route_attacks_per_trip_5_degrees_bq$tableReference$tableId,
+          total_rolling_route_attacks_per_trip_3_table = total_rolling_route_attacks_per_trip_3_degrees_bq$tableReference$tableId,
+          average_rolling_route_attacks_per_trip_5_table = average_rolling_route_attacks_per_trip_5_degrees_bq$tableReference$tableId,
+          average_rolling_route_attacks_per_trip_3_table = average_rolling_route_attacks_per_trip_3_degrees_bq$tableReference$tableId
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
@@ -478,14 +473,37 @@ list(
       bq_billing_project = bq_billing_project
     ),
   ),
+  # Get unique years contained in voyage_data, so we can download them one at a time
+  tar_target(
+    name = voyage_data_years,
+    get_years_of_voyage_data(
+      bq_table_name = voyage_data_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Now download voyage data, one year at a time
+  tar_target(
+    name = voyage_data_files,
+    voyage_data_years |>
+      download_year_of_voyage_data(
+        bq_table_name = voyage_data_bq$tableReference$tableId,
+        bq_billing_project = bq_billing_project
+      ),
+    pattern = map(voyage_data_years)
+  ),
   # Pull voyage-level data from BigQuery to local environment
-  # Don't do this for now, since it's ~15GB
-  # tar_target(
-  #   name = voyage_data,
-  #   pull_gfw_data_locally(bq_table_name = "voyage_data_5_v_20250210",
-  #                         # Trigger re-run of this if timestamp changes for voyage_data_bq
-  #                         voyage_data_bq)
-  # ),
+  # Save as parquet, since it's huge
+  tar_target(
+    name = voyage_data_file,
+    pull_gfw_data_locally(
+      bq_table_name = voyage_data_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0("data/processed/voyage_data_5_v_", model_version, ".parquet")
+      )),
+    format = "file"
+  ),
   # Make figure with global map showing attacks shipping activity
   # As well as time series of attack
   tar_target(
@@ -499,30 +517,36 @@ list(
     )
   ),
   # Summarize annual shipping activity by EEZ
-  tar_target(
-    name = shipping_activity_by_year_eez_sql,
-    "sql/shipping_activity_by_year_eez.sql",
-    format = "file"
-  ),
-  # Run this query and save the data on BigQuery
-  tar_target(
+  tar_file_read(
     name = shipping_activity_by_year_eez_bq,
-    run_gfw_query(
-      sql = shipping_activity_by_year_eez_sql %>%
-        readr::read_file(),
-      bq_table_name = "shipping_activity_by_year_eez_v_20250210",
-      # Trigger re-run of this if timestamp changes for ungridded_data_bq
-      ungridded_data_bq
-    )
+    command = here::here("sql/shipping_activity_by_year_eez.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("shipping_activity_by_year_eez_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
   ),
-  # Pull the annual shipping activty by EEZ data locally
+  # Pull the annual shipping activty by EEZ data locally, save as CSV
   tar_target(
-    name = shipping_activity_by_year_eez,
+    name = shipping_activity_by_year_eez_file,
     pull_gfw_data_locally(
-      bq_table_name = "shipping_activity_by_year_eez_v_20250210",
-      # Trigger re-run of this if timestamp changes for shipping_activity_by_year_eez_bq
-      shipping_activity_by_year_eez_bq
-    )
+      bq_table_name = shipping_activity_by_year_eez_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/shipping_activity_by_year_eez_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
   ),
   # For each route, find the 3 degree pixels and dates that vessels travel along
   tar_target(

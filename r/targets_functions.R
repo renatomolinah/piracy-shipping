@@ -29,13 +29,62 @@ run_gfw_query <- function(
   bigrquery::bq_table_meta(table)
 }
 
+get_years_of_voyage_data <- function(bq_table_name, bq_billing_project) {
+  # Get unique years
+  years <- bigrquery::bq_project_query(
+    bq_billing_project,
+    glue::glue(
+      "SELECT DISTINCT(EXTRACT(YEAR FROM departure_date)) year FROM `emlab-gcp.{bq_dataset}.{bq_table_name}`"
+    )
+  ) |>
+    bigrquery::bq_table_download() |>
+    dplyr::pull(year) |>
+    sort()
+}
+
+download_year_of_voyage_data <- function(
+  year,
+  bq_table_name,
+  bq_billing_project
+) {
+  # Create directory, if it doesn't exist yet
+  if (
+    !dir.exists(here::here(file.path(
+      "data/processed",
+      bq_table_name
+    )))
+  ) {
+    dir.create(here::here(file.path(
+      "data/processed",
+      bq_table_name
+    )))
+  }
+
+  bigrquery::bq_project_query(
+    bq_billing_project,
+    glue::glue(
+      "SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name} WHERE EXTRACT(year FROM departure_date) = {year}"
+    )
+  ) |>
+    bigrquery::bq_table_download() |>
+    save_as_parquet(here::here(file.path(
+      "data/processed",
+      bq_table_name,
+      glue::glue("{bq_table_name}_{year}.parquet")
+    )))
+}
+
 # This function pulls GFW data locally from a specific table
-pull_gfw_data_locally <- function(bq_table_name, bq_billing_project, ...) {
+pull_gfw_data_locally <- function(
+  bq_table_name,
+  bq_billing_project,
+  ...
+) {
   bigrquery::bq_project_query(
     bq_billing_project,
     glue::glue("SELECT * FROM emlab-gcp.{bq_dataset}.{bq_table_name}")
   ) |>
-    bigrquery::bq_table_download(n_max = Inf)
+    bigrquery::bq_table_download()
 }
 
 # Code to process ASAM piracy data, and upload it to BigQuery
@@ -461,4 +510,18 @@ upload_df_to_bq <- function(
 
   # Return metadata, so targets can keep track of everything
   bigrquery::bq_table_meta(table)
+}
+
+save_as_parquet <- function(df, location_to_save) {
+  df |>
+    arrow::write_parquet(sink = location_to_save)
+
+  return(location_to_save)
+}
+
+save_as_csv <- function(df, location_to_save) {
+  df |>
+    readr::write_csv(file = location_to_save)
+
+  return(location_to_save)
 }
