@@ -87,24 +87,6 @@ pull_gfw_data_locally <- function(
     bigrquery::bq_table_download()
 }
 
-# Code to process ASAM piracy data, and upload it to BigQuery
-# Download from this website on October 20, 2023: https://msi.nga.mil/Piracy
-# "Anti-shipping Activity Messages (ASAM) include the locations and descriptive accounts of specific hostile acts against ships and mariners.
-# The reports may be useful for recognition, prevention and avoidance of potential hostile activity."
-
-# A quick function to table unique values
-get_values <- function(data, var) {
-  data |>
-    pull(var = var) |>
-    str_to_upper() |>
-    str_squish() |>
-    str_trim() |>
-    table() |>
-    data.frame() |>
-    arrange(desc(Freq))
-}
-
-
 # Make Figure that has two panels:
 # A: global map, which includes ASAM attacks, shipping activity, and hotspots
 # B: Time series of ASAM attacks, by hotspots
