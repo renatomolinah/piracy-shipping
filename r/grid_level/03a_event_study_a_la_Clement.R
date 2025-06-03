@@ -21,7 +21,8 @@ library(here)
 theme_set(theme_minimal(base_size = 7))
 
 # Load data --------------------------------------------------------------------
-grid_level_panel <- readRDS(file = here("processed_data",
+grid_level_panel <- readRDS(file = here("data",
+                                        "processed",
                                         "attacks_and_activity_by_grid.rds")) %>%
   mutate(time_hours = asinh(time_hours),
          distance_km = asinh(distance_km),
@@ -37,7 +38,7 @@ time <- "date"
 treatment <- "number_previous_attacks_grid_1_month"
 
 wrap <- function(outcome) {
-  out_file <- here("output_data", paste0("es_mod_", outcome, "_2025.rds"))
+  out_file <- here("data", "output", paste0("es_mod_", outcome, "_2025.rds"))
 
   if(!file.exists(out_file)) {
     print(paste("File", out_file, "not found, proceeding to estimate model"))
@@ -59,7 +60,7 @@ outcomes <- c("time_hours",
               "n_trips")
 
 plan("multisession", workers = 4)
-future_walk(outcomes, wrap)
+future_walk(outcomes[1], wrap)
 plan(sequential)
 
 

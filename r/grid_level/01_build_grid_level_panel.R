@@ -39,7 +39,7 @@ piracy <- dbConnect(
 ## PROCESSING ##################################################################
 
 # Get data for clusters only ---------------------------------------------------
-with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20250210") %>%
+with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20250521") %>%
   filter(date <= sql("DATE('2021-12-31')")) %>%
   mutate(grid_id = paste0(lat_bin, "_", lon_bin),
          attack_cluster = case_when(hotspot_gulf_of_guinea == 1 ~ "GoG",
@@ -64,7 +64,7 @@ grids_attacked_2013_2021 <- with_clusters %>%
   distinct()
 
 # Get grid-level information from the tracks -----------------------------------
-track_info <- tbl(piracy, "gridded_data_0_5_v_20250210") %>%
+track_info <- tbl(piracy, "gridded_data_0_5_v_20250521") %>%
   group_by(date, lat_bin, lon_bin) %>%
   summarize(time_hours = sum(hours, na.rm = T),
             distance_km = sum(distance_km, na.rm = T),
@@ -103,4 +103,6 @@ final <- local_gridded_panel %>%
 
 # X ----------------------------------------------------------------------------
 saveRDS(object = final,
-        file = here("processed_data", "attacks_and_activity_by_grid.rds"))
+        file = here("data",
+                    "processed",
+                    "attacks_and_activity_by_grid.rds"))
