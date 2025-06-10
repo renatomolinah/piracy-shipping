@@ -48,19 +48,6 @@ basic_route_info <- voyage_info |>
   select(trip_id, from_country, from_port, to_country, to_port) |>
   distinct()
 
-# Get the routes that go through hotspots
-hotspot_routes <- hotspots |>
-  filter(hotspot_gulf_of_aden == 1 |
-           hotspot_gulf_of_guinea == 1 |
-           hotspot_southeast_asia == 1) |>
-  select(trip_id, hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) |>
-  left_join(select(voyage_data,
-                   trip_id, from_country, from_port, to_country, to_port) |>
-              distinct(),
-            by = join_by(trip_id)) |>
-  select(from_country, from_port, to_country, to_port, hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) |>
-  distinct()
-
 # A table factorial combinations of day and routes, with an indicator for days with an attack
 daily_attacks <- attacks_all |>
   # Keep only data from "top routes"
@@ -72,9 +59,7 @@ daily_attacks <- attacks_all |>
       )
     )
   ) |>
-  left_join(hotspot_routes, by = join_by(from_country, from_port, to_country, to_port)) |>
-  group_by(date, from_country, from_port, to_country, to_port,
-           hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) |>
+  group_by(date, from_country, from_port, to_country, to_port) |>
   summarize(attack = any(route_has_attack),
             days_with_attack = sum(ifelse(route_has_attack, 1, 0)),
             .groups = "drop")
@@ -96,7 +81,6 @@ panel <- daily_attacks |>
   left_join(daily_activity, by = join_by(date, from_country, from_port, to_country, to_port)) |>
   select(date,
          from_country, from_port, to_country, to_port,
-         hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia,
          attack, days_with_attack,
          hours, distance_km, main_fuel_consumption_mt_inst, aux_fuel_consumption_mt_inst,
          n_trips, n_vessels) |>
