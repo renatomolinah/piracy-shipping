@@ -9,16 +9,10 @@
 rm(list = ls(all.names = TRUE))
 
 # Load required libraries
-library(tidyverse)    # Data manipulation and visualization
-library(lubridate)    # Date/time handling
-library(zoo)          # Time series analysis
-library(bigmemory)    # Large data handling
-library(stringr)      # String manipulation
-library(magrittr)     # Pipe operator
-library(haven)        # Import/export various data formats
-library(data.table)   # Fast data manipulation
+library(tidyverse)    # Data manipulation and visualization (includes dplyr, ggplot2, etc.)
+library(lubridate)    # Date/time handling (month, year functions)
 library(here)         # Path management
-library(arrow)        # Parquet file handling
+library(arrow)        # Parquet file handling (read_parquet)
 
 # =============================================================================
 # 1. LOAD VOYAGE DATA FROM PARQUET FILES
