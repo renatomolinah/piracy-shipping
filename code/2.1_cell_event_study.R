@@ -8,6 +8,7 @@
 library(here)
 library(conleyreg)
 library(tidyverse)
+library(patchwork)
 
 # =============================================================================
 # 1. LOAD AND PREPARE DATA
@@ -187,6 +188,7 @@ ev_panel <- panel %>%
   group_by(id) %>%
   mutate(
     id = cur_group_id(),
+    day_of_week = weekdays(date),
     date = as.numeric(date)
   ) %>%
   ungroup()
@@ -203,71 +205,80 @@ load_ev_panel <- function() {
 }
 
 # =============================================================================
-# 5. REGRESSION ANALYSIS
+# 5. VISUALIZATION
 # =============================================================================
 
-evs_trip <- conleyreg(
-  asinh(time_hours) ~ i(relative_time, ref = -1) | id + year + month + year:month + asam_subregion,
-  unit = "id",
-  time = "date",
-  lat = "lat_bin",
-  lon = "lon_bin",
-  data = load_ev_panel(),
-  dist_cutoff = 100,
-  lag_cutoff = Inf
-)
+# Function to create event study plot for a given outcome variable
+create_event_study_plot <- function(outcome_var, title, y_label) {
+  # Run regression for the specific outcome
+  model <- conleyreg(
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    unit = "id",
+    time = "date",
+    lat = "lat_bin",
+    lon = "lon_bin",
+    data = load_ev_panel(),
+    dist_cutoff = 50,
+    lag_cutoff = Inf
+  )
+  
+  # Extract coefficients
+  coeff_data <- broom::tidy(model) %>%
+    filter(str_detect(term, "relative_time::")) %>%
+    mutate(
+      relative_time = as.integer(str_extract(term, "-?\\d+")),
+      ci_low = estimate - 1.96 * std.error,
+      ci_high = estimate + 1.96 * std.error
+    ) %>%
+    arrange(relative_time)
+  
+  # Add the reference point (-1)
+  ref_row <- tibble(
+    term = "relative_time::-1",
+    estimate = 0,
+    std.error = 0,
+    statistic = NA,
+    p.value = NA,
+    relative_time = -1,
+    ci_low = 0,
+    ci_high = 0
+  )
+  
+  coeff_data <- bind_rows(coeff_data, ref_row) %>%
+    arrange(relative_time)
+  
+  # Create plot
+  ggplot(coeff_data, aes(x = relative_time, y = estimate)) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+    geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+    geom_point(size = 2, color = "#000000") +
+    geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.3, color = "#000000") +
+    labs(
+      title = title,
+      x = "Days Relative to Attack",
+      y = y_label
+    ) +
+    theme_minimal(base_size = 12) +
+    scale_x_continuous(breaks = seq(-7, 7, 2))
+}
 
-# =============================================================================
-# 6. VISUALIZATION
-# =============================================================================
+# Create all four event study plots
+p1 <- create_event_study_plot("time_hours/n_trips", "Time Hours", "Effect on asinh(Time Hours)")
+p2 <- create_event_study_plot("distance_km/n_trips", "Distance", "Effect on asinh(Distance km)")
+p3 <- create_event_study_plot("n_trips", "Number of Trips", "Effect on asinh(Number of Trips)")
+p4 <- create_event_study_plot("n_vessels", "Number of Vessels", "Effect on asinh(Number of Vessels)")
 
-coeff_data <- broom::tidy(evs_trip) %>%
-  filter(str_detect(term, "relative_time::")) %>%
-  mutate(
-    relative_time = as.integer(str_extract(term, "-?\\d+")),
-    ci_low = estimate - 1.96 * std.error,
-    ci_high = estimate + 1.96 * std.error
-  ) %>%
-  arrange(relative_time)
+# Combine plots into 2x2 grid
+combined_plot <- (p1 + p2) / (p3 + p4) +
+  plot_layout(guides = "collect") &
+  theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))
 
-# Add the reference point (-1)
-ref_row <- tibble(
-  term = "relative_time::-1",
-  estimate = 0,
-  std.error = 0,
-  statistic = NA,
-  p.value = NA,
-  relative_time = -1,
-  ci_low = 0,
-  ci_high = 0
-)
-
-coeff_data <- bind_rows(coeff_data, ref_row) %>%
-  arrange(relative_time)
-
-# Create the event study plot
-event_study_plot <- ggplot(coeff_data, aes(x = relative_time, y = estimate)) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
-  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
-  geom_point(size = 3, color = "#000000") +
-  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.3, color = "#000000") +
-  labs(
-    title = "Traffic Time vs Piracy Encounters",
-    x = "Days Relative to Attack",
-    y = "Effect on asinh(Time Hours)"
-  ) +
-  theme_minimal(base_size = 18) +
-  scale_x_continuous(breaks = seq(-7, 7, 2))
-
-# Display the plot
-print(event_study_plot)
-
-# Save the plot
+# Save the combined plot
 ggsave(
-  filename = here("piracy-data", "figures and tables", "cell_level_event_study.png"),
-  plot = event_study_plot,
-  width = 10,
-  height = 6,
+  filename = here("piracy-data", "figures and tables", "cell_level_event_study_2x2.png"),
+  plot = combined_plot,
+  width = 12,
+  height = 10,
   dpi = 300
 )
 
