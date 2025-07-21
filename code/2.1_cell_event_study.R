@@ -9,6 +9,8 @@ library(here)
 library(conleyreg)
 library(tidyverse)
 library(patchwork)
+library(fixest)
+library(modelsummary)
 
 # =============================================================================
 # 1. LOAD AND PREPARE DATA
@@ -187,6 +189,7 @@ ev_panel <- panel %>%
   filter(!is.na(relative_time)) %>%
   group_by(id) %>%
   mutate(
+    post  = ifelse(relative_time >= 0, 1, 0),
     id = cur_group_id(),
     day_of_week = weekdays(date),
     date = as.numeric(date)
@@ -204,8 +207,162 @@ load_ev_panel <- function() {
   return(panel)
 }
 
+# LaTeX table helper functions
+add_adjust_box <- function(file, line_before = "\\begin{adjustbox}{width = .9\\textwidth}", line_after = "\\end{adjustbox}", before = "\\begin{threeparttable}", after = "\\end{threeparttable}") {
+  lines <- readLines(file)
+  after_line <- grep(after, lines, fixed = TRUE)
+  before_line <- grep(before, lines, fixed = TRUE)
+  lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
+  writeLines(lines, file)
+}
+
+replace_table_headers <- function(file, new_headers) {
+  lines <- readLines(file)
+  header_line_idx <- which(grepl("& \\(", lines))
+  if (length(header_line_idx) == 0) {
+    stop("Header line not found")
+  }
+  header_line <- lines[header_line_idx]
+  for (i in 1:length(new_headers)) {
+    header_line <- sub(paste0("\\(", i, "\\)"), new_headers[i], header_line)
+  }
+  lines[header_line_idx] <- header_line
+  writeLines(lines, file)
+}
+
+adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
+  lines <- readLines(file)
+  item_line_index <- grep("\\item", lines, fixed = TRUE)
+  if (length(item_line_index) > 0) {
+    lines[item_line_index] <- gsub("\\item", paste0("\\item ", font_size_command), lines[item_line_index], fixed = TRUE)
+  }
+  writeLines(lines, file)
+}
+
 # =============================================================================
-# 5. VISUALIZATION
+# 5. POST-REGRESSION ANALYSIS
+# =============================================================================
+
+# Set up dictionary for variable names
+setFixest_dict(c(
+  post = "Post-Attack",
+  "time_hours/n_vessels" = "Time per Vessel (hrs)",
+  "distance_km/n_vessels" = "Distance per Vessel (km)",
+  time_hours = "Total Time (hrs)",
+  distance_km = "Total Distance (km)",
+  n_vessels = "Number of Vessels"
+))
+
+# Run post-regressions for different outcome variables using conleyreg with asinh transformation
+m1_total_time <- conleyreg(
+  asinh(time_hours) ~ post | id + year^month + day_of_week + asam_subregion,
+  unit = "id",
+  time = "date",
+  lat = "lat_bin",
+  lon = "lon_bin",
+  data = load_ev_panel(),
+  dist_cutoff = 50,
+  lag_cutoff = Inf
+)
+
+m2_total_distance <- conleyreg(
+  asinh(distance_km) ~ post | id + year^month + day_of_week + asam_subregion,
+  unit = "id",
+  time = "date",
+  lat = "lat_bin",
+  lon = "lon_bin",
+  data = load_ev_panel(),
+  dist_cutoff = 50,
+  lag_cutoff = Inf
+)
+
+m3_time_per_vessel <- conleyreg(
+  asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  unit = "id",
+  time = "date",
+  lat = "lat_bin",
+  lon = "lon_bin",
+  data = load_ev_panel(),
+  dist_cutoff = 50,
+  lag_cutoff = Inf
+)
+
+m4_distance_per_vessel <- conleyreg(
+  asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  unit = "id",
+  time = "date",
+  lat = "lat_bin",
+  lon = "lon_bin",
+  data = load_ev_panel(),
+  dist_cutoff = 50,
+  lag_cutoff = Inf
+)
+
+obs_reg_1 <- feols(
+  asinh(time_hours) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = load_ev_panel()
+  )
+
+obs_reg_2 <- feols(
+  asinh(distance_km) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = load_ev_panel()
+  )
+
+obs_reg_3 <- feols(
+  asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = load_ev_panel()
+  )
+
+obs_reg_4 <- feols(
+  asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = load_ev_panel()
+  )
+
+
+# Create rows for additional information
+rows <- tribble(
+  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
+  "", "", "", "", "",
+  "Observations", as.character(nobs(obs_reg_1) %>% format(big.mark = ",")),
+  as.character(nobs(obs_reg_2) %>% format(big.mark = ",")),
+  as.character(nobs(obs_reg_3) %>% format(big.mark = ",")),
+  as.character(nobs(obs_reg_4) %>% format(big.mark = ",")),
+  "", "", "", "", "",
+  "Grid Cell FE", "X", "X", "X", "X",
+  "Year-Month FE", "X", "X", "X", "X",
+  "Day of Week FE", "X", "X", "X", "X",
+  "Subregion FE", "X", "X", "X", "X"
+)
+
+# Create LaTeX table
+
+msummary(list("Total Time" = m1_total_time, 
+              "Total Distance" = m2_total_distance,
+              "Time per Vessel" = m3_time_per_vessel, 
+              "Distance per Vessel" = m4_distance_per_vessel),
+         coef_rename = c("Post-Attack"),
+         gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         stars = c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.3f",
+         add_rows = rows,
+         title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
+         notes = list("The unit of observation is a grid cell-day. Each column examines a different shipping activity measure: 
+                      time per vessel (hours), distance per vessel (kilometers), total time (hours), and total distance (kilometers). 
+                      Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. 
+                      The analysis uses a 7-day window around attacks to identify treatment periods. 
+                      All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects."),
+         threeparttable = TRUE,
+         escape = FALSE,
+         output = here("piracy-data", "figures and tables", "cell_post_regression.tex"))
+
+# Apply formatting functions
+add_adjust_box(here("piracy-data", "figures and tables", "cell_post_regression.tex"))
+replace_table_headers(here("piracy-data", "figures and tables", "cell_post_regression.tex"), 
+                     c("Time per Vessel", "Distance per Vessel", "Total Time", "Total Distance"))
+adjust_notes_font_size(here("piracy-data", "figures and tables", "cell_post_regression.tex"))
+
+# =============================================================================
+# 6. VISUALIZATION
 # =============================================================================
 
 # Function to create event study plot for a given outcome variable
