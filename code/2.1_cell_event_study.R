@@ -263,10 +263,10 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
 }
 
 # Create all four event study plots
-p1 <- create_event_study_plot("time_hours/n_trips", "Time Hours", "Effect on asinh(Time Hours)")
-p2 <- create_event_study_plot("distance_km/n_trips", "Distance", "Effect on asinh(Distance km)")
-p3 <- create_event_study_plot("n_trips", "Number of Trips", "Effect on asinh(Number of Trips)")
-p4 <- create_event_study_plot("n_vessels", "Number of Vessels", "Effect on asinh(Number of Vessels)")
+p1 <- create_event_study_plot("time_hours", "Time", "asinh(hours)")
+p2 <- create_event_study_plot("distance_km", "Distance", "asinh(kilometer)")
+p3 <- create_event_study_plot("time_hours/n_vessels", "Time / Vessel", "asinh(hours/vessel)")
+p4 <- create_event_study_plot("distance_km/n_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
 
 # Combine plots into 2x2 grid
 combined_plot <- (p1 + p2) / (p3 + p4) +
