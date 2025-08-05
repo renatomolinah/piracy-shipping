@@ -105,19 +105,33 @@ list(
   # Process wind data to 5x5 degree grids
   tar_file_read(
     name = wind_data,
-    command = here::here("data/raw/era5_wind/era5_monthly_average_wind.nc"),
+    command = here::here("data/raw/era5_wind/era5_monthly_average_wind_08052025.nc"),
     read = process_wind_data(!!.x, pixel_size = 5)
   ),
   # Upload wind data to BQ
   tar_target(
     name = wind_data_bq,
     upload_df_to_bq(
-      df_to_upload = wind_data |>
-        # Don't need geometry column anymore
-        sf::st_drop_geometry(),
+      df_to_upload = wind_data,
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
       bq_table_name = paste0("wind_data_5_v_", model_version)
+    )
+  ),
+  # Process wave data to 5x5 degree grids
+  tar_file_read(
+    name = wave_data,
+    command = here::here("data/raw/era5_wind/era5_monthly_average_wave_08052025.nc"),
+    read = process_wave_data(!!.x, pixel_size = 5)
+  ),
+  # Upload wind data to BQ
+  tar_target(
+    name = wave_data_bq,
+    upload_df_to_bq(
+      df_to_upload = wave_data,
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("wave_data_5_v_", model_version)
     )
   ),
   # Process fuel data, downloaded from Bunker Index
@@ -219,6 +233,7 @@ list(
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           wind_table = wind_data_bq$tableReference$tableId,
+          wave_table = wave_data_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -242,6 +257,7 @@ list(
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           wind_table = wind_data_bq$tableReference$tableId,
+          wave_table = wave_data_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -265,6 +281,7 @@ list(
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           wind_table = wind_data_bq$tableReference$tableId,
+          wave_table = wave_data_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),

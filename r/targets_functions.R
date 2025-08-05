@@ -259,42 +259,25 @@ make_map_with_attack_timeseries_figure <- function(
 
   return(combined_figure)
 }
+
 process_wind_data <- function(wind_file, pixel_size) {
-  # ERA5 monthly averaged data downloaded from Copernicus
+  # ERA5 monthly averaged data downloaded from Copernicus, 2012-2024
   # We get the u10 and v10 wind components, which come at monthly 0.25x0.25 degree resolution
-  # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview
+  # We use the monthly reanalysis data
+  # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels-monthly-means?tab=download
+  
   # Load u component
-  wind_u <- raster::stack(wind_file, varname = "u10") |>
-    # Need to rotate from 0-360 to -180-180, since original NC is provided in 0-360
-    raster::rotate() |>
-    stars::st_as_stars() |>
-    sf::st_as_sf() |>
-    dplyr::mutate(component = "u_ms")
-
-  # Load v component
-  wind_v <- raster::stack(wind_file, varname = "v10") |>
-    # Need to rotate from 0-360 to -180-180, since original NC is provided in 0-360
-    raster::rotate() |>
-    stars::st_as_stars() |>
-    sf::st_as_sf() |>
-    dplyr::mutate(component = "v_ms")
-
-  # Put it all together into tidy tibble
-  all_wind_data <- dplyr::bind_rows(wind_u, wind_v) |>
-    # Take lower left corner for lat and lon
-    dplyr::mutate(
-      bbox = purrr::map(geometry, ~ sf::st_bbox(.)),
-      lon = purrr::map_dbl(bbox, ~ .$xmin),
-      lat = purrr::map_dbl(bbox, ~ .$ymin)
-    ) |>
-    dplyr::select(-bbox) |>
-    sf::st_set_geometry(NULL) |>
-    tidyr::pivot_longer(cols = -c(lon, lat, component)) |>
-    dplyr::mutate(date = lubridate::ymd(name)) |>
-    dplyr::select(-name) |>
-    tidyr::pivot_wider(names_from = "component", values_from = "value")
-
-  wind_data_aggregated <- all_wind_data |>
+  wind_u <- tidync::tidync(wind_file) |> 
+    tidync::activate("u10") |>
+    tidync::hyper_tibble() |>
+    dplyr::rename(lon = longitude,
+                  lat = latitude,
+                  date = valid_time,
+                  u_ms = u10) |>
+    dplyr::mutate(across(c("lon","lat"),~as.numeric(.)))|>
+    # Roate from 0-360 to -180 to 180
+    dplyr::mutate(lon = ifelse(lon>180,lon - 360,lon)) |>
+    # Aggregate to our pixel size
     dplyr::mutate(
       lat_bin = floor(lat / pixel_size) * pixel_size,
       lon_bin = floor(lon / pixel_size) * pixel_size
@@ -304,28 +287,78 @@ process_wind_data <- function(wind_file, pixel_size) {
     # The vector average should be used when the wind direction matters as well. For example in the transport of particles by the wind, because winds in opposite directions cancel out in terms of transport:
     dplyr::group_by(date, lat_bin, lon_bin) |>
     dplyr::summarize(
-      u_ms = mean(u_ms, na.rm = TRUE),
+      u_ms = mean(u_ms, na.rm = TRUE)
+    ) |>
+    dplyr::ungroup() 
+  
+  # Load v component
+  wind_v <- tidync::tidync(wind_file) |> 
+    tidync::activate("v10") |>
+    tidync::hyper_tibble() |>
+    dplyr::rename(lon = longitude,
+                  lat = latitude,
+                  date = valid_time,
+                  v_ms = v10) |>
+    dplyr::mutate(across(c("lon","lat"),~as.numeric(.)))  |>
+    # Roate from 0-360 to -180 to 180
+    dplyr::mutate(lon = ifelse(lon>180,lon - 360,lon)) |>
+    # Aggregate to our pixel size
+    dplyr::mutate(
+      lat_bin = floor(lat / pixel_size) * pixel_size,
+      lon_bin = floor(lon / pixel_size) * pixel_size
+    ) |>
+    # https://help.marine.copernicus.eu/en/articles/5487266-how-to-average-winds#
+    # The vector mean wind speed is obtained by first averaging u and v over the period of interest and then calculating the wind_speed from the averaged u and v.
+    # The vector average should be used when the wind direction matters as well. For example in the transport of particles by the wind, because winds in opposite directions cancel out in terms of transport:
+    dplyr::group_by(date, lat_bin, lon_bin) |>
+    dplyr::summarize(
       v_ms = mean(v_ms, na.rm = TRUE)
     ) |>
-    dplyr::ungroup() |>
+    dplyr::ungroup() 
+  
+  # Put it all together into tidy tibble
+   wind_u |>
+    dplyr::inner_join(wind_v, by = c("lon_bin","lat_bin","date")) |>
     dplyr::mutate(
       wind_speed_ms = sqrt(u_ms^2 + v_ms^2),
       # https://disc.gsfc.nasa.gov/information/data-in-action?title=Derive%20Wind%20Speed%20and%20Direction%20With%20MERRA-2%20Wind%20Components#:~:text=The%20U%20wind%20component%20is,wind%20comes%20from%20the%20north.
       wind_direction_degrees = atan(v_ms / u_ms)
-    ) |>
-    dplyr::ungroup()
+    )|>
+     dplyr::mutate(date = lubridate::ymd(date))
 }
 
-#   # Upload table to BQ
-#   bigrquery::bq_table(project = billing_project,
-#                       table = table_name,
-#                       dataset = bq_dataset) |>
-#     bigrquery::bq_table_upload(values = wind_data_aggregated,
-#                                fields = bigrquery::as_bq_fields(wind_data_aggregated),
-#                                write_disposition = "WRITE_TRUNCATE")
-#
-#   return(Sys.time())
-# }
+# Process wave height data
+process_wave_data <- function(wave_file, pixel_size) {
+  # ERA5 monthly averaged data downloaded from Copernicus, 2012-2024
+  # We get swh, surface wave height
+  # We use the monthly reanalysis data
+  # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels-monthly-means?tab=download
+  
+  # Load u component
+  tidync::tidync(wave_file) |> 
+    tidync::activate("swh") |>
+    tidync::hyper_tibble() |>
+    dplyr::rename(lon = longitude,
+                  lat = latitude,
+                  date = valid_time,
+                  surface_wave_height_m = swh) |>
+    dplyr::mutate(across(c("lon","lat"),~as.numeric(.)))|>
+    # Roate from 0-360 to -180 to 180
+    dplyr::mutate(lon = ifelse(lon>180,lon - 360,lon)) |>
+    # Aggregate to our pixel size
+    dplyr::mutate(
+      lat_bin = floor(lat / pixel_size) * pixel_size,
+      lon_bin = floor(lon / pixel_size) * pixel_size
+    ) |>
+    dplyr::group_by(date, lat_bin, lon_bin) |>
+    dplyr::summarize(
+      surface_wave_height_m = mean(surface_wave_height_m, na.rm = TRUE)
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(date = lubridate::ymd(date))
+  
+}
+
 # The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide,
 # covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
 # Downloaded from https://bunkerindex.com/prices/bix-world.php
