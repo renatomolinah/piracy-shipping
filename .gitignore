@@ -62,8 +62,15 @@ piracy-data/
 # Specific data files
 **/data/wdb.*
 **/Analysis-New/data/wdb.*
-daily_activity_and_attack_panel_2019.rds
-top_route_list.rds
+
+# Rproject
+piracy-shipping.Rproj
+# Simlinks
+data/
+data
+# JC's personal scratch folder
+scratch/*
 # Analysis-New directory (seems to be a separate analysis)
 Analysis-New/
 piracy-data
+

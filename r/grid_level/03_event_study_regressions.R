@@ -23,8 +23,9 @@ pacman::p_load(
 )
 
 # Load data --------------------------------------------------------------------
-grid_level_panel <- readRDS(file = here("processed_data",
-                             "attacks_and_activity_by_grid.rds")) |> 
+grid_level_panel <- readRDS(file = here("data",
+                                        "processed",
+                                        "attacks_and_activity_by_grid.rds")) |>
   filter(!attack_cluster == "None")
 
 # Define some windows
@@ -109,8 +110,7 @@ es_mod_cluster <- feols(c(time_hours,
                         vcov = vcov_conley(lat = "lat_bin",
                                            lon = "lon_bin",
                                            cutoff = 100),
-                        split = ~attack_cluster,
-                        split.drop = "None")
+                        split = ~attack_cluster)
 
 # Extract model coefficients and SEs
 plot_data <- es_mod_global  %>%
