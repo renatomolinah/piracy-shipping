@@ -1,0 +1,140 @@
+
+
+# Activity comes from here: ungridded_data_test_v_20240305
+# Route info from here: voyage_info_v_20240228
+# Pirate info from here: route_prior_date_has_attack_v_20241105
+
+# Load packages ----------------------------------------------------------------
+pacman::p_load(
+  here,
+  DBI,
+  glue,
+  bigrquery,
+  tidyverse
+)
+
+# Authenticate using local token -----------------------------------------------
+bq_auth("juancarlos@ucsb.edu")
+
+# Establish a connection to BigQuery -------------------------------------------
+piracy <- dbConnect(
+  bigquery(),
+  project = "emlab-gcp",
+  dataset = "piracy",
+  billing = "emlab-gcp",
+  use_legacy_sql = FALSE,
+  allowLargeResults = TRUE
+)
+
+
+# Identify data sets -----------------------------------------------------------
+top_routes <- readRDS(here("top_route_list.rds"))
+activity <- tbl(piracy, "ungridded_data_v_20240228")
+voyage_info <- tbl(piracy, "voyage_info_v_20240228")
+attacks_all <- tbl(piracy, "route_all_time_date_has_attack_v_20241105")
+attacks_prev <- tbl(piracy, "route_prior_date_has_attack_v_20241105")
+voyage_data <- tbl(piracy, "voyage_data_5_v_20240327")
+hotspots <- tbl(piracy, "gridded_data_3_v_20240312")
+
+attacks <- attacks_all |>
+  select(date, from_country, from_port, to_country, to_port) |>
+  left_join(attacks_prev,
+            by = join_by(date, from_country, from_port, to_country, to_port)) |>
+  replace_na(replace = list(route_has_attack = FALSE))
+
+# Start query ------------------------------------------------------------------
+# A table matching trip id to their routes
+basic_route_info <- voyage_info |>
+  select(trip_id, from_country, from_port, to_country, to_port) |>
+  distinct()
+
+# controls <- voyage_data |>
+#   mutate(tonnage = ntile(tonnage, 3)) |>
+#   select(trip_id, tonnage, best_vessel_type) |>
+#   distinct()
+
+# sample_routes <- voyage_info |>
+#   filter(
+#     sql(
+#       paste0(
+#         'CONCAT(from_port, " ", to_port) NOT IN ("', paste(top_routes, collapse = '", "'), '") OR
+#         CONCAT(to_port, " ", from_port) NOT IN ("', paste(top_routes, collapse = '", "'), '")'
+#       )
+#     )
+#   ) |>
+#   filter(sql("RAND() < 0.05")) |>
+#   select(from_country, from_port, to_country, to_port) |>
+#   mutate(in_sample = 1)
+
+
+# Get the routes that go through GoA
+GoA_routes <- hotspots |>
+  filter(hotspot_gulf_of_aden == 1 |
+           hotspot_gulf_of_guinea == 1 |
+           hotspot_southeast_asia == 1) |>
+  select(trip_id, hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) |>
+  left_join(select(voyage_data,
+                   trip_id, from_country, from_port, to_country, to_port) |>
+              distinct(),
+            by = join_by(trip_id)) |>
+  select(from_country, from_port, to_country, to_port, hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) |>
+  distinct()
+
+
+# A table factorial combinations of weeks and routes, with an indicator for weeks with an attack
+daily_attacks <- attacks_all |>
+  # Keep only data from "top routes"
+  filter(
+    sql(
+      paste0(
+        'CONCAT(from_port, " ", to_port) IN ("', paste(top_routes, collapse = '", "'), '") OR
+        CONCAT(to_port, " ", from_port) IN ("', paste(top_routes, collapse = '", "'), '")'
+      )
+    )
+  ) |>
+  left_join(GoA_routes, by = join_by(from_country, from_port, to_country, to_port)) |>
+  # left_join(sample_routes, by = join_by(from_country, from_port, to_country, to_port)) |>
+  group_by(date, from_country, from_port, to_country, to_port,
+           hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia) |>
+  summarize(attack = any(route_has_attack),
+            days_with_attack = sum(ifelse(route_has_attack, 1, 0)),
+            .groups = "drop")
+
+# Weekly activity by route
+daily_activity <- activity |>
+  mutate(date = sql("EXTRACT(date FROM timestamp)")) |>
+  left_join(basic_route_info, by = join_by(trip_id)) |>
+  # left_join(controls, by = join_by(trip_id)) |>
+  group_by(date, from_country, from_port, to_country, to_port) |>
+  summarize(hours = sum(hours, na.rm = T),
+            distance_km = sum(distance_km, na.rm = T),
+            main_fuel_consumption_mt_inst = sum(main_fuel_consumption_mt_inst, na.rm = T),
+            aux_fuel_consumption_mt_inst = sum(aux_fuel_consumption_mt_inst, na.rm = T),
+            n_trips = n_distinct(trip_id),
+            n_vessels = n_distinct(mmsi),
+            .groups = "drop")
+
+panel <- daily_attacks |>
+  left_join(daily_activity, by = join_by(date, from_country, from_port, to_country, to_port)) |>
+  select(date,
+         from_country, from_port, to_country, to_port,
+         hotspot_gulf_of_aden, hotspot_gulf_of_guinea, hotspot_southeast_asia,
+         # tonnage, best_vessel_type,
+         attack, days_with_attack,
+         hours, distance_km, main_fuel_consumption_mt_inst, aux_fuel_consumption_mt_inst,
+         n_trips, n_vessels) |>
+  add_count(from_country, from_port, to_country, to_port) |>
+  filter(n == 3652) |>
+  replace_na(list(hours = 0,
+                  distance_km = 0,
+                  main_fuel_consumption_mt_inst = 0,
+                  aux_fuel_consumption_mt_inst = 0,
+                  n_trips = 0,
+                  n_vessels = 0)) |>
+  select(-n)
+
+local_panel <- collect(panel)
+
+saveRDS(local_panel,
+        here("processed_data", "daily_attacks_and_activity_for_event_study.rds"))
+#
