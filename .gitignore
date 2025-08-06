@@ -68,10 +68,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Large data directories
-piracy-data/raw/
-piracy-data/processed/
-piracy-data/_targets/
+# Large data directory (symbolic link to external storage)
+piracy-data/
 
 # Specific data files
 **/data/wdb.*
