@@ -16,7 +16,7 @@ library(scales)
 # 1. LOAD AND PREPARE VOYAGE DATA
 # =============================================================================
 
-voyage_data_path <- here("piracy-data", "processed", "voyages.rds")
+voyage_data_path <- here("data", "processed", "voyages.rds")
 
 if (!file.exists(voyage_data_path)) {
   stop("Voyage data file not found: ", voyage_data_path)
@@ -97,7 +97,7 @@ latex_table <- kbl(
   pack_rows("Southeast Asia", 9, 12) %>% 
   pack_rows("Rest of the World", 13, 16)
 
-output_file <- here("piracy-data", "figures and tables", "summary_statistics.tex")
+output_file <- here("data", "figures and tables", "summary_statistics.tex")
 cat(latex_table, file = output_file)
 
 cat("LaTeX table saved to:", output_file, "\n")

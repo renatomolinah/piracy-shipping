@@ -16,7 +16,7 @@ library(arrow)
 # 1. LOAD VOYAGE DATA FROM PARQUET FILES
 # =============================================================================
 
-voyage_data_dir <- here("piracy-data", "processed", "voyage_data_5_v_20250521")
+voyage_data_dir <- here("data", "processed", "voyage_data_5_v_20250521")
 
 if (!dir.exists(voyage_data_dir)) {
   stop("Voyage data directory not found: ", voyage_data_dir)
@@ -107,7 +107,7 @@ voyage_data <- voyage_data %>%
 # 6. SAVE PROCESSED DATA
 # =============================================================================
 
-output_file <- here("piracy-data", "processed", "voyages.rds")
+output_file <- here("data", "processed", "voyages.rds")
 write_rds(voyage_data, file = output_file)
 
 cat("Processed voyage data saved to:", output_file, "\n")

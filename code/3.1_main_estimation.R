@@ -16,7 +16,7 @@ library(broom)
 # =============================================================================
 
 # Load the main dataset
-wdb <- readRDS(here("piracy-data", "processed", "voyages.rds")) %>%
+wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
   ) %>%
@@ -70,7 +70,7 @@ feature_coefficients <- feols(
 ) 
 
 # Save regression results
-saveRDS(feature_coefficients, here("piracy-data", "output", "feature_coefficients.rds"))
+saveRDS(feature_coefficients, here("data", "output", "feature_coefficients.rds"))
 
 # =============================================================================
 # 4. PROCESS COEFFICIENTS FOR VISUALIZATION
@@ -108,7 +108,7 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
   arrange(sample, timing, degrees, term)
 
 # Save processed coefficient data
-saveRDS(coef_data, here("piracy-data", "processed", "feature_coefficients_clean.rds"))
+saveRDS(coef_data, here("data", "processed", "feature_coefficients_clean.rds"))
 
 # =============================================================================
 # 5. CREATE VISUALIZATION
@@ -188,7 +188,7 @@ ggsave(
 cat("Main estimation analysis completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Results saved to:", here("piracy-data", "output", "feature_coefficients.rds"), "\n")
+cat("Results saved to:", here("data", "output", "feature_coefficients.rds"), "\n")
 cat("Plot saved to:", here("figures", "all_features.pdf"), "\n")
 
 

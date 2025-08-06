@@ -16,7 +16,7 @@ library(modelsummary)
 # 1. LOAD AND PREPARE DATA
 # =============================================================================
 
-panel <- readRDS(here("piracy-data", "processed", "attacks_and_activity_by_grid.rds")) %>%
+panel <- readRDS(here("data", "processed", "attacks_and_activity_by_grid.rds")) %>%
   mutate(attack = ifelse(days_since_attack == 0, TRUE, FALSE))
 
 panel <- panel %>%
@@ -196,14 +196,14 @@ ev_panel <- panel %>%
   ) %>%
   ungroup()
 
-saveRDS(ev_panel, here("piracy-data", "processed", "ev_panel.rds"))
+saveRDS(ev_panel, here("data", "processed", "ev_panel.rds"))
 
 # =============================================================================
 # 4. HELPER FUNCTIONS
 # =============================================================================
 
 load_ev_panel <- function() {
-  panel <- readRDS(here("piracy-data", "processed", "ev_panel.rds"))
+  panel <- readRDS(here("data", "processed", "ev_panel.rds"))
   return(panel)
 }
 
@@ -353,13 +353,13 @@ msummary(list("Total Time" = m1_total_time,
                       All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("piracy-data", "figures and tables", "cell_post_regression.tex"))
+         output = here("data", "figures and tables", "cell_post_regression.tex"))
 
 # Apply formatting functions
-add_adjust_box(here("piracy-data", "figures and tables", "cell_post_regression.tex"))
-replace_table_headers(here("piracy-data", "figures and tables", "cell_post_regression.tex"), 
+add_adjust_box(here("data", "figures and tables", "cell_post_regression.tex"))
+replace_table_headers(here("data", "figures and tables", "cell_post_regression.tex"), 
                      c("Time per Vessel", "Distance per Vessel", "Total Time", "Total Distance"))
-adjust_notes_font_size(here("piracy-data", "figures and tables", "cell_post_regression.tex"))
+adjust_notes_font_size(here("data", "figures and tables", "cell_post_regression.tex"))
 
 # =============================================================================
 # 6. VISUALIZATION
@@ -432,7 +432,7 @@ combined_plot <- (p1 + p2) / (p3 + p4) +
 
 # Save the combined plot
 ggsave(
-  filename = here("piracy-data", "figures and tables", "cell_level_event_study_2x2.png"),
+  filename = here("data", "figures and tables", "cell_level_event_study_2x2.png"),
   plot = combined_plot,
   width = 12,
   height = 10,

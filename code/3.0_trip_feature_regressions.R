@@ -15,7 +15,7 @@ library(modelsummary)
 # =============================================================================
 
 # Load the main dataset
-wdb <- readRDS(here("piracy-data", "processed", "voyages.rds")) %>%
+wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
   ) %>%
@@ -211,12 +211,12 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
-         output = here("piracy-data/figures and tables", "features.tex"))
+         output = here("data/figures and tables", "features.tex"))
 
 # Apply formatting
-add_adjust_box(here("piracy-data/figures and tables", "features.tex"))
-replace_table_headers(here("piracy-data/figures and tables", "features.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
-adjust_notes_font_size(here("piracy-data/figures and tables", "features.tex"))
+add_adjust_box(here("data/figures and tables", "features.tex"))
+replace_table_headers(here("data/figures and tables", "features.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
+adjust_notes_font_size(here("data/figures and tables", "features.tex"))
 
 # =============================================================================
 # 6. SPECIFICATION ANALYSIS - DISTANCE
@@ -290,10 +290,10 @@ msummary(spec_dist,
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("piracy-data/figures and tables", "spec_distance.tex"))
+         output = here("data/figures and tables", "spec_distance.tex"))
 
-add_adjust_box(here("piracy-data/figures and tables", "spec_distance.tex"))
-adjust_notes_font_size(here("piracy-data/figures and tables", "spec_distance.tex"))
+add_adjust_box(here("data/figures and tables", "spec_distance.tex"))
+adjust_notes_font_size(here("data/figures and tables", "spec_distance.tex"))
 
 # =============================================================================
 # 7. SPECIFICATION ANALYSIS - TIME
@@ -348,10 +348,10 @@ msummary(spec_time,
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("piracy-data/figures and tables", "spec_time.tex"))
+         output = here("data/figures and tables", "spec_time.tex"))
 
-add_adjust_box(here("piracy-data/figures and tables", "spec_time.tex"))
-adjust_notes_font_size(here("piracy-data/figures and tables", "spec_time.tex"))
+add_adjust_box(here("data/figures and tables", "spec_time.tex"))
+adjust_notes_font_size(here("data/figures and tables", "spec_time.tex"))
 
 # =============================================================================
 # 8. SPECIFICATION ANALYSIS - SPEED
@@ -406,10 +406,10 @@ msummary(spec_speed,
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("piracy-data/figures and tables", "spec_speed.tex"))
+         output = here("data/figures and tables", "spec_speed.tex"))
 
-add_adjust_box(here("piracy-data/figures and tables", "spec_speed.tex"))
-adjust_notes_font_size(here("piracy-data/figures and tables", "spec_speed.tex"))
+add_adjust_box(here("data/figures and tables", "spec_speed.tex"))
+adjust_notes_font_size(here("data/figures and tables", "spec_speed.tex"))
 
 # =============================================================================
 # 9. SUMMARY STATISTICS
@@ -418,7 +418,7 @@ adjust_notes_font_size(here("piracy-data/figures and tables", "spec_speed.tex"))
 # Print summary of results
 cat("Trip feature regressions completed.\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Tables saved to:", here("piracy-data", "figures and tables"), "\n")
+cat("Tables saved to:", here("data", "figures and tables"), "\n")
 cat("- features.tex: Main feature table\n")
 cat("- spec_distance.tex: Distance specification table\n")
 cat("- spec_time.tex: Time specification table\n")
