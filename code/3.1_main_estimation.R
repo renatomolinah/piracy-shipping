@@ -62,11 +62,11 @@ feature_coefficients <- feols(
     attacks_3mo_num_3, attacks_6mo_num_3, attacks_12mo_num_3,
     attacks_3mo_num_5, attacks_6mo_num_5, attacks_12mo_num_5,
     attacks_3mo_num_7, attacks_6mo_num_7, attacks_12mo_num_7
-  ) + ..wctrl | country + vtype + size + hotspot + top_route + month^year,
+  ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
   data = wdb,
   fsplit = ~hotspot,
-  cluster = ~country ^ year
+  cluster = ~country_pair ^ year
 ) 
 
 # Save regression results

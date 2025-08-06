@@ -43,9 +43,9 @@ setFixest_dict(c(
   total_cost = "Total Cost (TUSD)",
   attacks_3mo_num = "Encounters (3 mo)",
   hotspot = "Hotspot",
-  vtype = "Vessel type",
-  size = "Vessel size",
-  country = "Country Combo.",
+  vessel_type = "Vessel type",
+  tonnage_decile = "Vessel size",
+  country_pair = "Country Combo.",
   year = "Year",
   month = "Month",
   top_route = "Top Route",
@@ -93,77 +93,77 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
 
 # Fuel cost regressions
 m1_fuel <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl 
-                 | country + vtype + size + hotspot + top_route + month^year, 
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                  wdb,
-                 cluster = ~country ^ year,
+                 cluster = ~country_pair ^ year,
                  lean = T)
 
 m2_fuel <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl 
-                 | country + vtype + size + hotspot + top_route + month^year, 
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                  wdb %>% filter(aden == 1),
-                 cluster = ~country ^ year,
+                 cluster = ~country_pair ^ year,
                  lean = T)
 
 m3_fuel <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl 
-                 | country + vtype + size + hotspot + top_route + month^year, 
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                  wdb %>% filter(guinea == 1),
-                 cluster = ~country ^ year,
+                 cluster = ~country_pair ^ year,
                  lean = T)
 
 m4_fuel <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl 
-                 | country + vtype + size + hotspot + top_route + month^year, 
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                  wdb %>% filter(asia == 1),
-                 cluster = ~country ^ year,
+                 cluster = ~country_pair ^ year,
                  lean = T)
 
 # Labor cost regressions
 m1_labor <- feols(labor_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb,
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 m2_labor <- feols(labor_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb %>% filter(aden == 1),
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 m3_labor <- feols(labor_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb %>% filter(guinea == 1),
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 m4_labor <- feols(labor_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb %>% filter(asia == 1),
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 # Total cost regressions
 m1_total <- feols(total_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb,
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 m2_total <- feols(total_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb %>% filter(aden == 1),
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 m3_total <- feols(total_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb %>% filter(guinea == 1),
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 m4_total <- feols(total_cost ~ attacks_3mo_num + ..wctrl 
-                  | country + vtype + size + hotspot + top_route + month^year, 
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
                   wdb %>% filter(asia == 1),
-                  cluster = ~country ^ year,
+                  cluster = ~country_pair ^ year,
                   lean = T)
 
 # =============================================================================
@@ -215,12 +215,12 @@ adjust_notes_font_size(here("data", "figures and tables", "cost.tex"))
 # 6. SPECIFICATION ANALYSIS - FUEL COST
 # =============================================================================
 
-spec_fuel_1 <- feols(fuel_cost ~ attacks_3mo_num | month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_fuel_2 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_fuel_3 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_fuel_4 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_fuel_5 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + hotspot + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_fuel_6 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + hotspot + top_route + month^year, wdb, cluster = ~country ^ year, lean = T)
+spec_fuel_1 <- feols(fuel_cost ~ attacks_3mo_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_2 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_3 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_4 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_5 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_6 <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
 spec_fuel <- list(spec_fuel_1, spec_fuel_2, spec_fuel_3, spec_fuel_4, spec_fuel_5, spec_fuel_6)
 
@@ -265,12 +265,12 @@ adjust_notes_font_size(here("data", "figures and tables", "spec_fuel.tex"))
 # 7. SPECIFICATION ANALYSIS - LABOR COST
 # =============================================================================
 
-spec_labor_1 <- feols(labor_cost ~ attacks_3mo_num | month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_labor_2 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_labor_3 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_labor_4 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_labor_5 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + hotspot + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_labor_6 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + hotspot + top_route + month^year, wdb, cluster = ~country ^ year, lean = T)
+spec_labor_1 <- feols(labor_cost ~ attacks_3mo_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_2 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_3 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_4 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_5 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_6 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
 spec_labor <- list(spec_labor_1, spec_labor_2, spec_labor_3, spec_labor_4, spec_labor_5, spec_labor_6)
 
@@ -297,12 +297,12 @@ adjust_notes_font_size(here("data", "figures and tables", "spec_labor.tex"))
 # 8. SPECIFICATION ANALYSIS - TOTAL COST
 # =============================================================================
 
-spec_total_1 <- feols(total_cost ~ attacks_3mo_num | month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_total_2 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_total_3 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_total_4 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_total_5 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + hotspot + month^year, wdb, cluster = ~country ^ year, lean = T)
-spec_total_6 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country + vtype + size + hotspot + top_route + month^year, wdb, cluster = ~country ^ year, lean = T)
+spec_total_1 <- feols(total_cost ~ attacks_3mo_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_2 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_3 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_4 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_5 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_6 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
 spec_total <- list(spec_total_1, spec_total_2, spec_total_3, spec_total_4, spec_total_5, spec_total_6)
 
@@ -331,7 +331,7 @@ adjust_notes_font_size(here("data", "figures and tables", "spec_total.tex"))
 
 pred_global <- wdb %>% 
   select(trip_id, attacks_3mo_num, wind_speed, wind_vector, 
-         country, vtype, size, hotspot, top_route, month, year)
+         country_pair, vessel_type, tonnage_decile, hotspot, top_route, month, year)
 
 pred_global <- pred_global %>%
   mutate(
