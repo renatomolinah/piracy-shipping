@@ -26,34 +26,33 @@ WITH
     # Assign lat and lon bins based on pixel size
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin,
-    # We will add wind data at the actual date on which activity occurred, not the departure date
-      EXTRACT(MONTH
-    FROM
-      timestamp) wind_month,
-      EXTRACT(YEAR
-    FROM
-      timestamp) wind_year
+    # We will add wind and wave data at the actual date on which activity occurred, not the departure date
+    DATE_TRUNC(DATE(timestamp),MONTH) truncated_date
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20250210`
+    `emlab-gcp.piracy.{ungridded_data_table}`
     # Only keep data from list of filtered trips
-  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)),
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.{keep_these_trips_table}`) USING(trip_id)),
   # Load 5x5 degree wind data
   wind_info AS(
   SELECT
-    EXTRACT(YEAR
-    FROM
-      date) wind_year,
-    EXTRACT(MONTH
-    FROM
-      date) wind_month,
+    DATE_TRUNC(date,MONTH) truncated_date,
     lat_bin,
     lon_bin,
     wind_speed_ms,
     wind_direction_degrees
   FROM
-    `emlab-gcp.piracy.wind_data_5_v_20240228`),
-  # Now add wind data to AIS messages by appropriate location, month and year
-  ais_positions_with_wind as(
+    `emlab-gcp.piracy.{wind_table}`),
+      # Load 5x5 degree wave data
+  wave_info AS(
+  SELECT
+    DATE_TRUNC(date,MONTH) truncated_date,
+    lat_bin,
+    lon_bin,
+    surface_wave_height_m
+  FROM
+    `emlab-gcp.piracy.{wave_table}`),
+  # Now add wind and wave data to AIS messages by appropriate location, month and year
+  ais_positions_with_wind_and_waves as(
     SELECT
     *,
     # Calculate wind vector, which combines wind speed and vessel heading
@@ -62,9 +61,13 @@ WITH
     ais_positions
     LEFT JOIN
     wind_info
-    USING(lat_bin,lon_bin,wind_month,wind_year)
+    USING(lat_bin,lon_bin,truncated_date)
+    LEFT JOIN
+    wave_info
+    USING(lat_bin,lon_bin,truncated_date)
   ),
   # Summarize hours, distance, and message by vessel-by-trip-by-departure_date-by-grid
+  # Also take average of wind vector, wind speed, and wave height
   binned AS(
   SELECT
     mmsi,
@@ -79,9 +82,10 @@ WITH
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
     AVG(wind_vector) wind_vector,
-    AVG(wind_speed_ms) wind_speed_ms
+    AVG(wind_speed_ms) wind_speed_ms,
+    AVG(surface_wave_height_m) surface_wave_height_m
   FROM
-    ais_positions_with_wind
+    ais_positions_with_wind_and_waves
   GROUP BY
     mmsi,
     trip_id,
@@ -94,11 +98,11 @@ WITH
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data_v_20250210`
+    `emlab-gcp.piracy.{asam_data_table}`
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -108,11 +112,11 @@ WITH
   attack_info_base_all_encounters AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
+    `emlab-gcp.piracy.{asam_data_table}`
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -126,8 +130,8 @@ WITH
     attack_info_base
   WHERE
     number_attacks >0
-    AND attack_date >= '2013-01-01'
-    AND attack_date <= '2021-12-31'
+    AND attack_date >= '{study_period_starting_date}'
+    AND attack_date <= '{study_period_ending_date}'
   GROUP BY
     lat_bin,
     lon_bin),
@@ -239,7 +243,7 @@ vessel_info AS(
     registry_vessel_type_any_cargo,
     registry_vessel_type_always_cargo
   FROM
-    `emlab-gcp.piracy.vessel_info` )
+    `emlab-gcp.piracy.{vessel_info_table}` )
 SELECT
     * EXCEPT(grid_attacked_in_study_period),
     EXTRACT(YEAR from departure_date) AS year,

@@ -5,7 +5,7 @@ WITH
     lat_bin,
     lon_bin
   FROM
-    `emlab-gcp.piracy.gridded_pirate_attacks_5_v_20250210`
+    `emlab-gcp.piracy.{gridded_attack_table}`
   WHERE
     days_since_attack = 0
   GROUP BY
@@ -22,7 +22,7 @@ WITH
     to_port,
     to_country
   FROM
-    `emlab-gcp.piracy.route_pixel_dates_v_20250210`
+    `emlab-gcp.piracy.{route_pixel_dates_table}`
   GROUP BY
     lon_bin,
     lat_bin,
@@ -35,7 +35,7 @@ WITH
   SELECT
     *
   FROM
-    UNNEST(GENERATE_DATE_ARRAY('2013-01-01', '2022-12-31', INTERVAL 1 DAY)) AS date ),
+    UNNEST(GENERATE_DATE_ARRAY('{study_period_starting_date}', '{study_period_ending_date}', INTERVAL 1 DAY)) AS date ),
   # For each route and date, find all the pixels that were passed through before that date (and which ever had an attack)
   route_prior_date_pixels AS(
   SELECT

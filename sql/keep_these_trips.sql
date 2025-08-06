@@ -7,7 +7,7 @@ WITH
     from_country,
     to_country
   FROM
-    `emlab-gcp.piracy.voyage_info_v_20250210` ),
+    `emlab-gcp.piracy.{voyage_info_table}` ),
   total_distance_by_trip AS(
   SELECT
     trip_id,
@@ -18,7 +18,7 @@ WITH
     SUM(distance_km) distance_km,
     SUM(hours) hours
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20250210`
+    `emlab-gcp.piracy.{ungridded_data_table}`
   LEFT JOIN
     trip_info
   USING

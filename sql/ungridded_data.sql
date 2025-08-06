@@ -10,7 +10,7 @@ WITH
     aux_engine_power,
     design_speed
   FROM
-    `emlab-gcp.piracy.vessel_info_v_20240228` ),
+    `emlab-gcp.piracy.{vessel_info_table}` ),
   voyage_info AS(
   SELECT
     mmsi,
@@ -18,78 +18,23 @@ WITH
     departure_timestamp,
     arrival_timestamp
   FROM
-    `emlab-gcp.piracy.voyage_info_v_20250210` ),
-  # Select good segments
-  good_segments AS (
-  SELECT
-    seg_id
-  FROM
-    `world-fishing-827.pipe_production_v20201001.research_segs`
-  WHERE
-    good_seg
-    AND NOT overlapping_and_short ),
-  # Select the AIS messages
-  # Get all data from 'current' AIS messages table, which includes data for the last 10 years
-  # At the time of this query in February 2025, this archive version includes 2013-2014 data
-  ais_info_current AS(
-  SELECT
-    ssvid mmsi,
-    lat,
-    lon,
-    timestamp,
-    hours,
-    implied_speed_knots,
-    heading,
-    meters_to_prev/1000 distance_km
-  FROM
-    `world-fishing-827.pipe_production_v20201001.research_messages`
-    # Only use good segments for AIS messages
-  WHERE
-    seg_id IN (
-    SELECT
-      seg_id
-    FROM
-      good_segments)
-    # date filters that explicitly account for the study period of interest only, 
-    # not the intersection between study period of interest and data availability in the table (which can change)
-    AND _partitiontime >= '2013-01-01'
-    AND _partitiontime <= '2021-12-31'),
-  # Select the AIS messages
-  # Get all data from 'archive' table, which includes data prior to last 10 years
-  # At the time of this query in February 2025, this archive version includes 2013-2014 data
-  ais_info_archive AS(
-  SELECT
-    ssvid mmsi,
-    lat,
-    lon,
-    timestamp,
-    hours,
-    implied_speed_knots,
-    heading,
-    meters_to_prev/1000 distance_km
-  FROM
-    `world-fishing-827.pipe_production_v20201001.archive_research_messages`
-    # Only use good segments for AIS messages
-  WHERE
-    seg_id IN (
-    SELECT
-      seg_id
-    FROM
-      good_segments)
-    # date filters that explicitly account for the study period of interest only, 
-    # not the intersection between study period of interest and data availability in the table (which can change)
-    AND _partitiontime >= '2013-01-01'
-    AND _partitiontime <= '2021-12-31'),
+    `emlab-gcp.piracy.{voyage_info_table}` ),
   ais_info AS(
   SELECT
-    *
+    ssvid mmsi,
+    lat,
+    lon,
+    timestamp,
+    hours,
+    implied_speed_knots,
+    heading,
+    meters_to_prev/1000 distance_km
   FROM
-    ais_info_current
-  UNION ALL (
-    SELECT
-      *
-    FROM
-      ais_info_archive ) ),
+    `world-fishing-827.pipe_ais_v3_published.messages`
+  WHERE
+    DATE(timestamp) BETWEEN '{study_period_starting_date}'
+    AND '{study_period_ending_date}'
+    AND clean_segs),
   # Filter AIS messages to just those broadcast by our vessels of interest (e.g., cargo vessels)
   shipping_ais_info AS(
   SELECT
@@ -128,7 +73,7 @@ WITH
     voyage_info
   ON
     shipping_ais_info.mmsi = voyage_info.mmsi
-    AND shipping_ais_info.timestamp >= voyage_info.departure_timestamp
+    AND shipping_ais_info.timestamp > voyage_info.departure_timestamp
     AND shipping_ais_info.timestamp <= voyage_info.arrival_timestamp)
 SELECT
   * 

@@ -6,7 +6,7 @@ SELECT
   SUM(hours) hours,
   SUM(distance_km) distance_km
 FROM
-  `emlab-gcp.piracy.gridded_data_0_5_v_20250210`
+  `emlab-gcp.piracy.{gridded_data_table}`
 GROUP BY
   lat_bin,
   lon_bin

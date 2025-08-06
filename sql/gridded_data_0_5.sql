@@ -24,9 +24,9 @@ WITH
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
-    `emlab-gcp.piracy.ungridded_data_v_20250210`
+    `emlab-gcp.piracy.{ungridded_data_table}`
   # Only keep data from list of filtered trips
-  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.keep_these_trips_v_20250210`) USING(trip_id)),
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.{keep_these_trips_table}`) USING(trip_id)),
   # Summarize hours, distance, and message by vessel-by-trip-by-date-by-grid
   binned AS(
   SELECT
@@ -55,11 +55,11 @@ WITH
   attack_info_base AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data_v_20250210`
+    `emlab-gcp.piracy.{asam_data_table}`
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -69,11 +69,11 @@ WITH
   attack_info_base_all_encounters AS(
   SELECT
     DATE(date) attack_date,
-    COUNT(DISTINCT(asam_reference)) number_attacks,
+    COUNT(DISTINCT(reference)) number_attacks,
     FLOOR(lat/pixel_size()) * pixel_size() attack_lat_bin,
     FLOOR(lon/pixel_size()) * pixel_size() attack_lon_bin
   FROM
-    `emlab-gcp.piracy.asam_data`
+    `emlab-gcp.piracy.{asam_data_table}`
   GROUP BY
     attack_date,
     attack_lat_bin,
@@ -87,8 +87,8 @@ WITH
     attack_info_base
   WHERE
     number_attacks >0
-    AND attack_date >= '2013-01-01'
-    AND attack_date <= '2021-12-31'
+    AND attack_date >= '{study_period_starting_date}'
+    AND attack_date <= '{study_period_ending_date}'
   GROUP BY
     lat_bin,
     lon_bin),
@@ -200,7 +200,7 @@ vessel_info AS(
     registry_vessel_type_any_cargo,
     registry_vessel_type_always_cargo
   FROM
-    `emlab-gcp.piracy.vessel_info` )
+    `emlab-gcp.piracy.{vessel_info_table}` )
 SELECT
     * EXCEPT(grid_attacked_in_study_period),
     EXTRACT(YEAR from date) AS year,

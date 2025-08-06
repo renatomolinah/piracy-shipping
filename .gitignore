@@ -1,10 +1,76 @@
-.Rproj.user
+# R specific files
 .Rhistory
 .RData
 .Ruserdata
+.Rapp.history
+.Rprofile
+.Renviron
+.Rproj.user/
+# RStudio files
+*.Rproj
+# R package files
+*.Rcheck/
+*.tar.gz
+*.tgz
+*.zip
+# R library files (renv)
+renv/library/
+renv/staging/
+# Data files (usually too large for git)
+*.rds
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+*.fst
+*.RData
+*.rdata
+# Figure files
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+*.eps
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+# Log files
+*.log
+# Backup files
+*.bak
+*.backup
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+# Large data directory (symbolic link to external storage)
+piracy-data/
+# Specific data files
 **/data/wdb.*
 **/Analysis-New/data/wdb.*
+
+# Rproject
 piracy-shipping.Rproj
+# Simlinks
 data/
 data
+# JC's personal scratch folder
 scratch/*
+# Analysis-New directory (seems to be a separate analysis)
+Analysis-New/
+piracy-data
+
