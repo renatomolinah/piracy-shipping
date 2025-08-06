@@ -121,6 +121,6 @@ cat("\n=== DATASET SUMMARY ===\n")
 cat("Date range:", min(voyage_data$departure_date), "to", max(voyage_data$departure_date), "\n")
 cat("Number of unique country pairs:", n_distinct(voyage_data$country_pair), "\n")
 cat("Number of unique vessel types:", n_distinct(voyage_data$vessel_type), "\n")
-cat("Average voyage distance:", round(mean(voyage_data$distance_km, na.rm = TRUE)), "km\n")
-cat("Average voyage duration:", round(mean(voyage_data$time_hours, na.rm = TRUE)), "hours\n")
+cat("Average voyage distance:", round(mean(voyage_data$distance, na.rm = TRUE)), "km\n")
+cat("Average voyage duration:", round(mean(voyage_data$time, na.rm = TRUE)), "hours\n")
 
