@@ -49,8 +49,8 @@ wdb <- wdb %>% mutate(
 # 2. SET UP FORMULAS AND CONTROLS
 # =============================================================================
 
-# Define weather controls
-setFixest_fml(..wctrl = ~ wind_speed + wind_vector)
+# Define weather controls (now including wave height)
+setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
 # =============================================================================
 # 3. MAIN REGRESSIONS

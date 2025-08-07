@@ -35,7 +35,7 @@ wdb <- wdb %>% mutate(attacks_3mo_num = number_previous_attacks_3_months_5_degre
 # 2. SET UP FORMULAS AND CONTROLS
 # =============================================================================
 
-setFixest_fml(..wctrl = ~ wind_speed + wind_vector)
+setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
 setFixest_dict(c(
   fuel_cost = "Fuel Cost (TUSD)",
@@ -49,7 +49,8 @@ setFixest_dict(c(
   year = "Year",
   month = "Month",
   top_route = "Top Route",
-  'month^year' = "Month-by-Year"
+  'month^year' = "Month-by-Year",
+  wave_height = "Wave Height (m)"
 ))
 
 # =============================================================================
@@ -200,7 +201,7 @@ msummary(list("Panel (A): Fuel Cost (TUSD)" = regs_fuel,
                       Every column is a different sample: Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively. 
                       Every panel-column combination is a different regression analysis. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint. 
-                      Controls include average wind speed along the voyage and the wind-resistance index.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.  
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          shape = 'rbind',
@@ -243,7 +244,7 @@ rows_spec <- tribble(
 )
 
 msummary(spec_fuel,
-         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)"),
+         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -253,6 +254,7 @@ msummary(spec_fuel,
                       The sample spans from 2013 to 2021. 
                       Every column is a different specification. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
@@ -275,7 +277,7 @@ spec_labor_6 <- feols(labor_cost ~ attacks_3mo_num + ..wctrl | country_pair + ve
 spec_labor <- list(spec_labor_1, spec_labor_2, spec_labor_3, spec_labor_4, spec_labor_5, spec_labor_6)
 
 msummary(spec_labor,
-         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)"),
+         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -285,6 +287,7 @@ msummary(spec_labor,
                       The sample spans from 2013 to 2021. 
                       Every column is a different specification. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
@@ -307,7 +310,7 @@ spec_total_6 <- feols(total_cost ~ attacks_3mo_num + ..wctrl | country_pair + ve
 spec_total <- list(spec_total_1, spec_total_2, spec_total_3, spec_total_4, spec_total_5, spec_total_6)
 
 msummary(spec_total,
-         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)"),
+         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -317,6 +320,7 @@ msummary(spec_total,
                       The sample spans from 2013 to 2021. 
                       Every column is a different specification. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
@@ -329,18 +333,41 @@ adjust_notes_font_size(here("data", "figures and tables", "spec_total.tex"))
 # 9. BACK OF ENVELOPE CALCULATIONS
 # =============================================================================
 
+# Re-estimate the models used for predictions without lean = TRUE
+# These models need to store fixed effects information for predictions
+m1_fuel_pred <- feols(fuel_cost ~ attacks_3mo_num + ..wctrl 
+                      | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+                      wdb,
+                      cluster = ~country_pair ^ year,
+                      lean = FALSE,
+                      combine.quick = FALSE)
+
+m1_labor_pred <- feols(labor_cost ~ attacks_3mo_num + ..wctrl 
+                       | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+                       wdb,
+                       cluster = ~country_pair ^ year,
+                       lean = FALSE,
+                       combine.quick = FALSE)
+
+m1_total_pred <- feols(total_cost ~ attacks_3mo_num + ..wctrl 
+                       | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+                       wdb,
+                       cluster = ~country_pair ^ year,
+                       lean = FALSE,
+                       combine.quick = FALSE)
+
 pred_global <- wdb %>% 
   select(trip_id, attacks_3mo_num, wind_speed, wind_vector, 
          country_pair, vessel_type, tonnage_decile, hotspot, top_route, month, year)
 
 pred_global <- pred_global %>%
   mutate(
-    p_fuel = predict(regs_fuel[[1]], newdata = pred_global),
-    np_fuel = predict(regs_fuel[[1]], newdata = pred_global %>% mutate(attacks_3mo_num = 0)),
-    p_labor = predict(regs_labor[[1]], newdata = pred_global),
-    np_labor = predict(regs_labor[[1]], newdata = pred_global %>% mutate(attacks_3mo_num = 0)),
-    p_total = predict(regs_total[[1]], newdata = pred_global),
-    np_total = predict(regs_total[[1]], newdata = pred_global %>% mutate(attacks_3mo_num = 0))
+    p_fuel = predict(m1_fuel_pred, newdata = pred_global),
+    np_fuel = predict(m1_fuel_pred, newdata = pred_global %>% mutate(attacks_3mo_num = 0)),
+    p_labor = predict(m1_labor_pred, newdata = pred_global),
+    np_labor = predict(m1_labor_pred, newdata = pred_global %>% mutate(attacks_3mo_num = 0)),
+    p_total = predict(m1_total_pred, newdata = pred_global),
+    np_total = predict(m1_total_pred, newdata = pred_global %>% mutate(attacks_3mo_num = 0))
   )
 
 write_rds(pred_global, here("data", "processed", "cost_pred_global.rds"))

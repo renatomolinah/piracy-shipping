@@ -100,7 +100,8 @@ voyage_data <- voyage_data %>%
     vessel_type = best_vessel_type,
     country_pair = route_country_pair,
     origin_country = from_country,
-    wind_speed = wind_speed_ms
+    wind_speed = wind_speed_ms,
+    wave_height = surface_wave_height_m
   )
 
 # =============================================================================

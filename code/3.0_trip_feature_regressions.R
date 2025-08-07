@@ -33,8 +33,8 @@ wdb <- wdb %>% mutate(attacks_3mo_num = number_previous_attacks_3_months_5_degre
 # 2. SET UP FORMULAS AND CONTROLS
 # =============================================================================
 
-# Define weather controls
-setFixest_fml(..wctrl = ~ wind_speed + wind_vector)
+# Define weather controls (now including wave height)
+setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
 # Set up variable dictionary for clean output
 setFixest_dict(c(
@@ -45,11 +45,12 @@ setFixest_dict(c(
   hotspot = "Hotspot",
   vessel_type = "Vessel type",
   tonnage_decile = "Vessel size",
- country_pair= "Country Combo.",
+  country_pair = "Country Combo.",
   year = "Year",
   month = "Month",
   top_route = "Top Route",
-  'month^year' = "Month-by-Year"
+  'month^year' = "Month-by-Year",
+  wave_height = "Wave Height (m)"
 ))
 
 # =============================================================================
@@ -205,7 +206,7 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
                       Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing 
                       through one of the hotspots, respectively. Every panel-column combination is a different regression analysis. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint. 
-                      Controls include average wind speed along the voyage and the wind-resistance index.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.  
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, 
                       and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
@@ -277,7 +278,7 @@ rows_spec <- tribble(
 
 # Create distance specification table
 msummary(spec_dist,
-         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)"),
+         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -287,6 +288,7 @@ msummary(spec_dist,
                       The sample spans from 2013 to 2021. 
                       Every column is a different specification. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
@@ -335,7 +337,7 @@ spec_time <- list(spec_time_1, spec_time_2, spec_time_3, spec_time_4, spec_time_
 
 # Create time specification table
 msummary(spec_time,
-         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)"),
+         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -345,6 +347,7 @@ msummary(spec_time,
                       The sample spans from 2013 to 2021. 
                       Every column is a different specification. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
@@ -393,7 +396,7 @@ spec_speed <- list(spec_speed_1, spec_speed_2, spec_speed_3, spec_speed_4, spec_
 
 # Create speed specification table
 msummary(spec_speed,
-         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)"),
+         coef_rename = c("Encounters (3 mo)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -403,6 +406,7 @@ msummary(spec_speed,
                       The sample spans from 2013 to 2021. 
                       Every column is a different specification. 
                       Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
