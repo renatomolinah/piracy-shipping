@@ -356,7 +356,7 @@ m1_sox_pred <- feols(total_sox ~ attacks_3mo_num + ..wctrl
                      combine.quick = FALSE)
 
 pred_global <- wdb %>% 
-  select(trip_id, attacks_3mo_num, wind_speed, wind_vector, 
+  select(trip_id, attacks_3mo_num, wind_speed, wind_vector, wave_height,
          country_pair, vessel_type, tonnage_decile, hotspot, top_route, month, year)
 
 pred_global <- pred_global %>%
