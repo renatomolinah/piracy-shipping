@@ -23,8 +23,8 @@ if (!dir.exists(voyage_data_dir)) {
 }
 
 parquet_files <- list.files(
-  path = voyage_data_dir, 
-  pattern = "\\.parquet$", 
+  path = voyage_data_dir,
+  pattern = "\\.parquet$",
   full.names = TRUE
 )
 
@@ -45,7 +45,7 @@ cat("Loaded", nrow(voyage_data), "voyage records\n")
 
 voyage_data <- voyage_data %>%
   filter(
-    from_country != "", 
+    from_country != "",
     to_country != ""
   ) %>%
   mutate(
@@ -94,7 +94,7 @@ voyage_data <- voyage_data %>%
   rename(
     time = hours,
     distance = distance_km,
-    aden = hotspot_gulf_of_aden,    
+    aden = hotspot_gulf_of_aden,
     guinea = hotspot_gulf_of_guinea,
     asia = hotspot_southeast_asia,
     vessel_type = best_vessel_type,
