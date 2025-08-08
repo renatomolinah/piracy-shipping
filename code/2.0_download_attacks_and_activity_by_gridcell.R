@@ -6,7 +6,7 @@
 # juancvd@stanford.edu
 # date
 #
-# Description
+# Download the gridcell level information from BigQuery
 #
 ################################################################################
 
