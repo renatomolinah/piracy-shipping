@@ -26,13 +26,6 @@ renv/staging/
 *.fst
 *.RData
 *.rdata
-# Figure files
-*.png
-*.jpg
-*.jpeg
-*.pdf
-*.svg
-*.eps
 # Temporary files
 *.tmp
 *.temp
