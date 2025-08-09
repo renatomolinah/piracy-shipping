@@ -8,32 +8,17 @@
 library(here)
 library(conleyreg)
 library(tidyverse)
-library(patchwork)
 library(fixest)
-library(modelsummary)
 
 # =============================================================================
-# 1. HELPER FUNCTIONS
+# 1. LOAD PANEL DATA
 # =============================================================================
+panel <- readRDS(here("data", "processed", "ev_panel.rds"))
 
-load_ev_panel <- function() {
-  panel <- readRDS(here("data", "processed", "ev_panel.rds"))
-  return(panel)
-}
 
 # =============================================================================
 # 2. PRE/POST-REGRESSION ANALYSIS
 # =============================================================================
-
-# Set up dictionary for variable names
-setFixest_dict(c(
-  post = "Post-Attack",
-  "time_hours/n_vessels" = "Time per Vessel (hrs)",
-  "distance_km/n_vessels" = "Distance per Vessel (km)",
-  time_hours = "Total Time (hrs)",
-  distance_km = "Total Distance (km)",
-  n_vessels = "Number of Vessels"
-))
 
 # Run post-regressions for different outcome variables using conleyreg with asinh transformation
 m1_total_time <- conleyreg(
@@ -42,7 +27,7 @@ m1_total_time <- conleyreg(
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = load_ev_panel(),
+  data = panel,
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
@@ -53,7 +38,7 @@ m2_total_distance <- conleyreg(
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = load_ev_panel(),
+  data = panel,
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
@@ -64,7 +49,7 @@ m3_time_per_vessel <- conleyreg(
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = load_ev_panel(),
+  data = panel,
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
@@ -75,29 +60,32 @@ m4_distance_per_vessel <- conleyreg(
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = load_ev_panel(),
+  data = panel,
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
 
+# Conleyreg doesn't return the number of observations, which we'll need for the tables
+# So now we use fixest to fit a model with the same specification, and we'll extract the number of observations
+# into a data.frame to be exported along with the models.
 obs_reg_1 <- feols(
   asinh(time_hours) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = load_ev_panel()
+  data = panel
   )
 
 obs_reg_2 <- feols(
   asinh(distance_km) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = load_ev_panel()
+  data = panel
   )
 
 obs_reg_3 <- feols(
   asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = load_ev_panel()
+  data = panel
   )
 
 obs_reg_4 <- feols(
   asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = load_ev_panel()
+  data = panel
   )
 
 
@@ -119,5 +107,9 @@ rows <- tribble(
 # =============================================================================
 # EXPORT ALL MODELS
 # # =============================================================================
-save(m1_total_time, m2_total_distance, m3_time_per_vessel, m4_distance_per_vessel,
-     rows, file = here("data", "output", "gridcell_models", "gridcell_models.RData"))
+save(panel,
+     m1_total_time,
+     m2_total_distance,
+     m3_time_per_vessel,
+     m4_distance_per_vessel,
+     rows, file = here("data", "output", "gridcell_models.RData"))
