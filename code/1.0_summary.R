@@ -77,11 +77,6 @@ summary_by_region <- summary_by_region %>%
 # 3. EXPORT TO LATEX FORMAT
 # =============================================================================
 
-output_dir <- here("tables")
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir, recursive = TRUE)
-}
-
 latex_table <- kbl(
   x = summary_by_region,
   booktabs = TRUE,
