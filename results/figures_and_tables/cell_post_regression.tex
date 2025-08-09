@@ -1,0 +1,31 @@
+\begin{table}
+\centering
+\caption{Effect of Pirate Attacks on Grid Cell Shipping Activity. \label{tab:cell-post-regression}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & Total Time & Total Distance & Time per Vessel & Distance per Vessel\\
+\midrule
+Post-Attack & \num{-0.043}*** & \num{0.007} & \num{-0.046}** & \num{0.009}\\
+ & (\num{0.013}) & (\num{0.021}) & (\num{0.018}) & (\num{0.012})\\
+ &  &  &  & \\
+Observations & 24,518 & 24,518 & 21,244 & 24,518\\
+ &  &  &  & \\
+Grid Cell FE & X & X & X & X\\
+Year-Month FE & X & X & X & X\\
+Day of Week FE & X & X & X & X\\
+Subregion FE & X & X & X & X\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell-day. Each column examines a different shipping activity measure:
+                      time per vessel (hours), distance per vessel (kilometers), total time (hours), and total distance (kilometers).
+                      Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
+                      The analysis uses a 7-day window around attacks to identify treatment periods.
+                      All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects.
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}
