@@ -1,3 +1,7 @@
+# =============================================================================
+# 1. SET UP
+# =============================================================================
+# Packages
 library(here)
 library(conleyreg)
 library(tidyverse)
@@ -5,12 +9,24 @@ library(patchwork)
 library(fixest)
 library(modelsummary)
 
+# File paths and names
+output_dir <- here("results", "figures_and_tables")
+reg_table_name <- here(output_dir, "cell_post_regression.tex")
+event_study_figure_name <- here(output_dir, "cell_level_event_study_2x2.png")
+
+# Load models and data
+load(file = here("data", "output", "gridcell_models.RData"))
+
 # =============================================================================
-# 4. HELPER FUNCTIONS
+# 2. HELPER FUNCTIONS
 # =============================================================================
 
 # LaTeX table helper functions
-add_adjust_box <- function(file, line_before = "\\begin{adjustbox}{width = .9\\textwidth}", line_after = "\\end{adjustbox}", before = "\\begin{threeparttable}", after = "\\end{threeparttable}") {
+add_adjust_box <- function(file,
+                           line_before = "\\begin{adjustbox}{width = .9\\textwidth}",
+                           line_after = "\\end{adjustbox}",
+                           before = "\\begin{threeparttable}",
+                           after = "\\end{threeparttable}") {
   lines <- readLines(file)
   after_line <- grep(after, lines, fixed = TRUE)
   before_line <- grep(before, lines, fixed = TRUE)
@@ -41,8 +57,20 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
   writeLines(lines, file)
 }
 
-# Create LaTeX table
+# =============================================================================
+# 4. BUILD LATEX TABLE
+# =============================================================================
+# Set up dictionary for variable names
+setFixest_dict(c(
+  post = "Post-Attack",
+  "time_hours/n_vessels" = "Time per Vessel (hrs)",
+  "distance_km/n_vessels" = "Distance per Vessel (km)",
+  time_hours = "Total Time (hrs)",
+  distance_km = "Total Distance (km)",
+  n_vessels = "Number of Vessels"
+))
 
+# Create LaTeX table
 msummary(list("Total Time" = m1_total_time,
               "Total Distance" = m2_total_distance,
               "Time per Vessel" = m3_time_per_vessel,
@@ -60,16 +88,16 @@ msummary(list("Total Time" = m1_total_time,
                       All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data", "figures and tables", "cell_post_regression.tex"))
+         output = reg_table_name)
 
 # Apply formatting functions
-add_adjust_box(here("data", "figures and tables", "cell_post_regression.tex"))
-replace_table_headers(here("data", "figures and tables", "cell_post_regression.tex"),
+add_adjust_box(reg_table_name)
+replace_table_headers(reg_table_name,
                      c("Time per Vessel", "Distance per Vessel", "Total Time", "Total Distance"))
-adjust_notes_font_size(here("data", "figures and tables", "cell_post_regression.tex"))
+adjust_notes_font_size(reg_table_name)
 
 # =============================================================================
-# 6. VISUALIZATION
+# 4. BUILD EVENT-STUDY PLOTS
 # =============================================================================
 
 # Function to create event study plot for a given outcome variable
@@ -81,7 +109,7 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = load_ev_panel(),
+    data = panel,
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -139,7 +167,7 @@ combined_plot <- (p1 + p2) / (p3 + p4) +
 
 # Save the combined plot
 ggsave(
-  filename = here("data", "figures and tables", "cell_level_event_study_2x2.png"),
+  filename = event_study_figure_name,
   plot = combined_plot,
   width = 12,
   height = 10,
