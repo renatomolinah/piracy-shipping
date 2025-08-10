@@ -10,6 +10,9 @@ library(tidyverse)
 library(fixest)
 library(modelsummary)
 
+# Specify output directory
+output_dir <- here("results", "figures_and_tables")
+
 # =============================================================================
 # 1. LOAD AND PREPARE DATA
 # =============================================================================
@@ -22,7 +25,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   filter(drop <= 1, best_vessel_type_cargo) %>%
   mutate(
     hotspot = ifelse(guinea == 1, "Guinea",
-                     ifelse(aden == 1, "Aden", 
+                     ifelse(aden == 1, "Aden",
                             ifelse(asia == 1, "Asia", "None")))
   )
 
@@ -39,7 +42,7 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 # Set up variable dictionary for clean output
 setFixest_dict(c(
   time = "Total Time (hrs)",
-  distance = "Total Distance (km)", 
+  distance = "Total Distance (km)",
   speed = "Average Speed (km/hr)",
   attacks_3mo_num = "Encounters (3 mo)",
   hotspot = "Hotspot",
@@ -93,76 +96,76 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
 # =============================================================================
 
 # Distance regressions
-m1_dist <- feols(distance ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_dist <- feols(distance ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m2_dist <- feols(distance ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m2_dist <- feols(distance ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(aden == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m3_dist <- feols(distance ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m3_dist <- feols(distance ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(guinea == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m4_dist <- feols(distance ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m4_dist <- feols(distance ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(asia == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
 # Time regressions
-m1_time <- feols(time ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_time <- feols(time ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m2_time <- feols(time ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m2_time <- feols(time ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(aden == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m3_time <- feols(time ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m3_time <- feols(time ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(guinea == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m4_time <- feols(time ~ attacks_3mo_num + ..wctrl 
-                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m4_time <- feols(time ~ attacks_3mo_num + ..wctrl
+                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(asia == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
 # Speed regressions
-m1_speed <- feols(speed ~ attacks_3mo_num + ..wctrl 
-                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_speed <- feols(speed ~ attacks_3mo_num + ..wctrl
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m2_speed <- feols(speed ~ attacks_3mo_num + ..wctrl 
-                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m2_speed <- feols(speed ~ attacks_3mo_num + ..wctrl
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(aden == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m3_speed <- feols(speed ~ attacks_3mo_num + ..wctrl 
-                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m3_speed <- feols(speed ~ attacks_3mo_num + ..wctrl
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(guinea == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m4_speed <- feols(speed ~ attacks_3mo_num + ..wctrl 
-                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m4_speed <- feols(speed ~ attacks_3mo_num + ..wctrl
+                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(asia == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
@@ -179,18 +182,18 @@ regs_speed <- list(m1_speed, m2_speed, m3_speed, m4_speed)
 # Create rows for additional information
 rows <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
-  "", "", "", "", "", 
+  "", "", "", "", "",
   "Observations", as.character(nobs(m1_dist) %>% format(big.mark = ",")),
-  as.character(nobs(m2_dist) %>% format(big.mark = ",")), 
+  as.character(nobs(m2_dist) %>% format(big.mark = ",")),
   as.character(nobs(m3_dist) %>% format(big.mark = ",")),
-  as.character(nobs(m4_dist) %>% format(big.mark = ",")), 
-  "", "", "", "", "", 
+  as.character(nobs(m4_dist) %>% format(big.mark = ",")),
+  "", "", "", "", "",
   "Hotspot FE",  "X", "$\\bullet$", "$\\bullet$", "$\\bullet$"
 )
 
 # Create main feature table
-msummary(list("Panel (A): Total Distance (km)" = regs_dist, 
-              "Panel (B): Total Time (hr)" = regs_time, 
+msummary(list("Panel (A): Total Distance (km)" = regs_dist,
+              "Panel (B): Total Time (hr)" = regs_time,
               "Panel (C): Average Speed (km/hr)" = regs_speed),
          coef_omit = c(-1),
          coef_rename = c("Encounters (3 mo)"),
@@ -199,25 +202,25 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Voyages. \\label{tab:feature-table}",
-         notes = list("The unit of observation is a voyage. Each panel examines an observed feature in terms of total distance in kilometers (km), 
-                      total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different sample: 
-                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing 
-                      through one of the hotspots, respectively. Every panel-column combination is a different regression analysis. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint. 
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.  
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, 
+         notes = list("The unit of observation is a voyage. Each panel examines an observed feature in terms of total distance in kilometers (km),
+                      total time of the voyage in hours (hr), and the average speed of the voyage (km/hr).
+                      The sample spans from 2013 to 2021.
+                      Every column is a different sample:
+                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing
+                      through one of the hotspots, respectively. Every panel-column combination is a different regression analysis.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot,
                       and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
-         output = here("data/figures and tables", "features.tex"))
+         output = here(output_dir, "features.tex"))
 
 # Apply formatting
-add_adjust_box(here("data/figures and tables", "features.tex"))
-replace_table_headers(here("data/figures and tables", "features.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
-adjust_notes_font_size(here("data/figures and tables", "features.tex"))
+add_adjust_box(here(output_dir, "features.tex"))
+replace_table_headers(here(output_dir, "features.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
+adjust_notes_font_size(here(output_dir, "features.tex"))
 
 # =============================================================================
 # 6. SPECIFICATION ANALYSIS - DISTANCE
@@ -229,27 +232,27 @@ spec_dist_1 <- feols(distance ~ attacks_3mo_num
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_dist_2 <- feols(distance ~ attacks_3mo_num + ..wctrl 
+spec_dist_2 <- feols(distance ~ attacks_3mo_num + ..wctrl
                      | month^year, wdb %>% filter(year < 2020),
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_dist_3 <- feols(distance ~ attacks_3mo_num + ..wctrl 
+spec_dist_3 <- feols(distance ~ attacks_3mo_num + ..wctrl
                      |country_pair+ month^year, wdb %>% filter(year < 2020),
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_dist_4 <- feols(distance ~ attacks_3mo_num + ..wctrl 
+spec_dist_4 <- feols(distance ~ attacks_3mo_num + ..wctrl
                      |country_pair+ vessel_type + tonnage_decile + month^year, wdb %>% filter(year < 2020),
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_dist_5 <- feols(distance ~ attacks_3mo_num + ..wctrl 
+spec_dist_5 <- feols(distance ~ attacks_3mo_num + ..wctrl
                      |country_pair+ vessel_type + tonnage_decile + hotspot + month^year, wdb %>% filter(year < 2020),
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_dist_6 <- feols(distance ~ attacks_3mo_num + ..wctrl 
+spec_dist_6 <- feols(distance ~ attacks_3mo_num + ..wctrl
                      |country_pair+ vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(year < 2020),
                      cluster = ~country_pair ^ year,
                      lean = T)
@@ -260,14 +263,14 @@ spec_dist <- list(spec_dist_1, spec_dist_2, spec_dist_3, spec_dist_4, spec_dist_
 # Create rows for distance specification table
 rows_spec <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)", ~"(5)", ~"(6)",
-  "", "", "", "", "", "", "", 
+  "", "", "", "", "", "", "",
   "Observations", as.character(nobs(spec_dist_1) %>% format(big.mark = ",")),
-  as.character(nobs(spec_dist_2) %>% format(big.mark = ",")), 
+  as.character(nobs(spec_dist_2) %>% format(big.mark = ",")),
   as.character(nobs(spec_dist_3) %>% format(big.mark = ",")),
   as.character(nobs(spec_dist_4) %>% format(big.mark = ",")),
   as.character(nobs(spec_dist_5) %>% format(big.mark = ",")),
   as.character(nobs(spec_dist_6) %>% format(big.mark = ",")),
-  "", "", "", "", "", "", "", 
+  "", "", "", "", "", "", "",
   "Country Combo. FE", "", "", "X", "X", "X", "X",
   "Vessel Type FE",    "", "", "", "X", "X", "X",
   "Vessel Size FE",    "", "", "", "X", "X", "X",
@@ -284,18 +287,18 @@ msummary(spec_dist,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Voyage Distance. \\label{tab:spec-dist-table}",
-         notes = list("The unit of observation is a voyage. 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different specification. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+         notes = list("The unit of observation is a voyage.
+                      The sample spans from 2013 to 2021.
+                      Every column is a different specification.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data/figures and tables", "spec_distance.tex"))
+         output = here(output_dir, "spec_distance.tex"))
 
-add_adjust_box(here("data/figures and tables", "spec_distance.tex"))
-adjust_notes_font_size(here("data/figures and tables", "spec_distance.tex"))
+add_adjust_box(here(output_dir, "spec_distance.tex"))
+adjust_notes_font_size(here(output_dir, "spec_distance.tex"))
 
 # =============================================================================
 # 7. SPECIFICATION ANALYSIS - TIME
@@ -307,27 +310,27 @@ spec_time_1 <- feols(time ~ attacks_3mo_num
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_time_2 <- feols(time ~ attacks_3mo_num + ..wctrl 
+spec_time_2 <- feols(time ~ attacks_3mo_num + ..wctrl
                      | month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_time_3 <- feols(time ~ attacks_3mo_num + ..wctrl 
+spec_time_3 <- feols(time ~ attacks_3mo_num + ..wctrl
                      |country_pair+ month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_time_4 <- feols(time ~ attacks_3mo_num + ..wctrl 
+spec_time_4 <- feols(time ~ attacks_3mo_num + ..wctrl
                      |country_pair+ vessel_type + tonnage_decile + month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_time_5 <- feols(time ~ attacks_3mo_num + ..wctrl 
+spec_time_5 <- feols(time ~ attacks_3mo_num + ..wctrl
                      |country_pair+ vessel_type + tonnage_decile + hotspot + month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-spec_time_6 <- feols(time ~ attacks_3mo_num + ..wctrl 
+spec_time_6 <- feols(time ~ attacks_3mo_num + ..wctrl
                      |country_pair+ vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
@@ -343,50 +346,50 @@ msummary(spec_time,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Voyage Time. \\label{tab:spec-time-table}",
-         notes = list("The unit of observation is a voyage. 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different specification. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+         notes = list("The unit of observation is a voyage.
+                      The sample spans from 2013 to 2021.
+                      Every column is a different specification.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data/figures and tables", "spec_time.tex"))
+         output = here(output_dir, "spec_time.tex"))
 
-add_adjust_box(here("data/figures and tables", "spec_time.tex"))
-adjust_notes_font_size(here("data/figures and tables", "spec_time.tex"))
+add_adjust_box(here(output_dir, "spec_time.tex"))
+adjust_notes_font_size(here(output_dir, "spec_time.tex"))
 
 # =============================================================================
 # 8. SPECIFICATION ANALYSIS - SPEED
 # =============================================================================
 
 # Speed specification regressions
-spec_speed_1 <- feols(speed ~ attacks_3mo_num 
+spec_speed_1 <- feols(speed ~ attacks_3mo_num
                       | month^year, wdb,
                       cluster = ~country_pair ^ year,
                       lean = T)
 
-spec_speed_2 <- feols(speed ~ attacks_3mo_num + ..wctrl 
+spec_speed_2 <- feols(speed ~ attacks_3mo_num + ..wctrl
                       | month^year, wdb,
                       cluster = ~country_pair ^ year,
                       lean = T)
 
-spec_speed_3 <- feols(speed ~ attacks_3mo_num + ..wctrl 
+spec_speed_3 <- feols(speed ~ attacks_3mo_num + ..wctrl
                       |country_pair+ month^year, wdb,
                       cluster = ~country_pair ^ year,
                       lean = T)
 
-spec_speed_4 <- feols(speed ~ attacks_3mo_num + ..wctrl 
+spec_speed_4 <- feols(speed ~ attacks_3mo_num + ..wctrl
                       |country_pair+ vessel_type + tonnage_decile + month^year, wdb,
                       cluster = ~country_pair ^ year,
                       lean = T)
 
-spec_speed_5 <- feols(speed ~ attacks_3mo_num + ..wctrl 
+spec_speed_5 <- feols(speed ~ attacks_3mo_num + ..wctrl
                       |country_pair+ vessel_type + tonnage_decile + hotspot + month^year, wdb,
                       cluster = ~country_pair ^ year,
                       lean = T)
 
-spec_speed_6 <- feols(speed ~ attacks_3mo_num + ..wctrl 
+spec_speed_6 <- feols(speed ~ attacks_3mo_num + ..wctrl
                       |country_pair+ vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb,
                       cluster = ~country_pair ^ year,
                       lean = T)
@@ -402,18 +405,18 @@ msummary(spec_speed,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Voyage Speed. \\label{tab:spec-speed-table}",
-         notes = list("The unit of observation is a voyage. 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different specification. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+         notes = list("The unit of observation is a voyage.
+                      The sample spans from 2013 to 2021.
+                      Every column is a different specification.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data/figures and tables", "spec_speed.tex"))
+         output = here(output_dir, "spec_speed.tex"))
 
-add_adjust_box(here("data/figures and tables", "spec_speed.tex"))
-adjust_notes_font_size(here("data/figures and tables", "spec_speed.tex"))
+add_adjust_box(here(output_dir, "spec_speed.tex"))
+adjust_notes_font_size(here(output_dir, "spec_speed.tex"))
 
 # =============================================================================
 # 9. SUMMARY STATISTICS
