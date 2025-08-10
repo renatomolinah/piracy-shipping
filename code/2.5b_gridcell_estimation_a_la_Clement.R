@@ -21,28 +21,34 @@ library(here)
 theme_set(theme_minimal(base_size = 7))
 
 # Load data --------------------------------------------------------------------
-grid_level_panel <- readRDS(file = here("data",
-                                        "processed",
-                                        "attacks_and_activity_by_grid.rds")) %>%
-  mutate(time_hours = asinh(time_hours),
-         distance_km = asinh(distance_km),
-         n_vessels = asinh(n_vessels),
-         n_trips = asinh(n_trips))
+panel <- readRDS(here("data", "processed", "attacks_and_activity_by_grid.rds")) |>
+  # replace_na(replace = list(time_hours = 0,
+  #                           distance_km = 0,
+  #                           n_vessels = 0)) |>
+  # Apply inverse hyperbolic sine transformation
+  mutate(time_per_vessel = asinh(time_hours / n_vessels),
+         dist_per_vessel = asinh(distance_km / n_vessels),
+         time_hours = asinh(time_hours),
+         distance_km = asinh(distance_km))
 
 ## PROCESSING ##################################################################
 
 effects <- 7
-placebos <- 5
+placebos <- 7
 group <- "grid_id"
 time <- "date"
 treatment <- "number_previous_attacks_grid_1_month"
+# treatment <- "attack"
+
+# i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion
 
 wrap <- function(outcome) {
-  out_file <- here("data", "output", paste0("es_mod_", outcome, "_2025.rds"))
+
+  out_file <- here("data", "output", "es_a_la_Clement", paste0("es_mod_", outcome, ".rds"))
 
   if(!file.exists(out_file)) {
     print(paste("File", out_file, "not found, proceeding to estimate model"))
-    reg <- did_multiplegt_dyn(df = grid_level_panel,
+    reg <- did_multiplegt_dyn(df = panel,
                               outcome = outcome,
                               effects = effects,
                               placebo = placebos,
@@ -51,17 +57,18 @@ wrap <- function(outcome) {
                               treatment = treatment)
 
     saveRDS(reg, file = out_file)
+  } else {
+    print(paste("File", out_file, "already exist, skipping estimation"))
   }
 }
 
 outcomes <- c("time_hours",
               "distance_km",
-              "n_vessels",
-              "n_trips")
+              "time_per_vessel",
+              "dist_per_vessel")
 
-plan("multisession", workers = 4)
-future_walk(outcomes[1], wrap)
-plan(sequential)
+walk(outcomes, wrap)
+beepr::beep(4)
 
 
 ## VISUALIZE ###################################################################
@@ -115,7 +122,7 @@ build_event_study_plot <- function(coef_table) {
          y = "Estimate ± (std.error & 95% CI)")
 }
 
-files <- list.files("output_data", pattern = "es_mod", full.names = T)
+files <- list.files(here("data", "output", "es_a_la_Clement"), pattern = "es_mod", full.names = T)
 
 mods <- map(files, readRDS)
 
@@ -124,7 +131,7 @@ es_plot_clement <- mods |>
   build_event_study_plot()
 
 ggsave(plot = es_plot_clement,
-       filename = here("figures", "grid_level_event_study_multiple_gt_din.pdf"),
+       filename = here("results", "figures_and_tables", "grid_level_event_study_multiple_gt_dyn.pdf"),
        width = 9,
        height = 6,
        units = "cm")
