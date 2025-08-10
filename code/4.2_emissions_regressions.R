@@ -10,6 +10,8 @@ library(tidyverse)
 library(fixest)
 library(modelsummary)
 
+output_dir <- here("results", "figures_and_tables")
+
 # =============================================================================
 # 1. LOAD AND PREPARE DATA
 # =============================================================================
@@ -21,14 +23,13 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   filter(drop <= 1, best_vessel_type_cargo) %>%
   mutate(
     hotspot = ifelse(guinea == 1, "Guinea",
-                     ifelse(aden == 1, "Aden", 
+                     ifelse(aden == 1, "Aden",
                             ifelse(asia == 1, "Asia", "None"))),
     total_co2 = emissions_co2_mt_inst,
     total_nox = emissions_nox_kg_inst,
     total_sox = emissions_sox_kg_inst
-  )
-
-wdb <- wdb %>% mutate(attacks_3mo_num = number_previous_attacks_3_months_5_degrees)
+  ) %>%
+  mutate(attacks_3mo_num = number_previous_attacks_3_months_5_degrees)
 
 # =============================================================================
 # 2. SET UP FORMULAS AND CONTROLS
@@ -92,76 +93,76 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
 # =============================================================================
 
 # CO2 regressions
-m1_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb,
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m2_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m2_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(aden == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m3_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m3_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(guinea == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m4_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m4_co2 <- feols(total_co2 ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(asia == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
 # NOx regressions
-m1_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb,
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m2_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m2_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(aden == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m3_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m3_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(guinea == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m4_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m4_nox <- feols(total_nox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(asia == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
 # SOx regressions
-m1_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb,
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m2_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m2_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(aden == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m3_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m3_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(guinea == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-m4_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl 
-                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m4_sox <- feols(total_sox ~ attacks_3mo_num + ..wctrl
+                | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb %>% filter(asia == 1),
                 cluster = ~country_pair ^ year,
                 lean = T)
@@ -176,17 +177,17 @@ regs_sox <- list(m1_sox, m2_sox, m3_sox, m4_sox)
 
 rows <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
-  "", "", "", "", "", 
+  "", "", "", "", "",
   "Observations", as.character(nobs(m1_co2) %>% format(big.mark = ",")),
-  as.character(nobs(m2_co2) %>% format(big.mark = ",")), 
+  as.character(nobs(m2_co2) %>% format(big.mark = ",")),
   as.character(nobs(m3_co2) %>% format(big.mark = ",")),
-  as.character(nobs(m4_co2) %>% format(big.mark = ",")), 
-  "", "", "", "", "", 
+  as.character(nobs(m4_co2) %>% format(big.mark = ",")),
+  "", "", "", "", "",
   "Hotspot FE",  "X", "$\\bullet$", "$\\bullet$", "$\\bullet$"
 )
 
-msummary(list("Panel (A): CO2 (tons)" = regs_co2, 
-              "Panel (B): NOx (kg)" = regs_nox, 
+msummary(list("Panel (A): CO2 (tons)" = regs_co2,
+              "Panel (B): NOx (kg)" = regs_nox,
               "Panel (C): SOx (kg)" = regs_sox),
          coef_omit = c(-1),
          coef_rename = c("Encounters (3 mo)"),
@@ -195,21 +196,21 @@ msummary(list("Panel (A): CO2 (tons)" = regs_co2,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Emissions. \\label{tab:emission-table}",
-         notes = list("The unit of observation is a voyage. Each panel examines a calculated emission in terms of CO2 (tons), NOx (kg), and SOx (kg). 
-                      The sample spans from 2013 to 2021. Every column is a different sample: 
-                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively. 
-                      Every panel-column combination is a different regression analysis. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint. 
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.  
+         notes = list("The unit of observation is a voyage. Each panel examines a calculated emission in terms of CO2 (tons), NOx (kg), and SOx (kg).
+                      The sample spans from 2013 to 2021. Every column is a different sample:
+                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
+                      Every panel-column combination is a different regression analysis.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
-         output = here("data", "figures and tables", "emissions.tex"))
+         output = here(output_dir, "emissions.tex"))
 
-add_adjust_box(here("data", "figures and tables", "emissions.tex"))
-replace_table_headers(here("data", "figures and tables", "emissions.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
-adjust_notes_font_size(here("data", "figures and tables", "emissions.tex"))
+add_adjust_box(here(output_dir, "emissions.tex"))
+replace_table_headers(here(output_dir, "emissions.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
+adjust_notes_font_size(here(output_dir, "emissions.tex"))
 
 # =============================================================================
 # 6. SPECIFICATION ANALYSIS - CO2
@@ -226,14 +227,14 @@ spec_co2 <- list(spec_co2_1, spec_co2_2, spec_co2_3, spec_co2_4, spec_co2_5, spe
 
 rows_spec <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)", ~"(5)", ~"(6)",
-  "", "", "", "", "", "", "", 
+  "", "", "", "", "", "", "",
   "Observations", as.character(nobs(spec_co2_1) %>% format(big.mark = ",")),
-  as.character(nobs(spec_co2_2) %>% format(big.mark = ",")), 
+  as.character(nobs(spec_co2_2) %>% format(big.mark = ",")),
   as.character(nobs(spec_co2_3) %>% format(big.mark = ",")),
   as.character(nobs(spec_co2_4) %>% format(big.mark = ",")),
   as.character(nobs(spec_co2_5) %>% format(big.mark = ",")),
   as.character(nobs(spec_co2_6) %>% format(big.mark = ",")),
-  "", "", "", "", "", "", "", 
+  "", "", "", "", "", "", "",
   "Country Combo. FE", "", "", "X", "X", "X", "X",
   "Vessel Type FE",    "", "", "", "X", "X", "X",
   "Vessel Size FE",    "", "", "", "X", "X", "X",
@@ -249,18 +250,18 @@ msummary(spec_co2,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on CO2 Emissions. \\label{tab:spec-co2-table}",
-         notes = list("The unit of observation is a voyage. 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different specification. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+         notes = list("The unit of observation is a voyage.
+                      The sample spans from 2013 to 2021.
+                      Every column is a different specification.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data", "figures and tables", "spec_co2.tex"))
+         output = here(output_dir, "spec_co2.tex"))
 
-add_adjust_box(here("data", "figures and tables", "spec_co2.tex"))
-adjust_notes_font_size(here("data", "figures and tables", "spec_co2.tex"))
+add_adjust_box(here(output_dir, "spec_co2.tex"))
+adjust_notes_font_size(here(output_dir, "spec_co2.tex"))
 
 # =============================================================================
 # 7. SPECIFICATION ANALYSIS - NOX
@@ -282,18 +283,18 @@ msummary(spec_nox,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on NOx Emissions. \\label{tab:spec-nox-table}",
-         notes = list("The unit of observation is a voyage. 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different specification. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+         notes = list("The unit of observation is a voyage.
+                      The sample spans from 2013 to 2021.
+                      Every column is a different specification.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data", "figures and tables", "spec_nox.tex"))
+         output = here(output_dir, "spec_nox.tex"))
 
-add_adjust_box(here("data", "figures and tables", "spec_nox.tex"))
-adjust_notes_font_size(here("data", "figures and tables", "spec_nox.tex"))
+add_adjust_box(here(output_dir, "spec_nox.tex"))
+adjust_notes_font_size(here(output_dir, "spec_nox.tex"))
 
 # =============================================================================
 # 8. SPECIFICATION ANALYSIS - SOX
@@ -315,18 +316,18 @@ msummary(spec_sox,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on SOx Emissions. \\label{tab:spec-sox-table}",
-         notes = list("The unit of observation is a voyage. 
-                      The sample spans from 2013 to 2021. 
-                      Every column is a different specification. 
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.  
+         notes = list("The unit of observation is a voyage.
+                      The sample spans from 2013 to 2021.
+                      Every column is a different specification.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
          escape = FALSE,
-         output = here("data", "figures and tables", "spec_sox.tex"))
+         output = here(output_dir, "spec_sox.tex"))
 
-add_adjust_box(here("data", "figures and tables", "spec_sox.tex"))
-adjust_notes_font_size(here("data", "figures and tables", "spec_sox.tex"))
+add_adjust_box(here(output_dir, "spec_sox.tex"))
+adjust_notes_font_size(here(output_dir, "spec_sox.tex"))
 
 # =============================================================================
 # 9. BACK OF ENVELOPE CALCULATIONS
@@ -334,28 +335,28 @@ adjust_notes_font_size(here("data", "figures and tables", "spec_sox.tex"))
 
 # Re-estimate the models used for predictions without lean = TRUE
 # These models need to store fixed effects information for predictions
-m1_co2_pred <- feols(total_co2 ~ attacks_3mo_num + ..wctrl 
-                     | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_co2_pred <- feols(total_co2 ~ attacks_3mo_num + ..wctrl
+                     | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                      wdb,
                      cluster = ~country_pair ^ year,
                      lean = FALSE,
                      combine.quick = FALSE)
 
-m1_nox_pred <- feols(total_nox ~ attacks_3mo_num + ..wctrl 
-                     | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_nox_pred <- feols(total_nox ~ attacks_3mo_num + ..wctrl
+                     | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                      wdb,
                      cluster = ~country_pair ^ year,
                      lean = FALSE,
                      combine.quick = FALSE)
 
-m1_sox_pred <- feols(total_sox ~ attacks_3mo_num + ..wctrl 
-                     | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, 
+m1_sox_pred <- feols(total_sox ~ attacks_3mo_num + ..wctrl
+                     | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                      wdb,
                      cluster = ~country_pair ^ year,
                      lean = FALSE,
                      combine.quick = FALSE)
 
-pred_global <- wdb %>% 
+pred_global <- wdb %>%
   select(trip_id, attacks_3mo_num, wind_speed, wind_vector, wave_height,
          country_pair, vessel_type, tonnage_decile, hotspot, top_route, month, year)
 
@@ -377,7 +378,7 @@ write_rds(pred_global, here("data", "processed", "emissions_pred_global.rds"))
 
 cat("Emissions regressions completed.\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Tables saved to:", here("data", "figures and tables"), "\n")
+cat("Tables saved to:", here(output_dir), "\n")
 cat("- emissions.tex: Main emissions table\n")
 cat("- spec_co2.tex: CO2 specification table\n")
 cat("- spec_nox.tex: NOx specification table\n")

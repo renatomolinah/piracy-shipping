@@ -15,7 +15,7 @@ library(tidyverse)
 # Load cost predictions
 pred_cost <- readRDS(here("data", "processed", "cost_pred_global.rds"))
 
-# Load emissions predictions  
+# Load emissions predictions
 pred_emissions <- readRDS(here("data", "processed", "emissions_pred_global.rds"))
 
 # =============================================================================
