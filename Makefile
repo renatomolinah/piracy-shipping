@@ -100,9 +100,11 @@ $(CONTENT)spec_sox.tex: code/4.2_emissions_regressions.R $(PROCESSED_DATA)voyage
 # Combine
 $(PROCESSED_DATA)full_pred_global.rds: code/4.3_merge_pred.R $(PROCESSED_DATA)emissions_pred_global.rds $(PROCESSED_DATA)cost_pred_global.rds
 		cd $(<D);Rscript $(<F)
+$(PROCESSED_DATA)full_pred_global.csv: code/4.3_merge_pred.R $(PROCESSED_DATA)emissions_pred_global.rds $(PROCESSED_DATA)cost_pred_global.rds
+		cd $(<D);Rscript $(<F)
 
 # Upload to BigQuery
-full_pred_global_bigquery: code/4.4_upload_full_pred_global_data.sh $(PROCESSED_DATA)full_pred_global.rds
+full_pred_global_bigquery: code/4.4_upload_full_pred_global_data.sh $(PROCESSED_DATA)full_pred_global.csv
 		$(<D);bash $(<F)
 
 # Make figures and tables
