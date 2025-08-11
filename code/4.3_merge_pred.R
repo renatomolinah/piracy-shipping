@@ -23,7 +23,18 @@ pred_emissions <- readRDS(here("data", "processed", "emissions_pred_global.rds")
 # =============================================================================
 
 # Merge cost and emissions predictions
-total_pred <- left_join(pred_cost, pred_emissions, by = "trip_id")
+total_pred <- left_join(pred_cost, pred_emissions, by = join_by(trip_id,
+                                                                attacks_3mo_num,
+                                                                wind_speed,
+                                                                wind_vector,
+                                                                wave_height,
+                                                                country_pair, 
+                                                                vessel_type,
+                                                                tonnage_decile,
+                                                                hotspot, 
+                                                                top_route, 
+                                                                month, 
+                                                                year))
 
 # =============================================================================
 # 3. SAVE MERGED DATA
@@ -31,6 +42,7 @@ total_pred <- left_join(pred_cost, pred_emissions, by = "trip_id")
 
 # Save merged predictions
 write_rds(total_pred, here("data", "processed", "full_pred_global.rds"))
+write_csv(total_pred, here("data", "processed", "full_pred_global.csv"))
 
 # =============================================================================
 # 4. SUMMARY STATISTICS
