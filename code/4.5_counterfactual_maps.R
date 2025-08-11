@@ -56,18 +56,18 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
-hotspot <- readRDS("processed_data/hotspots") %>%
-  mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
-           fct_relevel("Gulf of Guinea")) %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min),
-                                                                     c(lon_max,lat_min),
-                                                                     c(lon_max,lat_max),
-                                                                     c(lon_min,lat_max),
-                                                                     c(lon_min,lat_min)))))) %>%
-  sf::st_as_sf(sf_column_name = "geometry", crs = 4326)
+# hotspot <- readRDS("processed_data/hotspots") %>%
+#   mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+#                              cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+#                              cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
+#            fct_relevel("Gulf of Guinea")) %>%
+#   dplyr::rowwise() %>%
+#   dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min),
+#                                                                      c(lon_max,lat_min),
+#                                                                      c(lon_max,lat_max),
+#                                                                      c(lon_min,lat_max),
+#                                                                      c(lon_min,lat_min)))))) %>%
+#   sf::st_as_sf(sf_column_name = "geometry", crs = 4326)
 
 coast <- rnaturalearth::ne_countries(returnclass = "sf")
 coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
@@ -79,11 +79,11 @@ asam_regions <- asam_subregions() %>%
   summarize() %>%
   ungroup()
 
-eez <- st_read(dsn = here("data/World_EEZ_v12_20231025_gpkg/eez_v12.gpkg")) %>%
+eez <- st_read(dsn = here("data/raw/World_EEZ_v12_20231025_gpkg/eez_v12.gpkg")) %>%
   select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
-territorial_seas <- st_read(dsn = "data/World_12NM_v4_20231025_gpkg/eez_12nm_v4.gpkg") %>%
+territorial_seas <- st_read(dsn = "data/raw/World_24NM_v4_20231025_gpkg/eez_24nm_v4.gpkg") %>%
   select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
@@ -96,7 +96,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
   mutate(lon_bin = lon_bin + 0.25,
          lat_bin = lat_bin + 0.25)
 
-pred_info <- tbl(piracy, "full_preg_global_v_20250810") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20250810") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
@@ -217,10 +217,10 @@ make_map <- function(data,
     geom_sf(data = asam_regions,
             fill = "transparent",
             color = "white") +
-    geom_sf(data = hotspot,
-            aes(color = cluster),
-            fill = "transparent",
-            linewidth = 1.025) +
+    # geom_sf(data = hotspot,
+    #         aes(color = cluster),
+    #         fill = "transparent",
+    #         linewidth = 1.025) +
     geom_sf_label(data = asam_regions,
                   aes(label = asam_region),
                   nudge_y = -8,
