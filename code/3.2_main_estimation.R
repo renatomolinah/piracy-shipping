@@ -23,7 +23,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   filter(drop <= 1, best_vessel_type_cargo) %>%
   mutate(
     hotspot = ifelse(guinea == 1, "G. of Guinea",
-                     ifelse(aden == 1, "G. of Aden", 
+                     ifelse(aden == 1, "G. of Aden",
                             ifelse(asia == 1, "Southeast Asia", "None")))
   )
 
@@ -33,12 +33,12 @@ wdb <- wdb %>% mutate(
   attacks_3mo_num_3 = number_previous_attacks_3_months_3_degrees,
   attacks_6mo_num_3 = number_previous_attacks_6_months_3_degrees,
   attacks_12mo_num_3 = number_previous_attacks_12_months_3_degrees,
-  
+
   # 5-degree spatial footprint
   attacks_3mo_num_5 = number_previous_attacks_3_months_5_degrees,
   attacks_6mo_num_5 = number_previous_attacks_6_months_5_degrees,
   attacks_12mo_num_5 = number_previous_attacks_12_months_5_degrees,
-  
+
   # 7-degree spatial footprint
   attacks_3mo_num_7 = number_previous_attacks_3_months_7_degrees,
   attacks_6mo_num_7 = number_previous_attacks_6_months_7_degrees,
@@ -67,7 +67,7 @@ feature_coefficients <- feols(
   data = wdb,
   fsplit = ~hotspot,
   cluster = ~country_pair ^ year
-) 
+)
 
 # Save regression results
 saveRDS(feature_coefficients, here("data", "output", "feature_coefficients.rds"))
@@ -119,20 +119,20 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_linerange(
     aes(ymin = conf.low, ymax = conf.high),
-    position = position_dodge(width = 0.5), 
-    color = "black", 
+    position = position_dodge(width = 0.5),
+    color = "black",
     linewidth = 0.2
   ) +
   geom_pointrange(
     aes(ymin = estimate - std.error, ymax = estimate + std.error),
-    position = position_dodge(width = 0.5), 
-    size = 0.5, 
+    position = position_dodge(width = 0.5),
+    size = 0.5,
     linewidth = 1
   ) +
   facet_wrap(
-    outcome ~ sample, 
-    scales = "free_y", 
-    strip.position = "top", 
+    outcome ~ sample,
+    scales = "free_y",
+    strip.position = "top",
     nrow = length(unique(coef_data$outcome))
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
@@ -162,20 +162,20 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
 
 # Save plot
 ggsave(
-  filename = here("figures", "all_features.pdf"),
+  filename = here("results", "figures_and_tables", "all_features.pdf"),
   plot = feature_plot,
-  width = 12, 
-  height = 7, 
+  width = 12,
+  height = 7,
   units = "in",
   dpi = 300
 )
 
 # Also save as PNG for easier viewing
 ggsave(
-  filename = here("figures", "all_features.png"),
+  filename = here("results", "figures_and_tables", "all_features.png"),
   plot = feature_plot,
-  width = 12, 
-  height = 7, 
+  width = 12,
+  height = 7,
   units = "in",
   dpi = 300
 )

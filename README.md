@@ -27,6 +27,10 @@ When you run `targets::tar_visnetwork`, it should look something like this:
 
 ![](target_network.png)
 
+## Makefile
+
+![](workflow.png)
+
 # Repository Structure 
 
 The repository uses the following basic structure:  

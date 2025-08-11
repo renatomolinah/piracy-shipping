@@ -56,62 +56,62 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
-hotspot <- readRDS("processed_data/hotspots") %>% 
-  mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-                             cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-                             cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
-           fct_relevel("Gulf of Guinea")) %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min),
-                                                                     c(lon_max,lat_min),
-                                                                     c(lon_max,lat_max),
-                                                                     c(lon_min,lat_max),
-                                                                     c(lon_min,lat_min)))))) %>%
-  sf::st_as_sf(sf_column_name = "geometry", crs = 4326) 
+# hotspot <- readRDS("processed_data/hotspots") %>%
+#   mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
+#                              cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
+#                              cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
+#            fct_relevel("Gulf of Guinea")) %>%
+#   dplyr::rowwise() %>%
+#   dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min),
+#                                                                      c(lon_max,lat_min),
+#                                                                      c(lon_max,lat_max),
+#                                                                      c(lon_min,lat_max),
+#                                                                      c(lon_min,lat_min)))))) %>%
+#   sf::st_as_sf(sf_column_name = "geometry", crs = 4326)
 
 coast <- rnaturalearth::ne_countries(returnclass = "sf")
 coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
 
-asam_regions <- asam_subregions() %>% 
-  select(asam_region = REGION) %>% 
-  st_buffer(dist = 0.01) %>% 
-  group_by(asam_region) %>% 
-  summarize() %>% 
+asam_regions <- asam_subregions() %>%
+  select(asam_region = REGION) %>%
+  st_buffer(dist = 0.01) %>%
+  group_by(asam_region) %>%
+  summarize() %>%
   ungroup()
 
-eez <- st_read(dsn = here("data/World_EEZ_v12_20231025_gpkg/eez_v12.gpkg")) %>% 
-  select(iso_sov = ISO_SOV1) %>% 
+eez <- st_read(dsn = here("data/raw/World_EEZ_v12_20231025_gpkg/eez_v12.gpkg")) %>%
+  select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
-territorial_seas <- st_read(dsn = "data/World_12NM_v4_20231025_gpkg/eez_12nm_v4.gpkg") %>% 
-  select(iso_sov = ISO_SOV1) %>% 
+territorial_seas <- st_read(dsn = "data/raw/World_24NM_v4_20231025_gpkg/eez_24nm_v4.gpkg") %>%
+  select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
-track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>% 
-  mutate(year = sql("EXTRACT(YEAR FROM date)")) %>% 
-  select(year, lon_bin, lat_bin, trip_id) %>% 
-  group_by(trip_id) %>% 
-  add_count() %>% 
-  ungroup() %>% 
+track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
+  mutate(year = sql("EXTRACT(YEAR FROM date)")) %>%
+  select(year, lon_bin, lat_bin, trip_id) %>%
+  group_by(trip_id) %>%
+  add_count() %>%
+  ungroup() %>%
   mutate(lon_bin = lon_bin + 0.25,
          lat_bin = lat_bin + 0.25)
 
-pred_info <- tbl(piracy, "full_pred_global_v_20240404") %>% 
+pred_info <- tbl(piracy, "full_pred_global_v_20250810") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
-         sox = p_sox - np_sox) %>% 
+         sox = p_sox - np_sox) %>%
   select(trip_id, cost, co2, nox, sox)
 
 # Build data --------------------------------------------------------------------
-grided <- pred_info %>% 
-  left_join(track_info, by = "trip_id") %>% 
-  group_by(year, lat_bin, lon_bin) %>% 
-  summarize(cost = sum(cost / n, na.rm = T), 
+grided <- pred_info %>%
+  left_join(track_info, by = "trip_id") %>%
+  group_by(year, lat_bin, lon_bin) %>%
+  summarize(cost = sum(cost / n, na.rm = T),
             co2 = sum(co2 / n, na.rm = T),
             nox = sum(nox / n, na.rm = T),
             sox = sum(sox / n, na.rm = T),
-            .groups = "drop") 
+            .groups = "drop")
 
 local_grided <- collect(grided)
 
@@ -123,17 +123,17 @@ sc_nox <- 18000
 # From table 3 at https://www.ifo.de/DocDL/wp-2021-360-mier-adelowo-weissbart-social-cost-air-pollution-carbon.pdf
 sc_sox <- 11217 * 1.31 #convert 2015 to 2020 USD
 
-total_grided <- local_grided %>% 
-  filter(!is.na(lat_bin) | !is.na(lon_bin)) %>% 
-  group_by(year, lat_bin, lon_bin) %>% 
-  summarize(cost = sum(cost, na.rm = T) / 1e3,                                  # Cost is reported in K USD so we convert to M USD 
+total_grided <- local_grided %>%
+  filter(!is.na(lat_bin) | !is.na(lon_bin)) %>%
+  group_by(year, lat_bin, lon_bin) %>%
+  summarize(cost = sum(cost, na.rm = T) / 1e3,                                  # Cost is reported in K USD so we convert to M USD
             co2 = sum(co2, na.rm = T),
             nox = sum(nox, na.rm = T) / 1e3,                                    # NOx is reported in Kg so convert to Ton
             sox = sum(sox, na.rm = T) / 1e3,                                    # SOx is reported in Kg so convert to Ton
-            .groups = "drop") %>% 
-  select(-year) %>% 
-  group_by(lat_bin, lon_bin) %>% 
-  summarize_all(mean, na.rm = T, .groups = "drop") %>% 
+            .groups = "drop") %>%
+  select(-year) %>%
+  group_by(lat_bin, lon_bin) %>%
+  summarize_all(mean, na.rm = T, .groups = "drop") %>%
   mutate(private = cost,
          public = (co2 * sc_co2 / 1e6) + (nox * sc_nox / 1e6) + (sox * sc_sox / 1e6),
          total = private + public)
@@ -144,47 +144,47 @@ saveRDS(object = total_grided,
 # total_grided <- readRDS(here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
 
 # Get cost by ASAM region
-total_by_asam <- total_grided %>% 
+total_by_asam <- total_grided %>%
   st_as_sf(coords = c("lon_bin", "lat_bin"),
-           crs = 4326) %>% 
-  st_join(asam_regions, join = st_nearest_feature) %>% 
-  st_drop_geometry() %>% 
-  group_by(asam_region) %>% 
-  summarize_all(sum, na.rm = T) %>% 
+           crs = 4326) %>%
+  st_join(asam_regions, join = st_nearest_feature) %>%
+  st_drop_geometry() %>%
+  group_by(asam_region) %>%
+  summarize_all(sum, na.rm = T) %>%
   mutate(asam_region = as.character(asam_region))
 
-total <- total_grided %>% 
-  ungroup() %>% 
+total <- total_grided %>%
+  ungroup() %>%
   summarize_all(sum, na.rm = T)
 
 # Get costs by EEZ
-total_grided_by_eez <- total_grided %>% 
+total_grided_by_eez <- total_grided %>%
   st_as_sf(coords = c("lon_bin", "lat_bin"),
-           crs = 4326) %>% 
-  st_join(eez, join = st_intersects) %>% 
-  bind_cols(st_coordinates(.)) %>% 
-  st_drop_geometry() %>% 
-  rename(lon_bin = X, lat_bin = Y) %>% 
+           crs = 4326) %>%
+  st_join(eez, join = st_intersects) %>%
+  bind_cols(st_coordinates(.)) %>%
+  st_drop_geometry() %>%
+  rename(lon_bin = X, lat_bin = Y) %>%
   drop_na(iso_sov)
 
 total_by_eez <- total_grided_by_eez %>%
-  ungroup() %>% 
-  select(-iso_sov) %>% 
-  summarize_all(sum, na.rm = T) 
+  ungroup() %>%
+  select(-iso_sov) %>%
+  summarize_all(sum, na.rm = T)
 
 # Get costs by territorial seas (24 N)
-total_grided_by_sea <- total_grided %>% 
+total_grided_by_sea <- total_grided %>%
   st_as_sf(coords = c("lon_bin", "lat_bin"),
-           crs = 4326) %>% 
-  st_join(territorial_seas, join = st_intersects) %>% 
-  bind_cols(st_coordinates(.)) %>% 
-  st_drop_geometry() %>% 
-  rename(lon_bin = X, lat_bin = Y) %>% 
+           crs = 4326) %>%
+  st_join(territorial_seas, join = st_intersects) %>%
+  bind_cols(st_coordinates(.)) %>%
+  st_drop_geometry() %>%
+  rename(lon_bin = X, lat_bin = Y) %>%
   drop_na(iso_sov)
 
-total_by_sea <- total_grided_by_sea %>% 
-  select(-iso_sov) %>% 
-  summarize_all(sum, na.rm = T) 
+total_by_sea <- total_grided_by_sea %>%
+  select(-iso_sov) %>%
+  summarize_all(sum, na.rm = T)
 
 # Some stats by EEZ and sea:
 
@@ -195,7 +195,7 @@ total_by_sea <- total_grided_by_sea %>%
 
 # Build a figure with four panels: Costs, CO2, NOx, SOx
 # Each of them is a map, showing the costs / emissions apportioned along the
-# trip id, for the entirety of the study period. 
+# trip id, for the entirety of the study period.
 # Then, add a bar chart by ASMR region.
 # X ----------------------------------------------------------------------------
 
@@ -217,10 +217,10 @@ make_map <- function(data,
     geom_sf(data = asam_regions,
             fill = "transparent",
             color = "white") +
-    geom_sf(data = hotspot,
-            aes(color = cluster),
-            fill = "transparent",
-            linewidth = 1.025) +
+    # geom_sf(data = hotspot,
+    #         aes(color = cluster),
+    #         fill = "transparent",
+    #         linewidth = 1.025) +
     geom_sf_label(data = asam_regions,
                   aes(label = asam_region),
                   nudge_y = -8,
@@ -274,20 +274,20 @@ sox_map <- make_map(total_grided,
 hotspot_legend <- cost_map + guides(fill = "none", color = guide_legend(title = "Hotspot"))
 hotspot_legend <- cowplot::get_legend(hotspot_legend)
 
-zonal_stats <- total_by_asam %>% 
-  select(asam_region, private, public) %>% 
-  pivot_longer(cols = c(private, public)) %>% 
+zonal_stats <- total_by_asam %>%
+  select(asam_region, private, public) %>%
+  pivot_longer(cols = c(private, public)) %>%
   mutate(asam_region = fct_reorder(.f = asam_region, .x = value, .fun = "sum", .desc = T)) %>%
   ggplot(mapping = aes(x = asam_region,
                        y = value,
-                       fill = str_to_title(name))) + 
+                       fill = str_to_title(name))) +
   geom_col(color = "black") +
   geom_text(data = total_by_asam,
             mapping = aes(x = asam_region,
                           y = total,
                           label = format(x = round(total),
                                          big.mark = ",")),
-            nudge_y = 150, 
+            nudge_y = 150,
             inherit.aes = F,
             size = 2) +
   scale_fill_brewer(palette = "Set3") +
@@ -315,30 +315,30 @@ p <- cowplot::plot_grid(counterfactual_maps,
 
 # X ----------------------------------------------------------------------------
 ggsave(plot = p,
-       filename = here("figures", "counterfactual_maps.png"),
+       filename = here("results", "figures_and_tables", "counterfactual_maps.png"),
        width = 18.4,
        height = 18.4,
        units = "cm")
 
 ggsave(plot = total_map,
-       filename = here("figures", "total_map.png"),
+       filename = here("results", "figures_and_tables", "total_map.png"),
        width = 15,
        height = 8,
        units = "cm")
 
 
-tbl(piracy, "full_pred_global_v_20240404") %>% 
+tbl(piracy, "full_preg_global_v_20250810") %>%
   select(year, matches("total|co2|sox|nox")) %>%
   group_by(year) %>%
   summarize_all(sum) %>%
   select(-year) %>%
-  summarize_all(mean) %>% 
+  summarize_all(mean) %>%
   mutate(p_total = p_total / 1e3,
          np_total = np_total / 1e3,
          p_nox = p_nox / 1e3,
          np_nox = np_nox / 1e3,
          p_sox = p_sox / 1e3,
-         np_sox = np_sox / 1e3) %>% 
+         np_sox = np_sox / 1e3) %>%
   mutate(p_private = p_total,
          np_private = np_total,
          p_public = (p_co2 * sc_co2 / 1e6) + (p_nox * sc_nox / 1e6) + (p_sox * sc_sox / 1e6),
@@ -347,8 +347,8 @@ tbl(piracy, "full_pred_global_v_20240404") %>%
          np_total = np_private + np_public,
          d_private = p_private - np_private,
          d_public = p_public - np_public,
-         d_total = p_total - np_total) %>% 
-  select(p_private, np_private, p_public, np_public, p_total, np_total, d_private, d_public, d_total) %>% 
+         d_total = p_total - np_total) %>%
+  select(p_private, np_private, p_public, np_public, p_total, np_total, d_private, d_public, d_total) %>%
   mutate(p_pct = (d_total / p_total) * 100,
          np_pct = (d_total / np_total) * 100)
 

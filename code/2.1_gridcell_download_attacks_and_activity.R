@@ -6,7 +6,7 @@
 # juancvd@stanford.edu
 # date
 #
-# Description
+# Download the gridcell level information from BigQuery
 #
 ################################################################################
 
@@ -40,7 +40,7 @@ piracy <- dbConnect(
 
 # Get data for clusters only ---------------------------------------------------
 with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20250521") %>%
-  filter(date <= sql("DATE('2021-12-31')")) %>%
+  filter(date <= sql("DATE('2023-12-31')")) %>%
   mutate(grid_id = paste0(lat_bin, "_", lon_bin),
          attack_cluster = case_when(hotspot_gulf_of_guinea == 1 ~ "GoG",
                                     hotspot_southeast_asia == 1 ~ "SEA",
@@ -58,7 +58,7 @@ with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20250521") %>%
          number_previous_attacks_all_time,
          attack_cluster)
 
-grids_attacked_2013_2021 <- with_clusters %>%
+grids_attacked_2012_2023 <- with_clusters %>%
   filter(days_since_attack == 0) %>%
   select(grid_id) %>%
   distinct()
@@ -75,7 +75,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20250521") %>%
 
 # Combine both into the final panel --------------------------------------------
 gridded_panel <- with_clusters %>%
-  inner_join(grids_attacked_2013_2021,
+  inner_join(grids_attacked_2012_2023,
              by = "grid_id") %>%
   left_join(track_info,
             by = c("date", "lat_bin", "lon_bin"))
