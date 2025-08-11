@@ -89,10 +89,10 @@ build_coef_table <- function(model) {
                      ub_ci = 0)) |>
     mutate(outcome = model$args$outcome,
            title = case_when(outcome == "time_hours" ~ "Occupancy (hr)",
-                             outcome == "time_vessel" ~ "Occupancy per vessel (hr/vessel)",
+                             outcome == "time_per_vessel" ~ "Occupancy per vessel (hr/vessel)",
                              outcome == "time_trip" ~ "Occupancy per voyage (hr/voyage)",
                              outcome == "distance_km" ~ "Distance (km)",
-                             outcome == "distance_vessel" ~ "Distance per vessel (km/vessel)",
+                             outcome == "dist_per_vessel" ~ "Distance per vessel (km/vessel)",
                              outcome == "distance_trip" ~ "Distance per voyage (km/trip)",
                              outcome == "n_vessels" ~ "Transit (# vessels)",
                              outcome == "n_trips" ~ "Transit (# voyages)")) |>
