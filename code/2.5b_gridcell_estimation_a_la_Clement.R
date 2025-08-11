@@ -11,11 +11,11 @@
 ################################################################################
 
 ## SET UP ######################################################################
+Sys.setenv(RGL_USE_NULL = TRUE) # If runnin on newer macs, this needs to be used per: https://github.com/chaisemartinPackages/did_multiplegt_dyn
 
 # Load packages ----------------------------------------------------------------
 library(DIDmultiplegtDYN)
 library(tidyverse)
-library(furrr)
 library(here)
 
 theme_set(theme_minimal(base_size = 7))
