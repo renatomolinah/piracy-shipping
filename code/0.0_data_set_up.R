@@ -46,7 +46,8 @@ cat("Loaded", nrow(voyage_data), "voyage records\n")
 voyage_data <- voyage_data %>%
   filter(
     from_country != "",
-    to_country != ""
+    to_country != "",
+    design_speed >= 10
   ) %>%
   mutate(
     implied_speed_knots = distance_km / 1.852 / hours,  # Convert km/h to knots
