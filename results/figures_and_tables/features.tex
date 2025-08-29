@@ -1,0 +1,43 @@
+\begin{table}
+\centering
+\caption{Effect of Past Pirate Encounters on Shipping Voyages. \label{tab:feature-table}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & Global & G. of Aden & G. of Guinea & S.E. Asia\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 20.43*** & 137.58*** & 24.38*** & 16.67***\\
+\hspace{1em} & (2.42) & (10.64) & (0.96) & (2.68)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): Total Time (hr)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 1.01*** & 5.46*** & 1.51*** & 0.84***\\
+\hspace{1em} & (0.12) & (0.45) & (0.07) & (0.13)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): Average Speed (km/hr)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.02*** & 0.19*** & 0.03** & 0.02***\\
+\hspace{1em} & (0.00) & (0.02) & (0.01) & (0.00)\\
+ &  &  &  \vphantom{1} & \\
+Observations & 26,781,062 & 1,004,116 & 346,743 & 6,379,243\\
+ &  &  &  & \\
+Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Each panel examines an observed feature in terms of total distance in kilometers (km),
+                      total time of the voyage in hours (hr), and the average speed of the voyage (km/hr).
+                      The sample spans from 2013 to 2021.
+                      Every column is a different sample:
+                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing
+                      through one of the hotspots, respectively. Every panel-column combination is a different regression analysis.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot,
+                      and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}
