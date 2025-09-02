@@ -42,6 +42,7 @@ total_pred <- left_join(pred_cost, pred_emissions, by = join_by(trip_id,
 
 # Save merged predictions
 write_rds(total_pred, here("data", "processed", "full_pred_global.rds"))
+write_csv(total_pred, here("data", "processed", "full_pred_global.csv"))
 
 # =============================================================================
 # 4. SUMMARY STATISTICS
