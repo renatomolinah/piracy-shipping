@@ -59,12 +59,13 @@ list(
       # Create lon and lat columns: https://stackoverflow.com/a/61745776
       # We'll need these for BQ
       {
-        \(.)
+        \(.) {
           dplyr::mutate(
             .,
             lon = sf::st_coordinates(.)[, 1],
             lat = sf::st_coordinates(.)[, 2]
           )
+        }
       }() |>
       # Filter to just attacks within our study period
       dplyr::filter(date >= lubridate::ymd(study_period_starting_date)) |>
@@ -88,7 +89,7 @@ list(
     generate_hotspot_boundaries(
       asam_data,
       year_min = 2012,
-      year_max = 2021
+      year_max = 2023
     )
   ),
   # Using hotspot cluster bounding boxes, assign hotspot to each asam attack
@@ -105,7 +106,9 @@ list(
   # Process wind data to 5x5 degree grids
   tar_file_read(
     name = wind_data,
-    command = here::here("data/raw/era5_wind/era5_monthly_average_wind_08052025.nc"),
+    command = here::here(
+      "data/raw/era5_wind/era5_monthly_average_wind_08052025.nc"
+    ),
     read = process_wind_data(!!.x, pixel_size = 5)
   ),
   # Upload wind data to BQ
@@ -121,7 +124,9 @@ list(
   # Process wave data to 5x5 degree grids
   tar_file_read(
     name = wave_data,
-    command = here::here("data/raw/era5_wind/era5_monthly_average_wave_08052025.nc"),
+    command = here::here(
+      "data/raw/era5_wind/era5_monthly_average_wave_08052025.nc"
+    ),
     read = process_wave_data(!!.x, pixel_size = 5)
   ),
   # Upload wind data to BQ

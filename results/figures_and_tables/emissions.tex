@@ -1,0 +1,40 @@
+\begin{table}
+
+\caption{Effect of Past Pirate Encounters on Shipping Emissions. \label{tab:emission-table}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & Global & G. of Aden & G. of Guinea & S.E. Asia\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): CO2 (tons)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 2.95*** & 25.75*** & 3.86*** & 2.30***\\
+\hspace{1em} & (0.39) & (1.93) & (0.29) & (0.42)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): NOx (kg)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 74.39*** & 666.16*** & 96.14*** & 57.74***\\
+\hspace{1em} & (9.93) & (49.78) & (7.44) & (10.58)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): SOx (kg)}}\\
+\midrule \hspace{1em}Encounters (3 mo) & 61.46*** & 536.13*** & 80.45*** & 47.95***\\
+\hspace{1em} & (8.13) & (40.10) & (6.00) & (8.68)\\
+ &  &  &  \vphantom{1} & \\
+Observations & 26,777,022 & 1,003,520 & 346,715 & 6,377,789\\
+ &  &  &  & \\
+Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Each panel examines a calculated emission in terms of CO2 (tons), NOx (kg), and SOx (kg).
+                      The sample spans from 2013 to 2021. Every column is a different sample:
+                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
+                      Every panel-column combination is a different regression analysis.
+                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
+                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}

@@ -330,9 +330,9 @@ process_wind_data <- function(wind_file, pixel_size) {
 # Process wave height data
 process_wave_data <- function(wave_file, pixel_size) {
   # ERA5 monthly averaged data downloaded from Copernicus, 2012-2024
-  # We get swh, surface wave height
+  # We get swh, surface wave height ("Significant height of combined wind waves and swell")
   # We use the monthly reanalysis data
-  # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels-monthly-means?tab=download
+  # f
   
   # Load u component
   tidync::tidync(wave_file) |> 
