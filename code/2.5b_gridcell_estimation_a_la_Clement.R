@@ -22,9 +22,9 @@ theme_set(theme_minimal(base_size = 7))
 
 # Load data --------------------------------------------------------------------
 panel <- readRDS(here("data", "processed", "attacks_and_activity_by_grid.rds")) |>
-  # replace_na(replace = list(time_hours = 0,
-  #                           distance_km = 0,
-  #                           n_vessels = 0)) |>
+  replace_na(replace = list(time_hours = 0,
+                            distance_km = 0,
+                            n_vessels = 0)) |>
   # Apply inverse hyperbolic sine transformation
   mutate(time_per_vessel = asinh(time_hours / n_vessels),
          dist_per_vessel = asinh(distance_km / n_vessels),
@@ -38,15 +38,12 @@ placebos <- 7
 group <- "grid_id"
 time <- "date"
 treatment <- "number_previous_attacks_grid_1_month"
-# treatment <- "attack"
 
-# i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion
-
-wrap <- function(outcome) {
+wrap <- function(outcome, force = F) {
 
   out_file <- here("data", "output", "es_a_la_Clement", paste0("es_mod_", outcome, ".rds"))
 
-  if(!file.exists(out_file)) {
+  if(!(file.exists(out_file)) || force) {
     print(paste("File", out_file, "not found, proceeding to estimate model"))
     reg <- did_multiplegt_dyn(df = panel,
                               outcome = outcome,
@@ -67,7 +64,7 @@ outcomes <- c("time_hours",
               "time_per_vessel",
               "dist_per_vessel")
 
-walk(outcomes, wrap)
+walk(outcomes, wrap, force = T)
 beepr::beep(4)
 
 
@@ -88,14 +85,10 @@ build_coef_table <- function(model) {
                      lb_ci = 0,
                      ub_ci = 0)) |>
     mutate(outcome = model$args$outcome,
-           title = case_when(outcome == "time_hours" ~ "Occupancy (hr)",
-                             outcome == "time_per_vessel" ~ "Occupancy per vessel (hr/vessel)",
-                             outcome == "time_trip" ~ "Occupancy per voyage (hr/voyage)",
-                             outcome == "distance_km" ~ "Distance (km)",
-                             outcome == "dist_per_vessel" ~ "Distance per vessel (km/vessel)",
-                             outcome == "distance_trip" ~ "Distance per voyage (km/trip)",
-                             outcome == "n_vessels" ~ "Transit (# vessels)",
-                             outcome == "n_trips" ~ "Transit (# voyages)")) |>
+           title = case_when(outcome == "time_hours" ~ "Time",
+                             outcome == "time_per_vessel" ~ "Time / Vessel",
+                             outcome == "distance_km" ~ "Distance",
+                             outcome == "dist_per_vessel" ~ "Distance / Vessel")) |>
     select(outcome, title, term, event, estimate, se, lb_ci, ub_ci, n, switchers, n_w, switchers_w) |>
     arrange(event)
 }
@@ -106,20 +99,14 @@ build_event_study_plot <- function(coef_table) {
          mapping = aes(x = event, y = estimate)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0, linetype = "dashed") +
-    geom_linerange(aes(ymin = lb_ci,
-                       ymax = ub_ci),
-                   linewidth = 0.2,
-                   color = "black") +
-    geom_line() +
-    geom_pointrange(aes(ymin = estimate - se,
-                        ymax = estimate + se),
-                    size = 0.25,
-                    linewidth = 1,
-                    color = "cadetblue") +
+    geom_point(size = 2, color = "#000000") +
+    geom_errorbar(aes(ymin = lb_ci, ymax = ub_ci), width = 0.3, color = "#000000") +
     facet_wrap(~title,
                scales = "free_y") +
     labs(x = "Relative time to last period before treatment changes (t = 0)",
-         y = "Estimate ± (std.error & 95% CI)")
+         y = "Estimate ± (std.error & 95% CI)") +
+    theme_minimal(base_size = 12) +
+    scale_x_continuous(breaks = seq(-7, 7, 2))
 }
 
 files <- list.files(here("data", "output", "es_a_la_Clement"), pattern = "es_mod", full.names = T)
