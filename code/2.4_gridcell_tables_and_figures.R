@@ -17,6 +17,14 @@ event_study_figure_name <- here(output_dir, "cell_level_event_study_2x2.png")
 # Load models and data
 load(file = here("data", "output", "gridcell_models.RData"))
 
+# LOAD PANEL DATA
+panel <- function() {
+  readRDS(here("data", "processed", "ev_panel.rds")) |> 
+    mutate(time_vessels = time_hours/n_vessels,
+           dist_vessels = distance_km/n_vessels)
+}
+
+
 # =============================================================================
 # 2. HELPER FUNCTIONS
 # =============================================================================
@@ -63,8 +71,8 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
 # Set up dictionary for variable names
 setFixest_dict(c(
   post = "Post-Attack",
-  "time_hours/n_vessels" = "Time per Vessel (hrs)",
-  "distance_km/n_vessels" = "Distance per Vessel (km)",
+  "time_vessels" = "Time per Vessel (hrs)",
+  "dist_vessels" = "Distance per Vessel (km)",
   time_hours = "Total Time (hrs)",
   distance_km = "Total Distance (km)",
   n_vessels = "Number of Vessels"
@@ -109,7 +117,7 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel,
+    data = panel(),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -157,8 +165,8 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
 # Create all four event study plots
 p1 <- create_event_study_plot("time_hours", "Time", "asinh(hours)")
 p2 <- create_event_study_plot("distance_km", "Distance", "asinh(kilometer)")
-p3 <- create_event_study_plot("time_hours/n_vessels", "Time / Vessel", "asinh(hours/vessel)")
-p4 <- create_event_study_plot("distance_km/n_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
+p3 <- create_event_study_plot("time_vessels", "Time / Vessel", "asinh(hours/vessel)")
+p4 <- create_event_study_plot("dist_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
 
 # Combine plots into 2x2 grid
 combined_plot <- (p1 + p2) / (p3 + p4) +

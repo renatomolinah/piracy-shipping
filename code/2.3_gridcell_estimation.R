@@ -13,7 +13,11 @@ library(fixest)
 # =============================================================================
 # 1. LOAD PANEL DATA
 # =============================================================================
-panel <- readRDS(here("data", "processed", "ev_panel.rds"))
+panel <- function() {
+  readRDS(here("data", "processed", "ev_panel.rds")) |> 
+    mutate(time_vessels = time_hours/n_vessels,
+           dist_vessels = distance_km/n_vessels)
+}
 
 
 # =============================================================================
@@ -27,7 +31,7 @@ m1_total_time <- conleyreg(
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = panel,
+  data = panel(),
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
@@ -38,29 +42,29 @@ m2_total_distance <- conleyreg(
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = panel,
+  data = panel(),
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
 
 m3_time_per_vessel <- conleyreg(
-  asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  asinh(time_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
   unit = "id",
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = panel,
+  data = panel(),
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
 
 m4_distance_per_vessel <- conleyreg(
-  asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  asinh(dist_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
   unit = "id",
   time = "date",
   lat = "lat_bin",
   lon = "lon_bin",
-  data = panel,
+  data = panel(),
   dist_cutoff = 50,
   lag_cutoff = Inf
 )
@@ -70,22 +74,22 @@ m4_distance_per_vessel <- conleyreg(
 # into a data.frame to be exported along with the models.
 obs_reg_1 <- feols(
   asinh(time_hours) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
+  data = panel()
   )
 
 obs_reg_2 <- feols(
   asinh(distance_km) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
+  data = panel()
   )
 
 obs_reg_3 <- feols(
-  asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
+  asinh(time_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = panel()
   )
 
 obs_reg_4 <- feols(
-  asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
+  asinh(dist_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = panel()
   )
 
 
@@ -107,9 +111,9 @@ rows <- tribble(
 # =============================================================================
 # EXPORT ALL MODELS
 # # =============================================================================
-save(panel,
-     m1_total_time,
+save(m1_total_time,
      m2_total_distance,
      m3_time_per_vessel,
      m4_distance_per_vessel,
-     rows, file = here("data", "output", "gridcell_models.RData"))
+     rows, 
+     file = here("data", "output", "gridcell_models.RData"))

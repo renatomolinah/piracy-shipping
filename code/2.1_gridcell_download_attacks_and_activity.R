@@ -58,6 +58,7 @@ with_clusters <- tbl(piracy, "gridded_pirate_attacks_0_5_v_20250521") %>%
          number_previous_attacks_all_time,
          attack_cluster)
 
+# List of grids attacked in the date range
 grids_attacked_2012_2023 <- with_clusters %>%
   filter(days_since_attack == 0) %>%
   select(grid_id) %>%
@@ -97,7 +98,17 @@ grid_regions <- local_gridded_panel %>%
   st_drop_geometry()
 
 final <- local_gridded_panel %>%
-  left_join(grid_regions, by = "grid_id")
+  left_join(grid_regions, by = "grid_id") |> 
+  replace_na(replace = list(time_hours = 0,
+                            distance_km = 0,
+                            n_vessels = 0,
+                            n_trips = 0,
+                            n_ais_messages = 0))
+
+# Test no NAs in outcome variables
+final |> 
+  select(time_hours:n_ais_messages) |> 
+  lapply(function(x){sum(is.na(x))})
 
 ## EXPORT ######################################################################
 
