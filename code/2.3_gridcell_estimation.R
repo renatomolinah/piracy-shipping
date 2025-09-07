@@ -14,7 +14,7 @@ library(fixest)
 # 1. LOAD PANEL DATA
 # =============================================================================
 panel <- function() {
-  readRDS(here("data", "processed", "ev_panel.rds")) |> 
+  readRDS(here("data", "processed", "ev_panel.rds")) |>
     mutate(time_vessels = time_hours/n_vessels,
            dist_vessels = distance_km/n_vessels)
 }
@@ -47,7 +47,29 @@ m2_total_distance <- conleyreg(
   lag_cutoff = Inf
 )
 
-m3_time_per_vessel <- conleyreg(
+m3_n_vessels <- conleyreg(
+  asinh(n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  unit = "id",
+  time = "date",
+  lat = "lat_bin",
+  lon = "lon_bin",
+  data = panel(),
+  dist_cutoff = 50,
+  lag_cutoff = Inf
+)
+
+m4_n_trips <- conleyreg(
+  asinh(n_trips) ~ post | id + year^month + day_of_week + asam_subregion,
+  unit = "id",
+  time = "date",
+  lat = "lat_bin",
+  lon = "lon_bin",
+  data = panel(),
+  dist_cutoff = 50,
+  lag_cutoff = Inf
+)
+
+m5_time_per_vessel <- conleyreg(
   asinh(time_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
   unit = "id",
   time = "date",
@@ -58,7 +80,7 @@ m3_time_per_vessel <- conleyreg(
   lag_cutoff = Inf
 )
 
-m4_distance_per_vessel <- conleyreg(
+m6_distance_per_vessel <- conleyreg(
   asinh(dist_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
   unit = "id",
   time = "date",
@@ -83,11 +105,21 @@ obs_reg_2 <- feols(
   )
 
 obs_reg_3 <- feols(
-  asinh(time_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  asinh(n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
   data = panel()
   )
 
 obs_reg_4 <- feols(
+  asinh(n_trips) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = panel()
+  )
+
+obs_reg_5 <- feols(
+  asinh(time_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
+  data = panel()
+  )
+
+obs_reg_6 <- feols(
   asinh(dist_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
   data = panel()
   )
@@ -95,17 +127,20 @@ obs_reg_4 <- feols(
 
 # Create rows for additional information
 rows <- tribble(
-  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
-  "", "", "", "", "",
-  "Observations", as.character(nobs(obs_reg_1) %>% format(big.mark = ",")),
+  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)", ~"(5)",~"(6)",
+  "", "", "", "", "", "", "",
+  "Observations",
+  as.character(nobs(obs_reg_1) %>% format(big.mark = ",")),
   as.character(nobs(obs_reg_2) %>% format(big.mark = ",")),
   as.character(nobs(obs_reg_3) %>% format(big.mark = ",")),
   as.character(nobs(obs_reg_4) %>% format(big.mark = ",")),
-  "", "", "", "", "",
-  "Grid Cell FE", "X", "X", "X", "X",
-  "Year-Month FE", "X", "X", "X", "X",
-  "Day of Week FE", "X", "X", "X", "X",
-  "Subregion FE", "X", "X", "X", "X"
+  as.character(nobs(obs_reg_5) %>% format(big.mark = ",")),
+  as.character(nobs(obs_reg_6) %>% format(big.mark = ",")),
+  "", "", "", "", "", "", "",
+  "Grid Cell FE", "X", "X", "X", "X", "X", "X",
+  "Year-Month FE", "X", "X", "X", "X", "X", "X",
+  "Day of Week FE", "X", "X", "X", "X", "X", "X",
+  "Subregion FE", "X", "X", "X", "X", "X", "X"
 )
 
 # =============================================================================
@@ -113,7 +148,9 @@ rows <- tribble(
 # # =============================================================================
 save(m1_total_time,
      m2_total_distance,
-     m3_time_per_vessel,
-     m4_distance_per_vessel,
-     rows, 
+     m3_n_vessels,
+     m4_n_trips,
+     m5_time_per_vessel,
+     m6_distance_per_vessel,
+     rows,
      file = here("data", "output", "gridcell_models.RData"))

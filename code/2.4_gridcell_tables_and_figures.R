@@ -12,14 +12,14 @@ library(modelsummary)
 # File paths and names
 output_dir <- here("results", "figures_and_tables")
 reg_table_name <- here(output_dir, "cell_post_regression.tex")
-event_study_figure_name <- here(output_dir, "cell_level_event_study_2x2.png")
+event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3.png")
 
 # Load models and data
 load(file = here("data", "output", "gridcell_models.RData"))
 
 # LOAD PANEL DATA
 panel <- function() {
-  readRDS(here("data", "processed", "ev_panel.rds")) |> 
+  readRDS(here("data", "processed", "ev_panel.rds")) |>
     mutate(time_vessels = time_hours/n_vessels,
            dist_vessels = distance_km/n_vessels)
 }
@@ -75,14 +75,17 @@ setFixest_dict(c(
   "dist_vessels" = "Distance per Vessel (km)",
   time_hours = "Total Time (hrs)",
   distance_km = "Total Distance (km)",
-  n_vessels = "Number of Vessels"
+  n_vessels = "Number of Vessels",
+  n_trips = "Number of Trips"
 ))
 
 # Create LaTeX table
 msummary(list("Total Time" = m1_total_time,
               "Total Distance" = m2_total_distance,
-              "Time per Vessel" = m3_time_per_vessel,
-              "Distance per Vessel" = m4_distance_per_vessel),
+              "# Vessels" = m3_n_vessels,
+              "# Trips" = m4_n_trips,
+              "Time per Vessel" = m5_time_per_vessel,
+              "Distance per Vessel" = m6_distance_per_vessel),
          coef_rename = c("Post-Attack"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
@@ -90,7 +93,8 @@ msummary(list("Total Time" = m1_total_time,
          add_rows = rows,
          title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
          notes = list("The unit of observation is a grid cell-day. Each column examines a different shipping activity measure:
-                      time per vessel (hours), distance per vessel (kilometers), total time (hours), and total distance (kilometers).
+                      total time (hours), total distance (kilometers), number of vessels, number of trips,
+                      time per vessel (hours / vessel), distance per vessel (kilometers / vessel).
                       Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
                       The analysis uses a 7-day window around attacks to identify treatment periods.
                       All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects."),
@@ -165,11 +169,13 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
 # Create all four event study plots
 p1 <- create_event_study_plot("time_hours", "Time", "asinh(hours)")
 p2 <- create_event_study_plot("distance_km", "Distance", "asinh(kilometer)")
-p3 <- create_event_study_plot("time_vessels", "Time / Vessel", "asinh(hours/vessel)")
-p4 <- create_event_study_plot("dist_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
+p3 <- create_event_study_plot("n_vessels", "# Vessels", "asinh(# vessels)")
+p4 <- create_event_study_plot("n_trips", "# Trips", "asinh(# trips)")
+p5 <- create_event_study_plot("time_vessels", "Time / Vessel", "asinh(hours/vessel)")
+p6 <- create_event_study_plot("dist_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
 
 # Combine plots into 2x2 grid
-combined_plot <- (p1 + p2) / (p3 + p4) +
+combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
   plot_layout(guides = "collect") &
   theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))
 

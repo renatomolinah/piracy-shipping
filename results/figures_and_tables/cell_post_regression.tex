@@ -4,24 +4,25 @@
 \centering
 \begin{adjustbox}{width = .9\textwidth}
 \begin{threeparttable}
-\begin{tabular}[t]{lcccc}
+\begin{tabular}[t]{lcccccc}
 \toprule
-  & Total Time & Total Distance & Time per Vessel & Distance per Vessel\\
+  & Total Time & Total Distance & # Vessels & # Trips & Time per Vessel & Distance per Vessel\\
 \midrule
-Post-Attack & \num{-0.028}** & \num{-0.011} & \num{-0.021}*** & \num{-0.000}\\
- & (\num{0.014}) & (\num{0.019}) & (\num{0.008}) & (\num{0.010})\\
- &  &  &  & \\
-Observations & 32,129 & 32,129 & 27,975 & 27,975\\
- &  &  &  & \\
-Grid Cell FE & X & X & X & X\\
-Year-Month FE & X & X & X & X\\
-Day of Week FE & X & X & X & X\\
-Subregion FE & X & X & X & X\\
+Post-Attack & \num{-0.028}** & \num{-0.011} & \num{-0.015}* & \num{-0.015}* & \num{-0.021}*** & \num{-0.000}\\
+ & (\num{0.014}) & (\num{0.019}) & (\num{0.009}) & (\num{0.009}) & (\num{0.008}) & (\num{0.010})\\
+ &  &  &  &  &  & \\
+Observations & 32,129 & 32,129 & 32,129 & 32,129 & 27,975 & 27,975\\
+ &  &  &  &  &  & \\
+Grid Cell FE & X & X & X & X & X & X\\
+Year-Month FE & X & X & X & X & X & X\\
+Day of Week FE & X & X & X & X & X & X\\
+Subregion FE & X & X & X & X & X & X\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell-day. Each column examines a different shipping activity measure:
-                      time per vessel (hours), distance per vessel (kilometers), total time (hours), and total distance (kilometers).
+                      total time (hours), total distance (kilometers), number of vessels, number of trips,
+                      time per vessel (hours / vessel), distance per vessel (kilometers / vessel).
                       Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
                       The analysis uses a 7-day window around attacks to identify treatment periods.
                       All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects.
