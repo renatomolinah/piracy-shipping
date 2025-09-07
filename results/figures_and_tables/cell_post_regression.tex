@@ -2,31 +2,52 @@
 \centering
 \caption{Effect of Pirate Attacks on Grid Cell Shipping Activity. \label{tab:cell-post-regression}}
 \centering
-\begin{adjustbox}{width = .9\textwidth}
 \begin{threeparttable}
-\begin{tabular}[t]{lcccccc}
+\begin{tabular}[t]{lcccc}
 \toprule
-  & Total Time & Total Distance & # Vessels & # Trips & Time per Vessel & Distance per Vessel\\
+  & Global & G. of Aden & G. of Guinea & S.E. Asia\\
 \midrule
-Post-Attack & \num{-0.028}** & \num{-0.011} & \num{-0.015}* & \num{-0.015}* & \num{-0.021}*** & \num{-0.000}\\
- & (\num{0.014}) & (\num{0.019}) & (\num{0.009}) & (\num{0.009}) & (\num{0.008}) & (\num{0.010})\\
- &  &  &  &  &  & \\
-Observations & 32,129 & 32,129 & 32,129 & 32,129 & 27,975 & 27,975\\
- &  &  &  &  &  & \\
-Grid Cell FE & X & X & X & X & X & X\\
-Year-Month FE & X & X & X & X & X & X\\
-Day of Week FE & X & X & X & X & X & X\\
-Subregion FE & X & X & X & X & X & X\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Time (hours)}}\\
+\midrule \hspace{1em}Post-Attack & -0.028** & 0.073** & -0.119*** & 0.007\\
+\hspace{1em} & (0.014) & (0.035) & (0.028) & (0.023)\\
+\addlinespace[0.5em]
+\hspace{1em}Observations & 32,129 & 3,395 & 9,238 & 12,018 & \\
+\multicolumn{5}{l}{\textit{Panel (B): Total Distance (km)}}\\
+\midrule \hspace{1em}Post-Attack & -0.011 & 0.154** & -0.106*** & 0.018\\
+\hspace{1em} & (0.019) & (0.065) & (0.039) & (0.030)\\
+\addlinespace[0.5em]
+\hspace{1em}Observations & 32,129 & 3,395 & 9,238 & 12,018 & \\
+\multicolumn{5}{l}{\textit{Panel (C): Vessels (\#)}}\\
+\midrule \hspace{1em}Post-Attack & -0.015* & 0.025 & -0.073*** & 0.014\\
+\hspace{1em} & (0.009) & (0.022) & (0.015) & (0.015)\\
+\addlinespace[0.5em]
+\hspace{1em}Observations & 32,129 & 3,395 & 9,238 & 12,018 & \\
+\multicolumn{5}{l}{\textit{Panel (D): Voyages (\#)}}\\
+\midrule \hspace{1em}Post-Attack & -0.015* & 0.026 & -0.073*** & 0.014\\
+\hspace{1em} & (0.009) & (0.022) & (0.015) & (0.016)\\
+\addlinespace[0.5em]
+\hspace{1em}Observations & 32,129 & 3,395 & 9,238 & 12,018 & \\
+\multicolumn{5}{l}{\textit{Panel (E): Time per Vessel (hours / vessel)}}\\
+\midrule \hspace{1em}Post-Attack & -0.021*** & 0.006 & -0.049*** & -0.012\\
+\hspace{1em} & (0.008) & (0.022) & (0.016) & (0.010)\\
+\addlinespace[0.5em]
+\hspace{1em}Observations & 27,975 & 2,505 & 8,081 & 10,954 & \\
+\multicolumn{5}{l}{\textit{Panel (F): Distance per Vessel (km / vessel)}}\\
+\midrule \hspace{1em}Post-Attack & -0.000 & -0.012 & 0.029 & -0.005\\
+\hspace{1em} & (0.010) & (0.025) & (0.018) & (0.014)\\
+\hspace{1em}Observations & 27,975 & 2,505 & 8,081 & 10,954 & \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell-day. Each column examines a different shipping activity measure:
-                      total time (hours), total distance (kilometers), number of vessels, number of trips,
-                      time per vessel (hours / vessel), distance per vessel (kilometers / vessel).
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell-day. Each panel examines a different shipping activity measure:
+                      Panel A: total time (hours), Panel B: total distance (kilometers), Panel C: number of vessels, 
+                      Panel D: number of trips, Panel E: time per vessel (hours/vessel), Panel F: distance per vessel (km/vessel).
+                      Each column represents a different geographic region: Global, Gulf of Aden, Gulf of Guinea, and Southeast Asia.
                       Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
-                      The analysis uses a 7-day window around attacks to identify treatment periods.
+                      The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
                       All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects.
+                      Standard errors are Conley standard errors (50km cutoff) and reported in parentheses.
 \end{tablenotes}
 \end{threeparttable}
-\end{adjustbox}
 \end{table}
