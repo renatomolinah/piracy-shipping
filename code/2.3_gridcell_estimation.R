@@ -13,103 +13,70 @@ library(fixest)
 # =============================================================================
 # 1. LOAD PANEL DATA
 # =============================================================================
-panel <- readRDS(here("data", "processed", "ev_panel.rds"))
+panel <- function() {
+  readRDS(here("data", "processed", "ev_panel.rds")) |>
+    mutate(time_vessels = time_hours/n_vessels,
+           dist_vessels = distance_km/n_vessels,
+           attack_cluster = case_when(attack_cluster == "GoA" ~ "G. of Aden",
+                                      attack_cluster == "GoG" ~ "G. of Guinea",
+                                      attack_cluster == "SEA" ~ "S.E. Asia",
+                                      T ~ attack_cluster))
+}
 
 
 # =============================================================================
 # 2. PRE/POST-REGRESSION ANALYSIS
 # =============================================================================
 
+# A function to perform the estimation
+run_estimation <- function(outcome_var, hotspot = "Global") {
+# If hotspot is provided, we filter the data to only include the hotspot
+# If hotspot is not provided, we use the entire dataset
+  if(hotspot != "Global") {
+    data <- panel() |> filter(attack_cluster == hotspot)
+  } else {
+    data <- panel()
+  }
+
+fml <- as.formula(paste(outcome_var, "~ post | id + year^month + day_of_week + asam_subregion"))
+
+# Run the estimation
+results <- conleyreg(formula = fml,
+                     unit = "id",
+                     time = "date",
+                     lat = "lat_bin",
+                     lon = "lon_bin",
+                     data = data,
+                     dist_cutoff = 50,
+                     lag_cutoff = Inf,
+                     gof = TRUE)
+
+return(results)
+}
+
+# Outcomes of interest
+outcome_vars <- c("asinh(time_hours)",
+                  "asinh(distance_km)",
+                  "asinh(n_vessels)",
+                  "asinh(n_trips)",
+                  "asinh(time_vessels)",
+                  "asinh(dist_vessels)")
+
+# Sub-sample specifications
+hotspots <- c("Global", sort(unique(panel()$attack_cluster)))
+
 # Run post-regressions for different outcome variables using conleyreg with asinh transformation
-m1_total_time <- conleyreg(
-  asinh(time_hours) ~ post | id + year^month + day_of_week + asam_subregion,
-  unit = "id",
-  time = "date",
-  lat = "lat_bin",
-  lon = "lon_bin",
-  data = panel,
-  dist_cutoff = 50,
-  lag_cutoff = Inf
-)
+models <- expand_grid(outcome_var = outcome_vars,
+                      hotspot = hotspots) |>
+  filter(!hotspot == "None") |>
+  mutate(model = map2(outcome_var, hotspot, run_estimation),
+         coefficients = map(model, coefficients),
+         n = map_dbl(model, nobs))
 
-m2_total_distance <- conleyreg(
-  asinh(distance_km) ~ post | id + year^month + day_of_week + asam_subregion,
-  unit = "id",
-  time = "date",
-  lat = "lat_bin",
-  lon = "lon_bin",
-  data = panel,
-  dist_cutoff = 50,
-  lag_cutoff = Inf
-)
-
-m3_time_per_vessel <- conleyreg(
-  asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  unit = "id",
-  time = "date",
-  lat = "lat_bin",
-  lon = "lon_bin",
-  data = panel,
-  dist_cutoff = 50,
-  lag_cutoff = Inf
-)
-
-m4_distance_per_vessel <- conleyreg(
-  asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  unit = "id",
-  time = "date",
-  lat = "lat_bin",
-  lon = "lon_bin",
-  data = panel,
-  dist_cutoff = 50,
-  lag_cutoff = Inf
-)
-
-# Conleyreg doesn't return the number of observations, which we'll need for the tables
-# So now we use fixest to fit a model with the same specification, and we'll extract the number of observations
-# into a data.frame to be exported along with the models.
-obs_reg_1 <- feols(
-  asinh(time_hours) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
-  )
-
-obs_reg_2 <- feols(
-  asinh(distance_km) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
-  )
-
-obs_reg_3 <- feols(
-  asinh(time_hours/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
-  )
-
-obs_reg_4 <- feols(
-  asinh(distance_km/n_vessels) ~ post | id + year^month + day_of_week + asam_subregion,
-  data = panel
-  )
-
-
-# Create rows for additional information
-rows <- tribble(
-  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
-  "", "", "", "", "",
-  "Observations", as.character(nobs(obs_reg_1) %>% format(big.mark = ",")),
-  as.character(nobs(obs_reg_2) %>% format(big.mark = ",")),
-  as.character(nobs(obs_reg_3) %>% format(big.mark = ",")),
-  as.character(nobs(obs_reg_4) %>% format(big.mark = ",")),
-  "", "", "", "", "",
-  "Grid Cell FE", "X", "X", "X", "X",
-  "Year-Month FE", "X", "X", "X", "X",
-  "Day of Week FE", "X", "X", "X", "X",
-  "Subregion FE", "X", "X", "X", "X"
-)
+names(models$coefficients) <- models$hotspot
 
 # =============================================================================
 # EXPORT ALL MODELS
 # # =============================================================================
-save(panel,
-     m1_total_time,
-     m2_total_distance,
-     m3_time_per_vessel,
-     m4_distance_per_vessel,
-     rows, file = here("data", "output", "gridcell_models.RData"))
+save(models,
+     file = here("data", "output", "gridcell_models.RData"))

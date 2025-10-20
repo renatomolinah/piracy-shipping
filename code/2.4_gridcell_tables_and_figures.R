@@ -12,10 +12,18 @@ library(modelsummary)
 # File paths and names
 output_dir <- here("results", "figures_and_tables")
 reg_table_name <- here(output_dir, "cell_post_regression.tex")
-event_study_figure_name <- here(output_dir, "cell_level_event_study_2x2.png")
+event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3.png")
 
 # Load models and data
 load(file = here("data", "output", "gridcell_models.RData"))
+
+# LOAD PANEL DATA
+panel <- function() {
+  readRDS(here("data", "processed", "ev_panel.rds")) |>
+    mutate(time_vessels = time_hours/n_vessels,
+           dist_vessels = distance_km/n_vessels)
+}
+
 
 # =============================================================================
 # 2. HELPER FUNCTIONS
@@ -34,20 +42,6 @@ add_adjust_box <- function(file,
   writeLines(lines, file)
 }
 
-replace_table_headers <- function(file, new_headers) {
-  lines <- readLines(file)
-  header_line_idx <- which(grepl("& \\(", lines))
-  if (length(header_line_idx) == 0) {
-    stop("Header line not found")
-  }
-  header_line <- lines[header_line_idx]
-  for (i in 1:length(new_headers)) {
-    header_line <- sub(paste0("\\(", i, "\\)"), new_headers[i], header_line)
-  }
-  lines[header_line_idx] <- header_line
-  writeLines(lines, file)
-}
-
 adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
   lines <- readLines(file)
   item_line_index <- grep("\\item", lines, fixed = TRUE)
@@ -57,44 +51,101 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
   writeLines(lines, file)
 }
 
+  # Function to add rows with model observations after each sub-panel
+  add_rows_with_observations <- function(file, observations_df) {
+    lines <- readLines(file)
+
+  # Define panel order and their corresponding outcome variables
+  panel_order <- c("Panel (A): Total Time (hours)" = "asinh(time_hours)",
+                   "Panel (B): Total Distance (km)" = "asinh(distance_km)",
+                   "Panel (C): Vessels (#)" = "asinh(n_vessels)",
+                   "Panel (D): Voyages (#)" = "asinh(n_trips)",
+                   "Panel (E): Time per Vessel (hours / vessel)" = "asinh(time_vessels)",
+                   "Panel (F): Distance per Vessel (km / vessel)" = "asinh(dist_vessels)")
+
+  # Find the end of each panel by looking for the next panel header or end of table
+  panel_headers <- grep("Panel \\([A-F]\\):", lines)
+
+  # Add observations row after each panel
+  for (i in seq_along(panel_headers)) {
+    outcome_var <- panel_order[i]
+
+    # Find the end of this panel (start of next panel or before bottomrule)
+    if (i < length(panel_headers)) {
+      panel_end <- panel_headers[i + 1] - 1
+    } else {
+      # For the last panel, find the bottomrule line and insert before it
+      bottomrule_line <- grep("\\\\bottomrule", lines)[1]
+      panel_end <- bottomrule_line - 1
+    }
+
+    # Get the observations for this panel
+    panel_obs <- observations_df[observations_df$outcome_var == outcome_var, ]
+
+    # Create the observations row
+    obs_values <- panel_obs[, -1] # Remove outcome_var
+    # Format each numeric value with commas
+    obs_values_formatted <- sapply(obs_values, function(x) format(x, big.mark = ",", scientific = FALSE))
+    obs_row <- paste("\\hspace{1em}Observations", paste(obs_values_formatted, collapse = " & "), "\\\\", sep = " & ")
+
+    # Insert the observations row before the end of this panel
+    lines <- c(lines[1:panel_end], obs_row, lines[(panel_end + 1):length(lines)])
+
+    # Update panel_headers indices since we added a line
+    panel_headers <- grep("Panel \\([A-F]\\):", lines)
+  }
+
+  writeLines(lines, file)
+}
+
 # =============================================================================
 # 4. BUILD LATEX TABLE
 # =============================================================================
-# Set up dictionary for variable names
-setFixest_dict(c(
-  post = "Post-Attack",
-  "time_hours/n_vessels" = "Time per Vessel (hrs)",
-  "distance_km/n_vessels" = "Distance per Vessel (km)",
-  time_hours = "Total Time (hrs)",
-  distance_km = "Total Distance (km)",
-  n_vessels = "Number of Vessels"
-))
+# Extract models
+time <- models |> filter(outcome_var == "asinh(time_hours)") |> pull(coefficients)
+distance <- models |> filter(outcome_var == "asinh(distance_km)") |> pull(coefficients)
+n_vessels <- models |> filter(outcome_var == "asinh(n_vessels)") |> pull(coefficients)
+n_trips <- models |> filter(outcome_var == "asinh(n_trips)") |> pull(coefficients)
+time_per_vessel <- models |> filter(outcome_var == "asinh(time_vessels)") |> pull(coefficients)
+distance_per_vessel <- models |> filter(outcome_var == "asinh(dist_vessels)") |> pull(coefficients)
+
+# Build a data.frame of rows indicating number of observations
+
+
+# Create observations data frame for the function (keep outcome_var for matching)
+observations_df <- models |>
+  select(outcome_var, hotspot, n) |>
+  pivot_wider(names_from = hotspot, values_from = n)
+
 
 # Create LaTeX table
-msummary(list("Total Time" = m1_total_time,
-              "Total Distance" = m2_total_distance,
-              "Time per Vessel" = m3_time_per_vessel,
-              "Distance per Vessel" = m4_distance_per_vessel),
+msummary(models = list("Panel (A): Total Time (hours)" = time,
+                       "Panel (B): Total Distance (km)" = distance,
+                       "Panel (C): Vessels (#)" = n_vessels,
+                       "Panel (D): Voyages (#)" = n_trips,
+                       "Panel (E): Time per Vessel (hours / vessel)" = time_per_vessel,
+                       "Panel (F): Distance per Vessel (km / vessel)" = distance_per_vessel),
+         shape = "rbind",
          coef_rename = c("Post-Attack"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
-         add_rows = rows,
          title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Each column examines a different shipping activity measure:
-                      time per vessel (hours), distance per vessel (kilometers), total time (hours), and total distance (kilometers).
+         notes = list("The unit of observation is a grid cell-day. Each panel examines a different shipping activity measure:
+                      Panel A: total time (hours), Panel B: total distance (kilometers), Panel C: number of vessels, 
+                      Panel D: number of trips, Panel E: time per vessel (hours/vessel), Panel F: distance per vessel (km/vessel).
+                      Each column represents a different geographic region: Global, Gulf of Aden, Gulf of Guinea, and Southeast Asia.
                       Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
-                      The analysis uses a 7-day window around attacks to identify treatment periods.
-                      All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects."),
+                      The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
+                      All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects.
+                      Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)
 
 # Apply formatting functions
-add_adjust_box(reg_table_name)
-replace_table_headers(reg_table_name,
-                     c("Time per Vessel", "Distance per Vessel", "Total Time", "Total Distance"))
 adjust_notes_font_size(reg_table_name)
+add_rows_with_observations(reg_table_name, observations_df)
 
 # =============================================================================
 # 4. BUILD EVENT-STUDY PLOTS
@@ -109,7 +160,7 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel,
+    data = panel(),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -157,11 +208,13 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
 # Create all four event study plots
 p1 <- create_event_study_plot("time_hours", "Time", "asinh(hours)")
 p2 <- create_event_study_plot("distance_km", "Distance", "asinh(kilometer)")
-p3 <- create_event_study_plot("time_hours/n_vessels", "Time / Vessel", "asinh(hours/vessel)")
-p4 <- create_event_study_plot("distance_km/n_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
+p3 <- create_event_study_plot("n_vessels", "# Vessels", "asinh(# vessels)")
+p4 <- create_event_study_plot("n_trips", "# Trips", "asinh(# trips)")
+p5 <- create_event_study_plot("time_vessels", "Time / Vessel", "asinh(hours/vessel)")
+p6 <- create_event_study_plot("dist_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
 
 # Combine plots into 2x2 grid
-combined_plot <- (p1 + p2) / (p3 + p4) +
+combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
   plot_layout(guides = "collect") &
   theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))
 
