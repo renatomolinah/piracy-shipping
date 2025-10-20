@@ -44,6 +44,8 @@ vessel_info AS(
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
     SUM(main_fuel_consumption_mt_inst + aux_fuel_consumption_mt_inst) total_fuel_consumption_mt_inst,
+    SUM(number_previous_attacks_grid_15_days) number_previous_attacks_15_days_5_degrees,
+    SUM(number_previous_attacks_grid_1_month) number_previous_attacks_1_month_5_degrees,
     SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_5_degrees,
     SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_5_degrees,
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_5_degrees,
@@ -111,7 +113,9 @@ FROM
 # Load 3 degree version
 total_rolling_route_attacks_per_trip_3_degrees AS(
 SELECT
-  *
+  *,
+    EXCEPT(total_route_attacks_last_15_days_3_degrees,
+  total_route_attacks_last_1_month_3_degrees)
 FROM 
 `emlab-gcp.piracy.{total_rolling_route_attacks_per_trip_3_table}`
 ),

@@ -192,6 +192,12 @@ WITH
     MIN(days_since_attack) days_since_attack,
     SUM(
     IF
+      (days_since_attack <= 15,number_attacks,0)) number_previous_attacks_grid_15_days,
+    SUM(
+    IF
+      (days_since_attack <= 1 * 30,number_attacks,0)) number_previous_attacks_grid_1_month,
+    SUM(
+    IF
       (days_since_attack <= 3 * 30,number_attacks,0)) number_previous_attacks_grid_3_months,
     SUM(
     IF
