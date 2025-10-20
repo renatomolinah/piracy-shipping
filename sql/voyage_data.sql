@@ -113,7 +113,7 @@ FROM
 # Load 3 degree version
 total_rolling_route_attacks_per_trip_3_degrees AS(
 SELECT
-  *,
+  *
     EXCEPT(total_route_attacks_last_15_days_3_degrees,
   total_route_attacks_last_1_month_3_degrees)
 FROM 
