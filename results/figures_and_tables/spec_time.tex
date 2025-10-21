@@ -1,5 +1,5 @@
 \begin{table}
-\centering
+
 \caption{Effect of Past Pirate Encounters on Voyage Time. \label{tab:spec-time-table}}
 \centering
 \begin{adjustbox}{width = .9\textwidth}
@@ -8,16 +8,16 @@
 \toprule
   & (1) & (2) & (3) & (4) & (5) & (6)\\
 \midrule
-Encounters (3 mo) & \num{6.11}*** & \num{6.64}*** & \num{1.03}*** & \num{1.01}*** & \num{1.00}*** & \num{1.01}***\\
- & (\num{0.51}) & (\num{0.46}) & (\num{0.12}) & (\num{0.12}) & (\num{0.12}) & (\num{0.12})\\
-Wind Speed (m/s) &  & \num{5.15}*** & \num{-0.25} & \num{-0.23} & \num{-0.39}*** & \num{-0.32}**\\
- &  & (\num{1.10}) & (\num{0.16}) & (\num{0.14}) & (\num{0.15}) & (\num{0.14})\\
-Wind Resistance Index (m/s) &  & \num{-0.25}* & \num{-0.15}*** & \num{-0.15}*** & \num{-0.16}*** & \num{-0.17}***\\
+Encounters (3 mo) & \num{23.54}*** & \num{25.51}*** & \num{2.61}*** & \num{2.56}*** & \num{2.52}*** & \num{2.56}***\\
+ & (\num{1.86}) & (\num{1.67}) & (\num{0.27}) & (\num{0.27}) & (\num{0.27}) & (\num{0.27})\\
+Wind Speed (m/s) &  & \num{6.05}*** & \num{-0.23} & \num{-0.21} & \num{-0.37}** & \num{-0.30}**\\
+ &  & (\num{1.10}) & (\num{0.16}) & (\num{0.14}) & (\num{0.14}) & (\num{0.14})\\
+Wind Resistance Index (m/s) &  & \num{-0.33}** & \num{-0.15}*** & \num{-0.15}*** & \num{-0.16}*** & \num{-0.17}***\\
  &  & (\num{0.14}) & (\num{0.05}) & (\num{0.05}) & (\num{0.05}) & (\num{0.05})\\
-Wave Height (m) &  & \num{51.46}*** & \num{15.19}*** & \num{15.22}*** & \num{14.38}*** & \num{14.05}***\\
- &  & (\num{4.45}) & (\num{0.90}) & (\num{0.80}) & (\num{0.89}) & (\num{0.86})\\
+Wave Height (m) &  & \num{48.77}*** & \num{15.08}*** & \num{15.12}*** & \num{14.28}*** & \num{13.95}***\\
+ &  & (\num{4.45}) & (\num{0.90}) & (\num{0.80}) & (\num{0.90}) & (\num{0.87})\\
  &  &  &  &  &  & \\
-Observations & 20,992,856 & 16,988,597 & 16,988,597 & 16,988,597 & 16,988,597 & 16,988,597\\
+Observations & 20,988,691 & 16,985,622 & 16,985,622 & 16,985,622 & 16,985,622 & 16,985,622\\
  &  &  &  &  &  & \\
 Country Combo. FE &  &  & X & X & X & X\\
 Vessel Type FE &  &  &  & X & X & X\\
@@ -31,7 +31,7 @@ Month-by-Year FE & X & X & X & X & X & X\\
 \item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage.
                       The sample spans from 2013 to 2021.
                       Every column is a different specification.
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
 \end{tablenotes}
