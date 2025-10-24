@@ -1,5 +1,5 @@
 \begin{table}
-\centering
+
 \caption{Effect of Past Pirate Encounters on Shipping Voyages. \label{tab:feature-table}}
 \centering
 \begin{adjustbox}{width = .9\textwidth}
@@ -10,18 +10,18 @@
 \midrule
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & 20.43*** & 137.58*** & 24.38*** & 16.67***\\
-\hspace{1em} & (2.42) & (10.64) & (0.96) & (2.68)\\
+\midrule \hspace{1em}Encounters (3 mo) & 52.62*** & 267.69*** & 51.81*** & 41.61***\\
+\hspace{1em} & (5.42) & (24.46) & (2.28) & (5.89)\\
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (B): Total Time (hr)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & 1.01*** & 5.46*** & 1.51*** & 0.84***\\
-\hspace{1em} & (0.12) & (0.45) & (0.07) & (0.13)\\
+\midrule \hspace{1em}Encounters (3 mo) & 2.56*** & 10.76*** & 3.30*** & 2.04***\\
+\hspace{1em} & (0.27) & (1.01) & (0.18) & (0.29)\\
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (C): Average Speed (km/hr)}}\\
-\midrule \hspace{1em}Encounters (3 mo) & 0.02*** & 0.19*** & 0.03** & 0.02***\\
-\hspace{1em} & (0.00) & (0.02) & (0.01) & (0.00)\\
+\midrule \hspace{1em}Encounters (3 mo) & 0.05*** & 0.35*** & 0.05** & 0.04***\\
+\hspace{1em} & (0.01) & (0.04) & (0.02) & (0.01)\\
  &  &  &  \vphantom{1} & \\
-Observations & 26,781,062 & 1,004,116 & 346,743 & 6,379,243\\
+Observations & 26,777,022 & 1,003,520 & 346,715 & 6,377,789\\
  &  &  &  & \\
 Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
 \bottomrule
@@ -33,7 +33,7 @@ Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
                       Every column is a different sample:
                       Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing
                       through one of the hotspots, respectively. Every panel-column combination is a different regression analysis.
-                      Encounters (3mo) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 90 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot,
                       and a battery of month by year and top port-to-port combination for country-to-country combination dummies.

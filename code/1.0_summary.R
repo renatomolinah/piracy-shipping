@@ -40,7 +40,7 @@ voyage_data <- readRDS(voyage_data_path) %>%
     )
   )  %>%
   mutate(
-    recent_attacks = number_previous_attacks_3_months_5_degrees
+    recent_attacks = number_previous_attacks_15_days_5_degrees
   )
 
 cat("Loaded", nrow(voyage_data), "voyage records for summary statistics\n")
@@ -71,7 +71,7 @@ latex_table <- kbl(
   booktabs = TRUE,
   label = "summary_statistics",
   caption = "Summary Statistics for Voyages by Piracy Hotspot Region",
-  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km/hr)", "Recent Attacks (#/3 mo)"),
+  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km/hr)", "Recent Attacks (#/15 days)"),
   align = c("l", "l", "r", "r", "r", "r"),
   format = "latex"
 ) %>%
