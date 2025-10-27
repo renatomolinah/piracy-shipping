@@ -35,6 +35,8 @@ wdb <- wdb %>% mutate(
   attacks_12mo_num_3 = number_previous_attacks_12_months_3_degrees,
 
   # 5-degree spatial footprint
+  attacks_15day_num_5 = number_previous_attacks_15_days_5_degrees,
+  attacks_30day_num_5 = number_previous_attacks_1_month_5_degrees,
   attacks_3mo_num_5 = number_previous_attacks_3_months_5_degrees,
   attacks_6mo_num_5 = number_previous_attacks_6_months_5_degrees,
   attacks_12mo_num_5 = number_previous_attacks_12_months_5_degrees,
@@ -59,8 +61,11 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 # Run regressions for all specifications
 feature_coefficients <- feols(
   c(distance, time, speed) ~ sw(
+    # 3-degree footprint
     attacks_3mo_num_3, attacks_6mo_num_3, attacks_12mo_num_3,
-    attacks_3mo_num_5, attacks_6mo_num_5, attacks_12mo_num_5,
+    # 5-degree footprint  
+    attacks_15day_num_5, attacks_30day_num_5, attacks_3mo_num_5, attacks_6mo_num_5, attacks_12mo_num_5,
+    # 7-degree footprint
     attacks_3mo_num_7, attacks_6mo_num_7, attacks_12mo_num_7
   ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
@@ -94,14 +99,21 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
     )
   ) %>%
   mutate(
-    timing = str_extract(term, "\\d+mo") %>% str_replace_all("mo", " mo"),
+    timing = case_when(
+      str_detect(term, "15day") ~ "15 day",
+      str_detect(term, "30day") ~ "30 day",
+      str_detect(term, "3mo") ~ "3 mo",
+      str_detect(term, "6mo") ~ "6 mo",
+      str_detect(term, "12mo") ~ "12 mo",
+      TRUE ~ "Other"
+    ),
     degrees = str_extract(term, "\\d+$") %>% str_c(" degrees"),
     term = str_replace(term, "_num_\\d+$", "")
   ) %>%
   mutate(
-    timing = factor(timing, levels = c("3 mo", "6 mo", "12 mo")),
+    timing = factor(timing, levels = c("15 day", "30 day", "3 mo", "6 mo", "12 mo")),
     degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
-    term = factor(term, levels = c("attacks_3mo", "attacks_6mo", "attacks_12mo")),
+    term = factor(term, levels = c("attacks_15day", "attacks_30day", "attacks_3mo", "attacks_6mo", "attacks_12mo")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
     outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))
   ) %>%
@@ -189,6 +201,6 @@ cat("Main estimation analysis completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
 cat("Results saved to:", here("data", "output", "feature_coefficients.rds"), "\n")
-cat("Plot saved to:", here("figures", "all_features.pdf"), "\n")
+cat("Plot saved to:", here("results", "figures_and_tables", "all_features.pdf"), "\n")
 
 

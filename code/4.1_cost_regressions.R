@@ -30,7 +30,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
     fuel_cost = total_fuel_cost_usd_inst/1000,
     total_cost = fuel_cost + labor_cost
   ) |>
-  mutate(attacks_15day_num = number_previous_attacks_15_days_5_degrees)
+  mutate(attacks_7day_num = number_previous_attacks_7_days_5_degrees)
 
 # =============================================================================
 # 2. SET UP FORMULAS AND CONTROLS
@@ -42,7 +42,7 @@ setFixest_dict(c(
   fuel_cost = "Fuel Cost (TUSD)",
   labor_cost = "Labor Cost (TUSD)",
   total_cost = "Total Cost (TUSD)",
-  attacks_15day_num = "Encounters (15 day)",
+  attacks_7day_num = "Encounters (7 day)",
   hotspot = "Hotspot",
   vessel_type = "Vessel type",
   tonnage_decile = "Vessel size",
@@ -94,75 +94,75 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
 # =============================================================================
 
 # Fuel cost regressions
-m1_fuel <- feols(fuel_cost ~ attacks_15day_num + ..wctrl
+m1_fuel <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m2_fuel <- feols(fuel_cost ~ attacks_15day_num + ..wctrl
+m2_fuel <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(aden == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m3_fuel <- feols(fuel_cost ~ attacks_15day_num + ..wctrl
+m3_fuel <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(guinea == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-m4_fuel <- feols(fuel_cost ~ attacks_15day_num + ..wctrl
+m4_fuel <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb %>% filter(asia == 1),
                  cluster = ~country_pair ^ year,
                  lean = T)
 
 # Labor cost regressions
-m1_labor <- feols(labor_cost ~ attacks_15day_num + ..wctrl
+m1_labor <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m2_labor <- feols(labor_cost ~ attacks_15day_num + ..wctrl
+m2_labor <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(aden == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m3_labor <- feols(labor_cost ~ attacks_15day_num + ..wctrl
+m3_labor <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(guinea == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m4_labor <- feols(labor_cost ~ attacks_15day_num + ..wctrl
+m4_labor <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(asia == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
 # Total cost regressions
-m1_total <- feols(total_cost ~ attacks_15day_num + ..wctrl
+m1_total <- feols(total_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m2_total <- feols(total_cost ~ attacks_15day_num + ..wctrl
+m2_total <- feols(total_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(aden == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m3_total <- feols(total_cost ~ attacks_15day_num + ..wctrl
+m3_total <- feols(total_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(guinea == 1),
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-m4_total <- feols(total_cost ~ attacks_15day_num + ..wctrl
+m4_total <- feols(total_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb %>% filter(asia == 1),
                   cluster = ~country_pair ^ year,
@@ -191,7 +191,7 @@ msummary(list("Panel (A): Fuel Cost (TUSD)" = regs_fuel,
               "Panel (B): Labor Cost (TUSD)" = regs_labor,
               "Panel (C): Total Cost (TUSD)" = regs_total),
          coef_omit = c(-1),
-         coef_rename = c("Encounters (15 day)"),
+         coef_rename = c("Encounters (7 day)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -201,7 +201,7 @@ msummary(list("Panel (A): Fuel Cost (TUSD)" = regs_fuel,
                       All coefficients are in thousands of US\\$. The sample spans from 2013 to 2021.
                       Every column is a different sample: Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
                       Every panel-column combination is a different regression analysis.
-                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
@@ -217,12 +217,12 @@ adjust_notes_font_size(here(output_dir, "cost.tex"))
 # 6. SPECIFICATION ANALYSIS - FUEL COST
 # =============================================================================
 
-spec_fuel_1 <- feols(fuel_cost ~ attacks_15day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_fuel_2 <- feols(fuel_cost ~ attacks_15day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_fuel_3 <- feols(fuel_cost ~ attacks_15day_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_fuel_4 <- feols(fuel_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_fuel_5 <- feols(fuel_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_fuel_6 <- feols(fuel_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_1 <- feols(fuel_cost ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_2 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_3 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_4 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_5 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_6 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
 spec_fuel <- list(spec_fuel_1, spec_fuel_2, spec_fuel_3, spec_fuel_4, spec_fuel_5, spec_fuel_6)
 
@@ -245,7 +245,7 @@ rows_spec <- tribble(
 )
 
 msummary(spec_fuel,
-         coef_rename = c("Encounters (15 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
+         coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -254,7 +254,7 @@ msummary(spec_fuel,
          notes = list("The unit of observation is a voyage.
                       The sample spans from 2013 to 2021.
                       Every column is a different specification.
-                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
@@ -268,17 +268,17 @@ adjust_notes_font_size(here(output_dir, "spec_fuel.tex"))
 # 7. SPECIFICATION ANALYSIS - LABOR COST
 # =============================================================================
 
-spec_labor_1 <- feols(labor_cost ~ attacks_15day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_labor_2 <- feols(labor_cost ~ attacks_15day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_labor_3 <- feols(labor_cost ~ attacks_15day_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_labor_4 <- feols(labor_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_labor_5 <- feols(labor_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_labor_6 <- feols(labor_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_1 <- feols(labor_cost ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_2 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_3 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_4 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_5 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_6 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
 spec_labor <- list(spec_labor_1, spec_labor_2, spec_labor_3, spec_labor_4, spec_labor_5, spec_labor_6)
 
 msummary(spec_labor,
-         coef_rename = c("Encounters (15 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
+         coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -287,7 +287,7 @@ msummary(spec_labor,
          notes = list("The unit of observation is a voyage.
                       The sample spans from 2013 to 2021.
                       Every column is a different specification.
-                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
@@ -301,17 +301,17 @@ adjust_notes_font_size(here(output_dir, "spec_labor.tex"))
 # 8. SPECIFICATION ANALYSIS - TOTAL COST
 # =============================================================================
 
-spec_total_1 <- feols(total_cost ~ attacks_15day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_total_2 <- feols(total_cost ~ attacks_15day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_total_3 <- feols(total_cost ~ attacks_15day_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_total_4 <- feols(total_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_total_5 <- feols(total_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
-spec_total_6 <- feols(total_cost ~ attacks_15day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_1 <- feols(total_cost ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_2 <- feols(total_cost ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_3 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_4 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_5 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_6 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
 spec_total <- list(spec_total_1, spec_total_2, spec_total_3, spec_total_4, spec_total_5, spec_total_6)
 
 msummary(spec_total,
-         coef_rename = c("Encounters (15 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
+         coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.2f",
@@ -320,7 +320,7 @@ msummary(spec_total,
          notes = list("The unit of observation is a voyage.
                       The sample spans from 2013 to 2021.
                       Every column is a different specification.
-                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
          threeparttable = TRUE,
@@ -336,21 +336,21 @@ adjust_notes_font_size(here(output_dir, "spec_total.tex"))
 
 # Re-estimate the models used for predictions without lean = TRUE
 # These models need to store fixed effects information for predictions
-m1_fuel_pred <- feols(fuel_cost ~ attacks_15day_num + ..wctrl
+m1_fuel_pred <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                       | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                       wdb,
                       cluster = ~country_pair ^ year,
                       lean = FALSE,
                       combine.quick = FALSE)
 
-m1_labor_pred <- feols(labor_cost ~ attacks_15day_num + ..wctrl
+m1_labor_pred <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                        | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                        wdb,
                        cluster = ~country_pair ^ year,
                        lean = FALSE,
                        combine.quick = FALSE)
 
-m1_total_pred <- feols(total_cost ~ attacks_15day_num + ..wctrl
+m1_total_pred <- feols(total_cost ~ attacks_7day_num + ..wctrl
                        | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                        wdb,
                        cluster = ~country_pair ^ year,
@@ -358,17 +358,17 @@ m1_total_pred <- feols(total_cost ~ attacks_15day_num + ..wctrl
                        combine.quick = FALSE)
 
 pred_global <- wdb %>%
-  select(trip_id, attacks_15day_num, wind_speed, wind_vector, wave_height,
+  select(trip_id, attacks_7day_num, wind_speed, wind_vector, wave_height,
          country_pair, vessel_type, tonnage_decile, hotspot, top_route, month, year)
 
 pred_global <- pred_global %>%
   mutate(
     p_fuel = predict(m1_fuel_pred, newdata = pred_global),
-    np_fuel = predict(m1_fuel_pred, newdata = pred_global %>% mutate(attacks_15day_num = 0)),
+    np_fuel = predict(m1_fuel_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0)),
     p_labor = predict(m1_labor_pred, newdata = pred_global),
-    np_labor = predict(m1_labor_pred, newdata = pred_global %>% mutate(attacks_15day_num = 0)),
+    np_labor = predict(m1_labor_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0)),
     p_total = predict(m1_total_pred, newdata = pred_global),
-    np_total = predict(m1_total_pred, newdata = pred_global %>% mutate(attacks_15day_num = 0))
+    np_total = predict(m1_total_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0))
   )
 
 write_rds(pred_global, here("data", "processed", "cost_pred_global.rds"))
