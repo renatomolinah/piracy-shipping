@@ -65,6 +65,9 @@ vessel_info AS(
   aggregated_3_degrees AS(
   SELECT
     trip_id,
+    SUM(number_previous_attacks_grid_7_days) number_previous_attacks_7_days_3_degrees,
+    SUM(number_previous_attacks_grid_15_days) number_previous_attacks_15_days_3_degrees,
+    SUM(number_previous_attacks_grid_1_month) number_previous_attacks_1_month_3_degrees,
     SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_3_degrees,
     SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_3_degrees,
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_3_degrees
@@ -76,6 +79,9 @@ vessel_info AS(
   aggregated_7_degrees AS(
   SELECT
     trip_id,
+    SUM(number_previous_attacks_grid_7_days) number_previous_attacks_7_days_7_degrees,
+    SUM(number_previous_attacks_grid_15_days) number_previous_attacks_15_days_7_degrees,
+    SUM(number_previous_attacks_grid_1_month) number_previous_attacks_1_month_7_degrees,
     SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_7_degrees,
     SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_7_degrees,
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_7_degrees
@@ -115,10 +121,15 @@ FROM
 total_rolling_route_attacks_per_trip_3_degrees AS(
 SELECT
   *
-    EXCEPT(total_route_attacks_last_7_days_3_degrees, total_route_attacks_last_15_days_3_degrees,
-  total_route_attacks_last_1_month_3_degrees)
 FROM 
 `emlab-gcp.piracy.{total_rolling_route_attacks_per_trip_3_table}`
+),
+# Load 7 degree version
+total_rolling_route_attacks_per_trip_7_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.{total_rolling_route_attacks_per_trip_7_table}`
 ),
 # For each trip, this summarize the average number of attacks previous trips and grids
 # that voyages have previously passed through for that route (not including the current voyage),
@@ -163,7 +174,7 @@ FROM
 LEFT JOIN
 aggregated_3_degrees
 USING(trip_id)
-# Add attack indicators for 3 degree robustness check
+# Add attack indicators for 7 degree robustness check
 LEFT JOIN
 aggregated_7_degrees
 USING(trip_id)
@@ -174,6 +185,10 @@ USING
 (trip_id)
 LEFT  JOIN
 total_rolling_route_attacks_per_trip_3_degrees
+USING
+(trip_id)
+LEFT  JOIN
+total_rolling_route_attacks_per_trip_7_degrees
 USING
 (trip_id)
 # Add attack indicators for average previous attacks along previous trips and previous grids
