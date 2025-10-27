@@ -87,7 +87,7 @@ territorial_seas <- st_read(dsn = "data/raw/World_24NM_v4_20231025_gpkg/eez_24nm
   select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
-track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
+track_info <- tbl(piracy, "gridded_data_0_5_v_20250521") %>%
   mutate(year = sql("EXTRACT(YEAR FROM date)")) %>%
   select(year, lon_bin, lat_bin, trip_id) %>%
   group_by(trip_id) %>%
@@ -96,7 +96,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
   mutate(lon_bin = lon_bin + 0.25,
          lat_bin = lat_bin + 0.25)
 
-pred_info <- tbl(piracy, "full_pred_global_v_20250810") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20251027") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
