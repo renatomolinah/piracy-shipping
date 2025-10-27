@@ -192,6 +192,9 @@ WITH
     MIN(days_since_attack) days_since_attack,
     SUM(
     IF
+      (days_since_attack <= 7,number_attacks,0)) number_previous_attacks_grid_7_days,
+    SUM(
+    IF
       (days_since_attack <= 15,number_attacks,0)) number_previous_attacks_grid_15_days,
     SUM(
     IF
