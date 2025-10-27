@@ -444,7 +444,7 @@ list(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
           pixel_size = 7,
-          gridded_data_table = gridded_data_3_bq$tableReference$tableId,
+          gridded_data_table = gridded_data_7_bq$tableReference$tableId,
           voyage_info_table = voyage_info_bq$tableReference$tableId,
           keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId
