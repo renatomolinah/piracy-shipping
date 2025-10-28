@@ -30,11 +30,15 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
 # Create attack variables for different time windows and spatial footprints
 wdb <- wdb %>% mutate(
   # 3-degree spatial footprint
+  attacks_7day_num_3 = number_previous_attacks_7_days_3_degrees,
+  attacks_15day_num_3 = number_previous_attacks_15_days_3_degrees,
+  attacks_30day_num_3 = number_previous_attacks_1_month_3_degrees,
   attacks_3mo_num_3 = number_previous_attacks_3_months_3_degrees,
   attacks_6mo_num_3 = number_previous_attacks_6_months_3_degrees,
   attacks_12mo_num_3 = number_previous_attacks_12_months_3_degrees,
 
   # 5-degree spatial footprint
+  attacks_7day_num_5 = number_previous_attacks_7_days_5_degrees,
   attacks_15day_num_5 = number_previous_attacks_15_days_5_degrees,
   attacks_30day_num_5 = number_previous_attacks_1_month_5_degrees,
   attacks_3mo_num_5 = number_previous_attacks_3_months_5_degrees,
@@ -42,6 +46,9 @@ wdb <- wdb %>% mutate(
   attacks_12mo_num_5 = number_previous_attacks_12_months_5_degrees,
 
   # 7-degree spatial footprint
+  attacks_7day_num_7 = number_previous_attacks_7_days_7_degrees,
+  attacks_15day_num_7 = number_previous_attacks_15_days_7_degrees,
+  attacks_30day_num_7 = number_previous_attacks_1_month_7_degrees,
   attacks_3mo_num_7 = number_previous_attacks_3_months_7_degrees,
   attacks_6mo_num_7 = number_previous_attacks_6_months_7_degrees,
   attacks_12mo_num_7 = number_previous_attacks_12_months_7_degrees
@@ -58,15 +65,15 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 # 3. MAIN REGRESSIONS
 # =============================================================================
 
-# Run regressions for all specifications
+# Run regressions for all specifications (7, 15, and 30 day windows only)
 feature_coefficients <- feols(
   c(distance, time, speed) ~ sw(
     # 3-degree footprint
-    attacks_3mo_num_3, attacks_6mo_num_3, attacks_12mo_num_3,
+    attacks_7day_num_3, attacks_15day_num_3, attacks_30day_num_3,
     # 5-degree footprint  
-    attacks_15day_num_5, attacks_30day_num_5, attacks_3mo_num_5, attacks_6mo_num_5, attacks_12mo_num_5,
+    attacks_7day_num_5, attacks_15day_num_5, attacks_30day_num_5,
     # 7-degree footprint
-    attacks_3mo_num_7, attacks_6mo_num_7, attacks_12mo_num_7
+    attacks_7day_num_7, attacks_15day_num_7, attacks_30day_num_7
   ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
   data = wdb,
@@ -100,23 +107,22 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
   ) %>%
   mutate(
     timing = case_when(
+      str_detect(term, "7day") ~ "7 day",
       str_detect(term, "15day") ~ "15 day",
       str_detect(term, "30day") ~ "30 day",
-      str_detect(term, "3mo") ~ "3 mo",
-      str_detect(term, "6mo") ~ "6 mo",
-      str_detect(term, "12mo") ~ "12 mo",
       TRUE ~ "Other"
     ),
     degrees = str_extract(term, "\\d+$") %>% str_c(" degrees"),
     term = str_replace(term, "_num_\\d+$", "")
   ) %>%
   mutate(
-    timing = factor(timing, levels = c("15 day", "30 day", "3 mo", "6 mo", "12 mo")),
+    timing = factor(timing, levels = c("7 day", "15 day", "30 day")),
     degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
-    term = factor(term, levels = c("attacks_15day", "attacks_30day", "attacks_3mo", "attacks_6mo", "attacks_12mo")),
+    term = factor(term, levels = c("attacks_7day", "attacks_15day", "attacks_30day")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
     outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))
   ) %>%
+  filter(timing != "Other") %>%
   arrange(sample, timing, degrees, term)
 
 # Save processed coefficient data
@@ -150,10 +156,9 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
     title = "Effect of Pirate Attacks on Shipping Behavior",
-    subtitle = "By time window, spatial footprint, and region",
+    subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°, 7°), and region",
     y = "Estimate ± (std.error & 95%CI)",
-    x = "Time window before departure",
-    caption = "Note: Each point shows the effect of pirate attacks on shipping behavior.\nError bars show standard errors and confidence intervals."
+    x = "Time window before departure"
   ) +
   theme_bw() +
   theme(
@@ -173,16 +178,7 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   )
 
 # Save plot
-ggsave(
-  filename = here("results", "figures_and_tables", "all_features.pdf"),
-  plot = feature_plot,
-  width = 12,
-  height = 7,
-  units = "in",
-  dpi = 300
-)
 
-# Also save as PNG for easier viewing
 ggsave(
   filename = here("results", "figures_and_tables", "all_features.png"),
   plot = feature_plot,
