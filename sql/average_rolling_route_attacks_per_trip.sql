@@ -105,9 +105,58 @@ WITH
   WHERE
     # Only count attacks occurred prior to departure date
     attack_date < departure_date ),
-  # For each trip_id and previous_trip_id, find all grids that previous trips along that route passed through in the past 3 months
-  # Then count up the number of unique attacks that occurred within those previous trip in the 3 months prior to the trip's departure date
+  # For each trip_id and previous_trip_id, find all grids that previous trips along that route passed through in the past X days
+  # Then count up the number of unique attacks that occurred within those previous trip in the X dats prior to the trip's departure date
   # We can replace NULL values with 0s
+  # Start with 7 days
+  total_unique_attacks_in_route_grids_prior_to_trip_past_7_days_by_previous_trip_id AS (
+  SELECT
+    trip_id,
+    previous_trip_id,
+    SUM(number_attacks) total_route_attacks_last_7_days
+  FROM
+    all_route_grid_trips_prior_to_trip_with_attacks
+  WHERE
+    # Only count attacks that happened at most 7 days before the trip's departure date
+    DATE_DIFF(departure_date, attack_date, DAY) <= 7
+    # And count attacks in route grids that were passed through at most 7 days before the trip's departure date
+    AND days_since_grid_was_passed_through <= 7
+  GROUP BY
+    trip_id,
+    previous_trip_id),
+  # Same as above, but for 15 days
+total_unique_attacks_in_route_grids_prior_to_trip_past_15_days_by_previous_trip_id AS (
+  SELECT
+    trip_id,
+    previous_trip_id,
+    SUM(number_attacks) total_route_attacks_last_15_days
+  FROM
+    all_route_grid_trips_prior_to_trip_with_attacks
+  WHERE
+    # Only count attacks that happened at most 15 days before the trip's departure date
+    DATE_DIFF(departure_date, attack_date, DAY) <= 15
+    # And count attacks in route grids that were passed through at most 15 days before the trip's departure date
+    AND days_since_grid_was_passed_through <= 15
+  GROUP BY
+    trip_id,
+    previous_trip_id),
+  # Same as above, but for 1 month
+total_unique_attacks_in_route_grids_prior_to_trip_past_1_month_by_previous_trip_id AS (
+  SELECT
+    trip_id,
+    previous_trip_id,
+    SUM(number_attacks) total_route_attacks_last_1_month
+  FROM
+    all_route_grid_trips_prior_to_trip_with_attacks
+  WHERE
+    # Only count attacks that happened at most 30 days before the trip's departure date
+    DATE_DIFF(departure_date, attack_date, DAY) <= 30
+    # And count attacks in route grids that were passed through at most 30 days before the trip's departure date
+    AND days_since_grid_was_passed_through <= 30
+  GROUP BY
+    trip_id,
+    previous_trip_id),
+  # Same as above, but for 3 months
   total_unique_attacks_in_route_grids_prior_to_trip_past_3_months_by_previous_trip_id AS (
   SELECT
     trip_id,
@@ -156,7 +205,34 @@ WITH
     trip_id,
     previous_trip_id),
   # Now for each trip_id, find average number of attacks across previous_trip_ids
-  # Start with previous 3 month indicator
+  # Do this for 7 days
+    average_unique_attacks_in_route_grids_prior_to_trip_past_7_days AS(
+  SELECT
+    trip_id,
+    AVG(total_route_attacks_last_7_days) average_route_attacks_last_7_days
+  FROM
+    total_unique_attacks_in_route_grids_prior_to_trip_past_7_days_by_previous_trip_id
+  GROUP BY
+    trip_id ),
+  # Now do the same for 15 days
+  average_unique_attacks_in_route_grids_prior_to_trip_past_15_days AS(
+  SELECT
+    trip_id,
+    AVG(total_route_attacks_last_15_days) average_route_attacks_last_15_days
+  FROM
+    total_unique_attacks_in_route_grids_prior_to_trip_past_15_days_by_previous_trip_id
+  GROUP BY
+    trip_id ),
+  # Now do the same for 1 month
+  average_unique_attacks_in_route_grids_prior_to_trip_past_1_month AS(
+  SELECT
+    trip_id,
+    AVG(total_route_attacks_last_1_month) average_route_attacks_last_1_month
+  FROM
+    total_unique_attacks_in_route_grids_prior_to_trip_past_1_month_by_previous_trip_id
+  GROUP BY
+    trip_id ),
+  # Now do the same for 3 month
   average_unique_attacks_in_route_grids_prior_to_trip_past_3_months AS(
   SELECT
     trip_id,
@@ -188,11 +264,26 @@ WITH
 SELECT
   trip_id,
   # Replace NULLs with 0s, since they're true zeros
+  IFNULL(average_route_attacks_last_7_days,0) average_route_attacks_last_7_days_{pixel_size}_degrees,
+  IFNULL(average_route_attacks_last_15_days,0) average_route_attacks_last_15_days_{pixel_size}_degrees,
+  IFNULL(average_route_attacks_last_1_month,0) average_route_attacks_last_1_month_{pixel_size}_degrees,
   IFNULL(average_route_attacks_last_3_months,0) average_route_attacks_last_3_months_{pixel_size}_degrees,
   IFNULL(average_route_attacks_last_6_months,0) average_route_attacks_last_6_months_{pixel_size}_degrees,
   IFNULL(average_route_attacks_last_12_months,0) average_route_attacks_last_12_months_{pixel_size}_degrees
 FROM
   voyage_info
+LEFT JOIN
+  average_unique_attacks_in_route_grids_prior_to_trip_past_7_days
+USING
+  (trip_id)
+LEFT JOIN
+  average_unique_attacks_in_route_grids_prior_to_trip_past_15_days
+USING
+  (trip_id)
+LEFT JOIN
+  average_unique_attacks_in_route_grids_prior_to_trip_past_1_month
+USING
+  (trip_id)
 LEFT JOIN
   average_unique_attacks_in_route_grids_prior_to_trip_past_3_months
 USING

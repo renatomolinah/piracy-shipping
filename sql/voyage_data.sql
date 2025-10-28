@@ -147,6 +147,13 @@ SELECT
   *
 FROM 
 `emlab-gcp.piracy.{average_rolling_route_attacks_per_trip_3_table}`
+)),
+# Load 7 degree version
+average_rolling_route_attacks_per_trip_7_degrees AS(
+SELECT
+  *
+FROM 
+`emlab-gcp.piracy.{average_rolling_route_attacks_per_trip_7_table}`
 )
 SELECT
   * EXCEPT(main_fuel_consumption_mt_inst,
@@ -198,6 +205,10 @@ USING
 (trip_id)
 LEFT  JOIN
 average_rolling_route_attacks_per_trip_3_degrees
+USING
+(trip_id)
+LEFT  JOIN
+average_rolling_route_attacks_per_trip_7_degrees
 USING
 (trip_id)
 # Add monthly fuel prices

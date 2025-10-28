@@ -503,6 +503,28 @@ list(
       bq_billing_project = bq_billing_project
     ),
   ),
+  # Also do 3 degree version
+  tar_file_read(
+    name = average_rolling_route_attacks_per_trip_7_degrees_bq,
+    command = here::here("sql/average_rolling_route_attacks_per_trip.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 7,
+          gridded_data_table = gridded_data_7_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "average_rolling_route_attacks_per_trip_7_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
   # Process voyage-level data, which aggregates gridded data
   # Run query to generate voyage-level data and save on BigQuery
   tar_file_read(
@@ -521,7 +543,8 @@ list(
           total_rolling_route_attacks_per_trip_3_table = total_rolling_route_attacks_per_trip_3_degrees_bq$tableReference$tableId,
           total_rolling_route_attacks_per_trip_7_table = total_rolling_route_attacks_per_trip_7_degrees_bq$tableReference$tableId,
           average_rolling_route_attacks_per_trip_5_table = average_rolling_route_attacks_per_trip_5_degrees_bq$tableReference$tableId,
-          average_rolling_route_attacks_per_trip_3_table = average_rolling_route_attacks_per_trip_3_degrees_bq$tableReference$tableId
+          average_rolling_route_attacks_per_trip_3_table = average_rolling_route_attacks_per_trip_3_degrees_bq$tableReference$tableId,
+          average_rolling_route_attacks_per_trip_7_table = average_rolling_route_attacks_per_trip_7_degrees_bq$tableReference$tableId
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
