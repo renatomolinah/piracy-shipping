@@ -1,8 +1,8 @@
 # =============================================================================
-# MAIN ESTIMATION ANALYSIS - ANY CARGO VESSELS
+# MAIN ESTIMATION ANALYSIS - AVERAGE ATTACKS
 # =============================================================================
-# This script performs the main regression analysis examining how pirate attacks
-# affect shipping behavior for vessels that are any cargo carriers.
+# This script performs the main regression analysis examining how average pirate 
+# attacks affect shipping behavior using 7/15/30 day windows.
 # =============================================================================
 
 library(here)
@@ -20,7 +20,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
   ) %>%
-  filter(drop <= 1, registry_vessel_type_any_cargo) %>%
+  filter(drop <= 1, best_vessel_type_cargo) %>%
   mutate(
     hotspot = ifelse(guinea == 1, "G. of Guinea",
                      ifelse(aden == 1, "G. of Aden",
@@ -30,28 +30,20 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
 # Create attack variables for different time windows and spatial footprints
 wdb <- wdb %>% mutate(
   # 3-degree spatial footprint
-  attacks_7day_num_3 = number_previous_attacks_7_days_3_degrees,
-  attacks_15day_num_3 = number_previous_attacks_15_days_3_degrees,
-  attacks_30day_num_3 = number_previous_attacks_1_month_3_degrees,
-  attacks_3mo_num_3 = number_previous_attacks_3_months_3_degrees,
-  attacks_6mo_num_3 = number_previous_attacks_6_months_3_degrees,
-  attacks_12mo_num_3 = number_previous_attacks_12_months_3_degrees,
+  attacks_7day_ave_3 = average_route_attacks_last_7_days_3_degrees,
+  attacks_15day_ave_3 = average_route_attacks_last_15_days_3_degrees,
+  attacks_30day_ave_3 = average_route_attacks_last_1_month_3_degrees,
+  attacks_3mo_ave_3 = average_route_attacks_last_3_months_3_degrees,
+  attacks_6mo_ave_3 = average_route_attacks_last_6_months_3_degrees,
+  attacks_12mo_ave_3 = average_route_attacks_last_12_months_3_degrees,
 
   # 5-degree spatial footprint
-  attacks_7day_num_5 = number_previous_attacks_7_days_5_degrees,
-  attacks_15day_num_5 = number_previous_attacks_15_days_5_degrees,
-  attacks_30day_num_5 = number_previous_attacks_1_month_5_degrees,
-  attacks_3mo_num_5 = number_previous_attacks_3_months_5_degrees,
-  attacks_6mo_num_5 = number_previous_attacks_6_months_5_degrees,
-  attacks_12mo_num_5 = number_previous_attacks_12_months_5_degrees,
-
-  # 7-degree spatial footprint
-  attacks_7day_num_7 = number_previous_attacks_7_days_7_degrees,
-  attacks_15day_num_7 = number_previous_attacks_15_days_7_degrees,
-  attacks_30day_num_7 = number_previous_attacks_1_month_7_degrees,
-  attacks_3mo_num_7 = number_previous_attacks_3_months_7_degrees,
-  attacks_6mo_num_7 = number_previous_attacks_6_months_7_degrees,
-  attacks_12mo_num_7 = number_previous_attacks_12_months_7_degrees
+  attacks_7day_ave_5 = average_route_attacks_last_7_days_5_degrees,
+  attacks_15day_ave_5 = average_route_attacks_last_15_days_5_degrees,
+  attacks_30day_ave_5 = average_route_attacks_last_1_month_5_degrees,
+  attacks_3mo_ave_5 = average_route_attacks_last_3_months_5_degrees,
+  attacks_6mo_ave_5 = average_route_attacks_last_6_months_5_degrees,
+  attacks_12mo_ave_5 = average_route_attacks_last_12_months_5_degrees
 )
 
 # =============================================================================
@@ -69,11 +61,9 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 feature_coefficients <- feols(
   c(distance, time, speed) ~ sw(
     # 3-degree footprint
-    attacks_7day_num_3, attacks_15day_num_3, attacks_30day_num_3,
+    attacks_7day_ave_3, attacks_15day_ave_3, attacks_30day_ave_3,
     # 5-degree footprint  
-    attacks_7day_num_5, attacks_15day_num_5, attacks_30day_num_5,
-    # 7-degree footprint
-    attacks_7day_num_7, attacks_15day_num_7, attacks_30day_num_7
+    attacks_7day_ave_5, attacks_15day_ave_5, attacks_30day_ave_5
   ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
   data = wdb,
@@ -82,7 +72,7 @@ feature_coefficients <- feols(
 )
 
 # Save regression results
-saveRDS(feature_coefficients, here("data", "output", "feature_coefficients_any_cargo.rds"))
+saveRDS(feature_coefficients, here("data", "output", "feature_coefficients_average.rds"))
 
 # =============================================================================
 # 4. PROCESS COEFFICIENTS FOR VISUALIZATION
@@ -113,11 +103,11 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
       TRUE ~ "Other"
     ),
     degrees = str_extract(term, "\\d+$") %>% str_c(" degrees"),
-    term = str_replace(term, "_num_\\d+$", "")
+    term = str_replace(term, "_ave_\\d+$", "")
   ) %>%
   mutate(
     timing = factor(timing, levels = c("7 day", "15 day", "30 day")),
-    degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
+    degrees = factor(degrees, levels = c("3 degrees", "5 degrees")),
     term = factor(term, levels = c("attacks_7day", "attacks_15day", "attacks_30day")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
     outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))
@@ -126,7 +116,7 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
   arrange(sample, timing, degrees, term)
 
 # Save processed coefficient data
-saveRDS(coef_data, here("data", "processed", "feature_coefficients_any_cargo_clean.rds"))
+saveRDS(coef_data, here("data", "processed", "feature_coefficients_average_clean.rds"))
 
 # =============================================================================
 # 5. CREATE VISUALIZATION
@@ -155,8 +145,8 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
-    title = "Effect of Pirate Attacks on Shipping Behavior (Any Cargo Vessels)",
-    subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°, 7°), and region",
+    title = "Effect of Pirate Attacks on Shipping Behavior (Average Attacks)",
+    subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°), and region",
     y = "Estimate ± (std.error & 95%CI)",
     x = "Time window before departure"
   ) +
@@ -179,7 +169,7 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
 
 # Save plot
 ggsave(
-  filename = here("results", "figures_and_tables", "all_features_any_cargo.png"),
+  filename = here("results", "figures_and_tables", "all_features_average.png"),
   plot = feature_plot,
   width = 12,
   height = 7,
@@ -192,10 +182,10 @@ ggsave(
 # =============================================================================
 
 # Print summary of results
-cat("Main estimation analysis (any cargo) completed.\n")
+cat("Main estimation analysis (average attacks) completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Results saved to:", here("data", "output", "feature_coefficients_any_cargo.rds"), "\n")
-cat("Plot saved to:", here("results", "figures_and_tables", "all_features_any_cargo.png"), "\n")
+cat("Results saved to:", here("data", "output", "feature_coefficients_average.rds"), "\n")
+cat("Plot saved to:", here("results", "figures_and_tables", "all_features_average.png"), "\n")
 
 
