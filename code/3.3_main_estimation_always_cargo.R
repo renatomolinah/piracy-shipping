@@ -1,8 +1,8 @@
 # =============================================================================
-# MAIN ESTIMATION ANALYSIS
+# MAIN ESTIMATION ANALYSIS - ALWAYS CARGO VESSELS
 # =============================================================================
 # This script performs the main regression analysis examining how pirate attacks
-# affect shipping behavior across different time windows and spatial footprints.
+# affect shipping behavior for vessels that are always cargo carriers.
 # =============================================================================
 
 library(here)
@@ -20,7 +20,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
   ) %>%
-  filter(drop <= 1, best_vessel_type_cargo) %>%
+  filter(drop <= 1, registry_vessel_type_always_cargo) %>%
   mutate(
     hotspot = ifelse(guinea == 1, "G. of Guinea",
                      ifelse(aden == 1, "G. of Aden",
@@ -82,7 +82,7 @@ feature_coefficients <- feols(
 )
 
 # Save regression results
-saveRDS(feature_coefficients, here("data", "output", "feature_coefficients.rds"))
+saveRDS(feature_coefficients, here("data", "output", "feature_coefficients_always_cargo.rds"))
 
 # =============================================================================
 # 4. PROCESS COEFFICIENTS FOR VISUALIZATION
@@ -126,7 +126,7 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
   arrange(sample, timing, degrees, term)
 
 # Save processed coefficient data
-saveRDS(coef_data, here("data", "processed", "feature_coefficients_clean.rds"))
+saveRDS(coef_data, here("data", "processed", "feature_coefficients_always_cargo_clean.rds"))
 
 # =============================================================================
 # 5. CREATE VISUALIZATION
@@ -155,7 +155,7 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
-    title = "Effect of Pirate Attacks on Shipping Behavior",
+    title = "Effect of Pirate Attacks on Shipping Behavior (Always Cargo Vessels)",
     subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°, 7°), and region",
     y = "Estimate ± (std.error & 95%CI)",
     x = "Time window before departure"
@@ -178,9 +178,8 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   )
 
 # Save plot
-
 ggsave(
-  filename = here("results", "figures_and_tables", "all_features.png"),
+  filename = here("results", "figures_and_tables", "all_features_always_cargo.png"),
   plot = feature_plot,
   width = 12,
   height = 7,
@@ -193,10 +192,10 @@ ggsave(
 # =============================================================================
 
 # Print summary of results
-cat("Main estimation analysis completed.\n")
+cat("Main estimation analysis (always cargo) completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Results saved to:", here("data", "output", "feature_coefficients.rds"), "\n")
-cat("Plot saved to:", here("results", "figures_and_tables", "all_features.pdf"), "\n")
+cat("Results saved to:", here("data", "output", "feature_coefficients_always_cargo.rds"), "\n")
+cat("Plot saved to:", here("results", "figures_and_tables", "all_features_always_cargo.png"), "\n")
 
 

@@ -8,13 +8,13 @@
 \toprule
   & (1) & (2) & (3) & (4) & (5) & (6)\\
 \midrule
-Encounters (3 mo) & \num{0.58}*** & \num{0.51}*** & \num{0.07}*** & \num{0.05}*** & \num{0.05}*** & \num{0.05}***\\
- & (\num{0.08}) & (\num{0.05}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01})\\
-Wind Speed (m/s) &  & \num{-0.04} & \num{0.00} & \num{0.04}*** & \num{0.03}** & \num{0.02}*\\
+Encounters (7 day) & \num{0.85}*** & \num{0.75}*** & \num{0.09}*** & \num{0.06}*** & \num{0.06}*** & \num{0.05}***\\
+ & (\num{0.11}) & (\num{0.08}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01})\\
+Wind Speed (m/s) &  & \num{-0.03} & \num{0.00} & \num{0.04}*** & \num{0.03}** & \num{0.02}*\\
  &  & (\num{0.06}) & (\num{0.02}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01})\\
 Wind Resistance Index (m/s) &  & \num{-0.11}*** & \num{-0.08}*** & \num{-0.07}*** & \num{-0.07}*** & \num{-0.07}***\\
  &  & (\num{0.02}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01}) & (\num{0.01})\\
-Wave Height (m) &  & \num{1.82}*** & \num{-0.01} & \num{0.02} & \num{-0.03} & \num{0.00}\\
+Wave Height (m) &  & \num{1.79}*** & \num{-0.01} & \num{0.02} & \num{-0.03} & \num{0.00}\\
  &  & (\num{0.19}) & (\num{0.11}) & (\num{0.07}) & (\num{0.07}) & (\num{0.07})\\
  &  &  &  &  &  & \\
 Observations & 20,988,691 & 16,985,622 & 16,985,622 & 16,985,622 & 16,985,622 & 16,985,622\\
@@ -31,7 +31,7 @@ Month-by-Year FE & X & X & X & X & X & X\\
 \item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage.
                       The sample spans from 2013 to 2021.
                       Every column is a different specification.
-                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
 \end{tablenotes}

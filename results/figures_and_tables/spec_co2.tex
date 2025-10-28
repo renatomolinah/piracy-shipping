@@ -1,5 +1,5 @@
 \begin{table}
-\centering
+
 \caption{Effect of Past Pirate Encounters on CO2 Emissions. \label{tab:spec-co2-table}}
 \centering
 \begin{adjustbox}{width = .9\textwidth}
@@ -8,14 +8,14 @@
 \toprule
   & (1) & (2) & (3) & (4) & (5) & (6)\\
 \midrule
-Encounters (15 day) & \num{73.74}*** & \num{82.37}*** & \num{8.68}*** & \num{7.96}*** & \num{7.85}*** & \num{7.83}***\\
- & (\num{5.95}) & (\num{5.18}) & (\num{0.88}) & (\num{0.89}) & (\num{0.89}) & (\num{0.89})\\
-Wind Speed (m/s) &  & \num{19.34}*** & \num{0.71} & \num{1.36}*** & \num{0.82}* & \num{0.78}*\\
- &  & (\num{3.66}) & (\num{0.47}) & (\num{0.45}) & (\num{0.44}) & (\num{0.44})\\
-Wind Resistance Index (m/s) &  & \num{-2.52}*** & \num{-1.17}*** & \num{-0.99}*** & \num{-1.02}*** & \num{-1.01}***\\
- &  & (\num{0.39}) & (\num{0.15}) & (\num{0.14}) & (\num{0.14}) & (\num{0.14})\\
-Wave Height (m) &  & \num{172.52}*** & \num{37.23}*** & \num{31.86}*** & \num{29.44}*** & \num{29.62}***\\
- &  & (\num{14.87}) & (\num{2.58}) & (\num{2.01}) & (\num{2.13}) & (\num{2.14})\\
+Encounters (7 day) & \num{107.88}*** & \num{120.08}*** & \num{10.73}*** & \num{9.82}*** & \num{9.68}*** & \num{9.66}***\\
+ & (\num{8.57}) & (\num{7.46}) & (\num{1.07}) & (\num{1.08}) & (\num{1.08}) & (\num{1.08})\\
+Wind Speed (m/s) &  & \num{20.78}*** & \num{0.70} & \num{1.35}*** & \num{0.81}* & \num{0.77}*\\
+ &  & (\num{3.69}) & (\num{0.47}) & (\num{0.45}) & (\num{0.44}) & (\num{0.44})\\
+Wind Resistance Index (m/s) &  & \num{-2.65}*** & \num{-1.17}*** & \num{-1.00}*** & \num{-1.02}*** & \num{-1.02}***\\
+ &  & (\num{0.42}) & (\num{0.15}) & (\num{0.14}) & (\num{0.14}) & (\num{0.14})\\
+Wave Height (m) &  & \num{167.67}*** & \num{37.13}*** & \num{31.77}*** & \num{29.35}*** & \num{29.53}***\\
+ &  & (\num{14.89}) & (\num{2.59}) & (\num{2.01}) & (\num{2.13}) & (\num{2.14})\\
  &  &  &  &  &  & \\
 Observations & 33,015,555 & 26,777,022 & 26,777,022 & 26,777,022 & 26,777,022 & 26,777,022\\
  &  &  &  &  &  & \\
@@ -31,7 +31,7 @@ Month-by-Year FE & X & X & X & X & X & X\\
 \item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage.
                       The sample spans from 2013 to 2021.
                       Every column is a different specification.
-                      Encounters (15 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 15 days from the departure date using a 5 degree spatial footprint.
+                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
                       Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
 \end{tablenotes}

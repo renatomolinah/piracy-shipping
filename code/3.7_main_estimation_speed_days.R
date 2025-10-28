@@ -1,8 +1,8 @@
 # =============================================================================
-# MAIN ESTIMATION ANALYSIS
+# MAIN ESTIMATION ANALYSIS - WITH SPEED AND DAYS CONTROLS
 # =============================================================================
 # This script performs the main regression analysis examining how pirate attacks
-# affect shipping behavior across different time windows and spatial footprints.
+# affect shipping behavior, including speed and days since attack as controls.
 # =============================================================================
 
 library(here)
@@ -66,15 +66,16 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 # =============================================================================
 
 # Run regressions for all specifications (7, 15, and 30 day windows only)
+# Note: Including speed and days_since_attack as additional controls
 feature_coefficients <- feols(
-  c(distance, time, speed) ~ sw(
+  c(distance, time) ~ sw(
     # 3-degree footprint
     attacks_7day_num_3, attacks_15day_num_3, attacks_30day_num_3,
     # 5-degree footprint  
     attacks_7day_num_5, attacks_15day_num_5, attacks_30day_num_5,
     # 7-degree footprint
     attacks_7day_num_7, attacks_15day_num_7, attacks_30day_num_7
-  ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
+  ) + speed + days_since_attack + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
   data = wdb,
   fsplit = ~hotspot,
@@ -82,7 +83,7 @@ feature_coefficients <- feols(
 )
 
 # Save regression results
-saveRDS(feature_coefficients, here("data", "output", "feature_coefficients.rds"))
+saveRDS(feature_coefficients, here("data", "output", "feature_coefficients_speed_since.rds"))
 
 # =============================================================================
 # 4. PROCESS COEFFICIENTS FOR VISUALIZATION
@@ -101,7 +102,6 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
     outcome = case_when(
       str_detect(outcome, "distance") ~ "Distance (km)",
       str_detect(outcome, "time") ~ "Time (hr)",
-      str_detect(outcome, "speed") ~ "Speed (km/hr)",
       TRUE ~ "Other"
     )
   ) %>%
@@ -120,13 +120,13 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
     degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
     term = factor(term, levels = c("attacks_7day", "attacks_15day", "attacks_30day")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
-    outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))
+    outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)"))
   ) %>%
   filter(timing != "Other") %>%
   arrange(sample, timing, degrees, term)
 
 # Save processed coefficient data
-saveRDS(coef_data, here("data", "processed", "feature_coefficients_clean.rds"))
+saveRDS(coef_data, here("data", "processed", "feature_coefficients_speed_since_clean.rds"))
 
 # =============================================================================
 # 5. CREATE VISUALIZATION
@@ -155,8 +155,6 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
-    title = "Effect of Pirate Attacks on Shipping Behavior",
-    subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°, 7°), and region",
     y = "Estimate ± (std.error & 95%CI)",
     x = "Time window before departure"
   ) +
@@ -171,16 +169,12 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
     strip.text.x = element_text(size = 10, margin = margin(t = 0, b = 1)),
     axis.text.y = element_text(size = 10),
     axis.title.x = element_text(size = 12, margin = margin(t = 10, b = 10)),
-    axis.title.y = element_text(size = 12, margin = margin(r = 10)),
-    plot.title = element_text(size = 14, face = "bold"),
-    plot.subtitle = element_text(size = 12),
-    plot.caption = element_text(size = 9, hjust = 0)
+    axis.title.y = element_text(size = 12, margin = margin(r = 10))
   )
 
 # Save plot
-
 ggsave(
-  filename = here("results", "figures_and_tables", "all_features.png"),
+  filename = here("results", "figures_and_tables", "all_features_speed_since.png"),
   plot = feature_plot,
   width = 12,
   height = 7,
@@ -193,10 +187,10 @@ ggsave(
 # =============================================================================
 
 # Print summary of results
-cat("Main estimation analysis completed.\n")
+cat("Main estimation analysis (with speed and days controls) completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Results saved to:", here("data", "output", "feature_coefficients.rds"), "\n")
-cat("Plot saved to:", here("results", "figures_and_tables", "all_features.pdf"), "\n")
+cat("Results saved to:", here("data", "output", "feature_coefficients_speed_since.rds"), "\n")
+cat("Plot saved to:", here("results", "figures_and_tables", "all_features_speed_since.png"), "\n")
 
 
