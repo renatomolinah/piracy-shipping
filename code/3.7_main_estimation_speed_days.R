@@ -155,8 +155,6 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
-    title = "Effect of Pirate Attacks on Shipping Behavior (with Speed & Days Controls)",
-    subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°, 7°), and region",
     y = "Estimate ± (std.error & 95%CI)",
     x = "Time window before departure"
   ) +
@@ -171,10 +169,7 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
     strip.text.x = element_text(size = 10, margin = margin(t = 0, b = 1)),
     axis.text.y = element_text(size = 10),
     axis.title.x = element_text(size = 12, margin = margin(t = 10, b = 10)),
-    axis.title.y = element_text(size = 12, margin = margin(r = 10)),
-    plot.title = element_text(size = 14, face = "bold"),
-    plot.subtitle = element_text(size = 12),
-    plot.caption = element_text(size = 9, hjust = 0)
+    axis.title.y = element_text(size = 12, margin = margin(r = 10))
   )
 
 # Save plot
