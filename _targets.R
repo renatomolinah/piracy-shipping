@@ -319,6 +319,50 @@ list(
       bq_billing_project = bq_billing_project
     ),
   ),
+  # Make 0.1x0.1 degree version for grid-level analysis robustness checks
+  tar_file_read(
+    name = gridded_data_0_1_bq,
+    command = here::here("sql/gridded_data_0_5.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 0.1,
+          hotspots = hotspots_sql,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_data_0_1_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  # Make 1x1 degree version for grid-level analysis robustness checks
+  tar_file_read(
+    name = gridded_data_1_bq,
+    command = here::here("sql/gridded_data_0_5.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 1,
+          hotspots = hotspots_sql,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          vessel_info_table = vessel_info_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_data_1_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
   # Generate some gridded pirate attack data, for the grid-level analysis
   tar_file_read(
     name = gridded_pirate_attacks_0_5_bq,
