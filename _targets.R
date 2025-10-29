@@ -338,6 +338,44 @@ list(
       bq_billing_project = bq_billing_project
     ),
   ),
+  # Make a 1x1 degree variant for robustness checks
+  tar_file_read(
+    name = gridded_pirate_attacks_1_bq,
+    command = here::here("sql/gridded_pirate_attacks.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 1,
+          hotspots = hotspots_sql,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_pirate_attacks_1_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  # Make a 0.1x0.1 degree variant for robustness checks
+  tar_file_read(
+    name = gridded_pirate_attacks_0_1_bq,
+    command = here::here("sql/gridded_pirate_attacks.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = 0.1,
+          hotspots = hotspots_sql,
+          asam_data_table = asam_data_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("gridded_pirate_attacks_0_1_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
   # Also make a 5x5 degree version, for making figures
   tar_file_read(
     name = gridded_pirate_attacks_5_bq,
