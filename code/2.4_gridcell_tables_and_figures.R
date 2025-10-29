@@ -119,22 +119,20 @@ observations_df <- models |>
 
 
 # Create LaTeX table
-msummary(models = list("Panel (A): Total Time (hours)" = time,
-                       "Panel (B): Total Distance (km)" = distance,
-                       "Panel (C): Vessels (#)" = n_vessels,
-                       "Panel (D): Voyages (#)" = n_trips,
-                       "Panel (E): Time per Vessel (hours / vessel)" = time_per_vessel,
-                       "Panel (F): Distance per Vessel (km / vessel)" = distance_per_vessel),
+msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
+                       "Panel (B): Distance Traveled (km)" = distance,
+                       "Panel (C): Transit (# Vessels)" = n_vessels,
+                       "Panel (D): Transit (# Voyages)" = n_trips,
+                       "Panel (E): Occupancy per Vessel (hours / vessel)" = time_per_vessel,
+                       "Panel (F): Distance Traveled per Vessel (km / vessel)" = distance_per_vessel),
          shape = "rbind",
          coef_rename = c("Post-Attack"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
          title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Each panel examines a different shipping activity measure:
-                      Panel A: total time (hours), Panel B: total distance (kilometers), Panel C: number of vessels, 
-                      Panel D: number of trips, Panel E: time per vessel (hours/vessel), Panel F: distance per vessel (km/vessel).
-                      Each column represents a different geographic region: Global, Gulf of Aden, Gulf of Guinea, and Southeast Asia.
+         notes = list("The unit of observation is a grid cell-day. Each panel examines a different shipping activity measure and
+                      each column represents a different geographic region.
                       Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
                       The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
                       All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects.
@@ -194,27 +192,33 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
   ggplot(coeff_data, aes(x = relative_time, y = estimate)) +
     geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
     geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
-    geom_point(size = 2, color = "#000000") +
-    geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.3, color = "#000000") +
+    geom_linerange(aes(ymin = ci_low,
+                       ymax = ci_high),
+                   linewidth = 0.5, color = "black") +
+    geom_linerange(aes(ymin = estimate - std.error,
+                       ymax = estimate + std.error),
+                   linewidth = 1.5, color = "cadetblue") +
+    geom_point(size = 3, color = "cadetblue") +
     labs(
       title = title,
       x = "Days Relative to Attack",
       y = y_label
     ) +
-    theme_minimal(base_size = 12) +
+    theme_minimal(base_size = 10) +
     scale_x_continuous(breaks = seq(-7, 7, 2))
 }
 
 # Create all four event study plots
-p1 <- create_event_study_plot("time_hours", "Time", "asinh(hours)")
-p2 <- create_event_study_plot("distance_km", "Distance", "asinh(kilometer)")
-p3 <- create_event_study_plot("n_vessels", "# Vessels", "asinh(# vessels)")
-p4 <- create_event_study_plot("n_trips", "# Trips", "asinh(# trips)")
-p5 <- create_event_study_plot("time_vessels", "Time / Vessel", "asinh(hours/vessel)")
-p6 <- create_event_study_plot("dist_vessels", "Distance / Vessel", "asinh(kilometer/vessel)")
+p1 <- create_event_study_plot("time_hours", "A) Occupancy Time (hours)", "Estimate ± (std.error & 95% CI)")
+p2 <- create_event_study_plot("distance_km", "B) Distance Traveled (km)", "Estimate ± (std.error & 95% CI)")
+p3 <- create_event_study_plot("n_vessels", "C) Transit (# Vessels)", "Estimate ± (std.error & 95% CI)")
+p4 <- create_event_study_plot("n_trips", "D) Transit (# Trips)", "Estimate ± (std.error & 95% CI)")
+p5 <- create_event_study_plot("time_vessels", "E) Occupancy per Vessel (hours / vessel)", "Estimate ± (std.error & 95% CI)")
+p6 <- create_event_study_plot("dist_vessels", "F) Distance Traveled per Vessel (km / vessel)", "Estimate ± (std.error & 95% CI)")
 
-# Combine plots into 2x2 grid
+# Combine plots into 2x3 grid
 combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
+
   plot_layout(guides = "collect") &
   theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))
 
@@ -222,8 +226,8 @@ combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
 ggsave(
   filename = event_study_figure_name,
   plot = combined_plot,
-  width = 12,
-  height = 10,
+  width = 9,
+  height = 9,
   dpi = 300
 )
 

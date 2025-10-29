@@ -168,8 +168,8 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
     strip.background = element_blank(),
     strip.text.x = element_text(size = 10, margin = margin(t = 0, b = 1)),
     axis.text.y = element_text(size = 10),
-    axis.title.x = element_text(size = 12, margin = margin(t = 10, b = 10)),
-    axis.title.y = element_text(size = 12, margin = margin(r = 10))
+    axis.title.x = element_text(size = 20, margin = margin(t = 10, b = 10)),
+    axis.title.y = element_text(size = 20, margin = margin(r = 10))
   )
 
 # Save plot
