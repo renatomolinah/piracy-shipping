@@ -194,7 +194,7 @@ make_panel <- function(res = c("0_5", "0_1", "1"), window = 7){
 }
 
 # Now run the pipeline for each 
-panel <- make_panel("0_1")
-panel <- make_panel("0_5")
-panel <- make_panel("1")
+make_panel("0_1")
+make_panel("0_5")
+make_panel("1")
 

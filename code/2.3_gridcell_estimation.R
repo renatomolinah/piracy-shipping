@@ -76,6 +76,16 @@ models <- expand_grid(outcome_var = outcome_vars,
 
 names(models$coefficients) <- models$hotspot
 
+# Robustness on AIS disabling events
+AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
+                                hotspot = c("Global", "G. of Aden", "G. of Guinea"),
+                                res = "0_5") |>
+  mutate(model = pmap(.l = list(outcome_var, hotspot, res), run_estimation),
+         coefficients = map(model, coefficients),
+         n = map_dbl(model, nobs))
+
+names(AIS_disab_models$coefficients) <- AIS_disab_models$hotspot
+
 # =============================================================================
 # EXPORT ALL MODELS
 # # =============================================================================
