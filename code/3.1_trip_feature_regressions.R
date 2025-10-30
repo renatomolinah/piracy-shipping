@@ -75,7 +75,7 @@ replace_table_headers <- function(file, new_headers) {
     stop("Header line not found")
   }
   header_line <- lines[header_line_idx]
-  for (i in 1:length(new_headers)) {
+  for (i in seq_along(new_headers)) {
     header_line <- sub(paste0("\\(", i, "\\)"), new_headers[i], header_line)
   }
   lines[header_line_idx] <- header_line
@@ -425,7 +425,7 @@ adjust_notes_font_size(here(output_dir, "spec_speed.tex"))
 # Print summary of results
 cat("Trip feature regressions completed.\n")
 cat("Number of observations:", nrow(wdb), "\n")
-cat("Tables saved to:", here("data", "figures and tables"), "\n")
+cat("Tables saved to:", here("results", "figures_and_tables"), "\n")
 cat("- features.tex: Main feature table\n")
 cat("- spec_distance.tex: Distance specification table\n")
 cat("- spec_time.tex: Time specification table\n")

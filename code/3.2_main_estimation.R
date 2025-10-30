@@ -155,8 +155,6 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
-    title = "Effect of Pirate Attacks on Shipping Behavior",
-    subtitle = "By time window (7, 15, 30 days), spatial footprint (3°, 5°, 7°), and region",
     y = "Estimate ± (std.error & 95%CI)",
     x = "Time window before departure"
   ) +
@@ -170,11 +168,8 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
     strip.background = element_blank(),
     strip.text.x = element_text(size = 10, margin = margin(t = 0, b = 1)),
     axis.text.y = element_text(size = 10),
-    axis.title.x = element_text(size = 12, margin = margin(t = 10, b = 10)),
-    axis.title.y = element_text(size = 12, margin = margin(r = 10)),
-    plot.title = element_text(size = 14, face = "bold"),
-    plot.subtitle = element_text(size = 12),
-    plot.caption = element_text(size = 9, hjust = 0)
+    axis.title.x = element_text(size = 20, margin = margin(t = 10, b = 10)),
+    axis.title.y = element_text(size = 20, margin = margin(r = 10))
   )
 
 # Save plot
@@ -197,6 +192,6 @@ cat("Main estimation analysis completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
 cat("Results saved to:", here("data", "output", "feature_coefficients.rds"), "\n")
-cat("Plot saved to:", here("results", "figures_and_tables", "all_features.pdf"), "\n")
+cat("Plot saved to:", here("results", "figures_and_tables", "all_features.png"), "\n")
 
 

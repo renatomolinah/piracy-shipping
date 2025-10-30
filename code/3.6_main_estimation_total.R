@@ -1,8 +1,10 @@
 # =============================================================================
 # MAIN ESTIMATION ANALYSIS - TOTAL ATTACKS
 # =============================================================================
-# This script performs the main regression analysis examining how total/average pirate 
+# This script performs the main regression analysis examining how total pirate 
 # attacks affect shipping behavior using 7/15/30 day windows.
+# Total attacks = total count of attacks in grids that voyages have previously 
+# passed through for that route (including the current voyage).
 # =============================================================================
 
 library(here)
@@ -28,22 +30,22 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   )
 
 # Create attack variables for different time windows and spatial footprints
+# Using TOTAL route attacks (not average)
 wdb <- wdb %>% mutate(
   # 3-degree spatial footprint
-  attacks_7day_ave_3 = average_route_attacks_last_7_days_3_degrees,
-  attacks_15day_ave_3 = average_route_attacks_last_15_days_3_degrees,
-  attacks_30day_ave_3 = average_route_attacks_last_1_month_3_degrees,
-  attacks_3mo_ave_3 = average_route_attacks_last_3_months_3_degrees,
-  attacks_6mo_ave_3 = average_route_attacks_last_6_months_3_degrees,
-  attacks_12mo_ave_3 = average_route_attacks_last_12_months_3_degrees,
-
+  attacks_7day_tot_3 = total_route_attacks_last_7_days_3_degrees,
+  attacks_15day_tot_3 = total_route_attacks_last_15_days_3_degrees,
+  attacks_30day_tot_3 = total_route_attacks_last_1_month_3_degrees,
+  
   # 5-degree spatial footprint
-  attacks_7day_ave_5 = average_route_attacks_last_7_days_5_degrees,
-  attacks_15day_ave_5 = average_route_attacks_last_15_days_5_degrees,
-  attacks_30day_ave_5 = average_route_attacks_last_1_month_5_degrees,
-  attacks_3mo_ave_5 = average_route_attacks_last_3_months_5_degrees,
-  attacks_6mo_ave_5 = average_route_attacks_last_6_months_5_degrees,
-  attacks_12mo_ave_5 = average_route_attacks_last_12_months_5_degrees
+  attacks_7day_tot_5 = total_route_attacks_last_7_days_5_degrees,
+  attacks_15day_tot_5 = total_route_attacks_last_15_days_5_degrees,
+  attacks_30day_tot_5 = total_route_attacks_last_1_month_5_degrees,
+
+  # 7-degree spatial footprint
+  attacks_7day_tot_7 = total_route_attacks_last_7_days_7_degrees,
+  attacks_15day_tot_7 = total_route_attacks_last_15_days_7_degrees,
+  attacks_30day_tot_7 = total_route_attacks_last_1_month_7_degrees
 )
 
 # =============================================================================
@@ -61,9 +63,11 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 feature_coefficients <- feols(
   c(distance, time, speed) ~ sw(
     # 3-degree footprint
-    attacks_7day_ave_3, attacks_15day_ave_3, attacks_30day_ave_3,
+    attacks_7day_tot_3, attacks_15day_tot_3, attacks_30day_tot_3,
     # 5-degree footprint  
-    attacks_7day_ave_5, attacks_15day_ave_5, attacks_30day_ave_5
+    attacks_7day_tot_5, attacks_15day_tot_5, attacks_30day_tot_5,
+    # 7-degree footprint
+    attacks_7day_tot_7, attacks_15day_tot_7, attacks_30day_tot_7
   ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
   data = wdb,
@@ -103,11 +107,11 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
       TRUE ~ "Other"
     ),
     degrees = str_extract(term, "\\d+$") %>% str_c(" degrees"),
-    term = str_replace(term, "_ave_\\d+$", "")
+    term = str_replace(term, "_tot_\\d+$", "")
   ) %>%
   mutate(
     timing = factor(timing, levels = c("7 day", "15 day", "30 day")),
-    degrees = factor(degrees, levels = c("3 degrees", "5 degrees")),
+    degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
     term = factor(term, levels = c("attacks_7day", "attacks_15day", "attacks_30day")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
     outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))

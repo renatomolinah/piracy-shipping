@@ -33,17 +33,16 @@ wdb <- wdb %>% mutate(
   attacks_7day_ave_3 = average_route_attacks_last_7_days_3_degrees,
   attacks_15day_ave_3 = average_route_attacks_last_15_days_3_degrees,
   attacks_30day_ave_3 = average_route_attacks_last_1_month_3_degrees,
-  attacks_3mo_ave_3 = average_route_attacks_last_3_months_3_degrees,
-  attacks_6mo_ave_3 = average_route_attacks_last_6_months_3_degrees,
-  attacks_12mo_ave_3 = average_route_attacks_last_12_months_3_degrees,
 
   # 5-degree spatial footprint
   attacks_7day_ave_5 = average_route_attacks_last_7_days_5_degrees,
   attacks_15day_ave_5 = average_route_attacks_last_15_days_5_degrees,
   attacks_30day_ave_5 = average_route_attacks_last_1_month_5_degrees,
-  attacks_3mo_ave_5 = average_route_attacks_last_3_months_5_degrees,
-  attacks_6mo_ave_5 = average_route_attacks_last_6_months_5_degrees,
-  attacks_12mo_ave_5 = average_route_attacks_last_12_months_5_degrees
+
+  # 7-degree spatial footprint
+  attacks_7day_ave_7 = average_route_attacks_last_7_days_7_degrees,
+  attacks_15day_ave_7 = average_route_attacks_last_15_days_7_degrees,
+  attacks_30day_ave_7 = average_route_attacks_last_1_month_7_degrees
 )
 
 # =============================================================================
@@ -63,7 +62,9 @@ feature_coefficients <- feols(
     # 3-degree footprint
     attacks_7day_ave_3, attacks_15day_ave_3, attacks_30day_ave_3,
     # 5-degree footprint  
-    attacks_7day_ave_5, attacks_15day_ave_5, attacks_30day_ave_5
+    attacks_7day_ave_5, attacks_15day_ave_5, attacks_30day_ave_5,
+    # 7-degree footprint
+    attacks_7day_ave_7, attacks_15day_ave_7, attacks_30day_ave_7
   ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
   data = wdb,
@@ -107,7 +108,7 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
   ) %>%
   mutate(
     timing = factor(timing, levels = c("7 day", "15 day", "30 day")),
-    degrees = factor(degrees, levels = c("3 degrees", "5 degrees")),
+    degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
     term = factor(term, levels = c("attacks_7day", "attacks_15day", "attacks_30day")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
     outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))
