@@ -51,10 +51,10 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
   writeLines(lines, file)
 }
 
-  # Function to add rows with model observations after each sub-panel
-  add_rows_with_observations <- function(file, observations_df) {
-    lines <- readLines(file)
-
+# Function to add rows with model observations after each sub-panel
+add_rows_with_observations <- function(file, observations_df) {
+  lines <- readLines(file)
+  
   # Define panel order and their corresponding outcome variables
   panel_order <- c("Panel (A): Total Time (hours)" = "asinh(time_hours)",
                    "Panel (B): Total Distance (km)" = "asinh(distance_km)",
@@ -62,10 +62,10 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
                    "Panel (D): Voyages (#)" = "asinh(n_trips)",
                    "Panel (E): Time per Vessel (hours / vessel)" = "asinh(time_vessels)",
                    "Panel (F): Distance per Vessel (km / vessel)" = "asinh(dist_vessels)")
-
+  
   # Find the end of each panel by looking for the next panel header or end of table
   panel_headers <- grep("Panel \\([A-F]\\):", lines)
-
+  
   # Add observations row after each panel
   for (i in seq_along(panel_headers)) {
     outcome_var <- panel_order[i]
@@ -102,21 +102,18 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
 # 4. BUILD LATEX TABLE
 # =============================================================================
 # Extract models
-time <- models |> filter(outcome_var == "asinh(time_hours)") |> pull(coefficients)
-distance <- models |> filter(outcome_var == "asinh(distance_km)") |> pull(coefficients)
-n_vessels <- models |> filter(outcome_var == "asinh(n_vessels)") |> pull(coefficients)
-n_trips <- models |> filter(outcome_var == "asinh(n_trips)") |> pull(coefficients)
-time_per_vessel <- models |> filter(outcome_var == "asinh(time_vessels)") |> pull(coefficients)
-distance_per_vessel <- models |> filter(outcome_var == "asinh(dist_vessels)") |> pull(coefficients)
-
-# Build a data.frame of rows indicating number of observations
-
+time <- models |> filter(outcome_var == "asinh(time_hours)", res == "0_5") |> pull(coefficients)
+distance <- models |> filter(outcome_var == "asinh(distance_km)", res == "0_5") |> pull(coefficients)
+n_vessels <- models |> filter(outcome_var == "asinh(n_vessels)", res == "0_5") |> pull(coefficients)
+n_trips <- models |> filter(outcome_var == "asinh(n_trips)", res == "0_5") |> pull(coefficients)
+time_per_vessel <- models |> filter(outcome_var == "asinh(time_vessels)", res == "0_5") |> pull(coefficients)
+distance_per_vessel <- models |> filter(outcome_var == "asinh(dist_vessels)", res == "0_5") |> pull(coefficients)
 
 # Create observations data frame for the function (keep outcome_var for matching)
 observations_df <- models |>
+  filter(res == "0_5") |> 
   select(outcome_var, hotspot, n) |>
   pivot_wider(names_from = hotspot, values_from = n)
-
 
 # Create LaTeX table
 msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
@@ -231,7 +228,47 @@ ggsave(
   dpi = 300
 )
 
-
-
-
+## Supplementary mateirals plot
+res_plot <- models |> 
+  select(1:3, coefficients) |> 
+  mutate(coefficients = map(coefficients, broom::tidy, conf.int = T)) |> 
+  unnest(coefficients) |> 
+  mutate(outcome_var = case_when(outcome_var == "asinh(time_hours)" ~ "Occupancy Time (hours)",
+                                 outcome_var == "asinh(distance_km)" ~ "Distance Traveled (km)",
+                                 outcome_var == "asinh(n_vessels)" ~ "Transit (# vessels)",
+                                 outcome_var == "asinh(n_trips)" ~ "Transit (# trips)",
+                                 outcome_var == "asinh(time_vessels)" ~ "Occupancy per Vessel (hours / vessel)",
+                                 outcome_var == "asinh(dist_vessels)" ~ "Distance Traveled per Vessel (km / vessel)"),
+         outcome_var = fct_relevel(outcome_var,
+                                   "Occupancy Time (hours)",
+                                   "Distance Traveled (km)",
+                                   "Transit (# vessels)",
+                                   "Transit (# trips)",
+                                   "Occupancy per Vessel (hours / vessel)",
+                                   "Distance Traveled per Vessel (km / vessel)"),
+         hotspot = ifelse(hotspot == "S.E. Asia", "Southeast Asia", hotspot),
+         hotspot = fct_relevel(hotspot,
+                               "Global",
+                          "G. of Aden",
+                          "G. of Guinea",
+                          "Southeast Asia"),
+    res = paste0(str_replace(res, "_", "."), "°")) |> 
+  ggplot(aes(x = res, y = estimate)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+  geom_linerange(aes(ymin = conf.low, ymax = conf.high),
+                 color = "black", 
+                 linewidth = 0.5) + 
+  geom_linerange(aes(ymin = estimate - std.error,
+                     ymax = estimate + std.error),
+                 color = "black",
+                 linewidth = 1.5) + 
+  geom_point(shape = 21, fill = "cadetblue", size = 4) + 
+  facet_wrap(outcome_var ~ hotspot, scales = "free_y", ncol = 4) +
+  theme_minimal(base_size = 10) +
+  labs(x = "Resolution",
+       y = "Estimate ± (std. error & 95% CI)")
+ggsave(plot = res_plot,
+       filename = here("results/figures_and_tables/cell_post_regression_by_resolution.png"),
+       width = 11,
+       height = 10)
 

@@ -13,8 +13,8 @@ library(fixest)
 # =============================================================================
 # 1. LOAD PANEL DATA
 # =============================================================================
-panel <- function() {
-  readRDS(here("data", "processed", "ev_panel.rds")) |>
+panel <- function(res) {
+  readRDS(here("data", "processed", paste0("ev_panel_", res, ".rds"))) |>
     mutate(time_vessels = time_hours/n_vessels,
            dist_vessels = distance_km/n_vessels,
            attack_cluster = case_when(attack_cluster == "GoA" ~ "G. of Aden",
@@ -29,13 +29,13 @@ panel <- function() {
 # =============================================================================
 
 # A function to perform the estimation
-run_estimation <- function(outcome_var, hotspot = "Global") {
+run_estimation <- function(outcome_var, hotspot = "Global", res) {
 # If hotspot is provided, we filter the data to only include the hotspot
 # If hotspot is not provided, we use the entire dataset
   if(hotspot != "Global") {
-    data <- panel() |> filter(attack_cluster == hotspot)
+    data <- panel(res) |> filter(attack_cluster == hotspot)
   } else {
-    data <- panel()
+    data <- panel(res)
   }
 
 fml <- as.formula(paste(outcome_var, "~ post | id + year^month + day_of_week + asam_subregion"))
@@ -63,13 +63,14 @@ outcome_vars <- c("asinh(time_hours)",
                   "asinh(dist_vessels)")
 
 # Sub-sample specifications
-hotspots <- c("Global", sort(unique(panel()$attack_cluster)))
+hotspots <- c("Global", sort(unique(panel("0_5")$attack_cluster)))
 
 # Run post-regressions for different outcome variables using conleyreg with asinh transformation
 models <- expand_grid(outcome_var = outcome_vars,
-                      hotspot = hotspots) |>
+                      hotspot = hotspots,
+                      res = c("0_1", "0_5", "1")) |>
   filter(!hotspot == "None") |>
-  mutate(model = map2(outcome_var, hotspot, run_estimation),
+  mutate(model = pmap(.l = list(outcome_var, hotspot, res), run_estimation),
          coefficients = map(model, coefficients),
          n = map_dbl(model, nobs))
 

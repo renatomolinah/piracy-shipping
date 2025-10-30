@@ -12,14 +12,15 @@ library(tidyverse)
 # 1. LOAD AND PREPARE DATA
 # =============================================================================
 
-panel <- readRDS(here("data", "processed", "attacks_and_activity_by_grid.rds")) %>%
-  mutate(attack = ifelse(days_since_attack == 0, TRUE, FALSE))
-
-panel <- panel %>%
-  mutate(
-    month = month(date),
-    year = year(date)
-  )
+panel <- function(res = "0_5"){
+  print("Loading data")
+  
+  readRDS(here("data", "processed", paste0("attacks_and_activity_by_grid_", res, ".rds"))) %>%
+    mutate(attack = ifelse(days_since_attack == 0, TRUE, FALSE)) |> 
+    mutate(month = month(date),
+           year = year(date)) |> 
+    rename(id = grid_id)
+}
 
 # =============================================================================
 # 2. EVENT STUDY FUNCTIONS
@@ -167,29 +168,33 @@ propagate_attack_id <- function(dates, id, attack_id, window) {
 # 3. BUILD PANEL
 # =============================================================================
 
-window <- 7
+make_panel <- function(res = c("0_5", "0_1", "1"), window = 7){
+  data <- panel(res) %>%
+    arrange(id, date) %>%
+    group_by(id) %>%
+    mutate(
+      attack_id = identify_and_populate_attacks(id, date, attack, window = window),
+      relative_time = calculate_relative_time_rle(date, id, attack_id, window = window),
+      attack_id = propagate_attack_id(date, id, attack_id, window = window)
+    ) %>%
+    ungroup() |> 
+    filter(!is.na(relative_time)) %>%
+    group_by(id) %>%
+    mutate(
+      post  = ifelse(relative_time >= 0, 1, 0),
+      id = cur_group_id(),
+      day_of_week = weekdays(date),
+      date = as.numeric(date)
+    ) %>%
+    ungroup()
+  
+  # Export the resulting file
+  saveRDS(data, here("data", "processed", paste0("ev_panel_", res, ".rds")))
+  
+}
 
-panel <- panel %>% rename(id = grid_id)
+# Now run the pipeline for each 
+panel <- make_panel("0_1")
+panel <- make_panel("0_5")
+panel <- make_panel("1")
 
-panel <- panel %>%
-  arrange(id, date) %>%
-  group_by(id) %>%
-  mutate(
-    attack_id = identify_and_populate_attacks(id, date, attack, window = window),
-    relative_time = calculate_relative_time_rle(date, id, attack_id, window = window),
-    attack_id = propagate_attack_id(date, id, attack_id, window = window)
-  ) %>%
-  ungroup()
-
-ev_panel <- panel %>%
-  filter(!is.na(relative_time)) %>%
-  group_by(id) %>%
-  mutate(
-    post  = ifelse(relative_time >= 0, 1, 0),
-    id = cur_group_id(),
-    day_of_week = weekdays(date),
-    date = as.numeric(date)
-  ) %>%
-  ungroup()
-
-saveRDS(ev_panel, here("data", "processed", "ev_panel.rds"))
