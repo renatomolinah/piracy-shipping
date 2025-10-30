@@ -147,7 +147,7 @@ SELECT
   *
 FROM 
 `emlab-gcp.piracy.{average_rolling_route_attacks_per_trip_3_table}`
-)),
+),
 # Load 7 degree version
 average_rolling_route_attacks_per_trip_7_degrees AS(
 SELECT
