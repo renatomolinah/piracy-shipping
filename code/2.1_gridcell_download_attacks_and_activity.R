@@ -27,23 +27,23 @@ pacman::p_load(
 bq_auth("juancarlos@ucsb.edu")
 
 # Establish a connection to BigQuery -------------------------------------------
-piracy <- dbConnect(
-  bigquery(),
-  project = "emlab-gcp",
-  dataset = "piracy",
-  billing = "emlab-gcp",
-  use_legacy_sql = FALSE,
-  allowLargeResults = TRUE
-)
-
-gfw <- dbConnect(
-  bigquery(),
-  project = "global-fishing-watch",
-  dataset = "pipe_ais_v3_published",
-  billing = "emlab-gcp",
-  use_legacy_sql = FALSE,
-  allowLargeResults = TRUE
-)
+# piracy <- dbConnect(
+#   bigquery(),
+#   project = "emlab-gcp",
+#   dataset = "piracy",
+#   billing = "emlab-gcp",
+#   use_legacy_sql = FALSE,
+#   allowLargeResults = TRUE
+# )
+# 
+# gfw <- dbConnect(
+#   bigquery(),
+#   project = "global-fishing-watch",
+#   dataset = "pipe_ais_v3_published",
+#   billing = "emlab-gcp",
+#   use_legacy_sql = FALSE,
+#   allowLargeResults = TRUE
+# )
 
 con <- dbConnect(
   bigquery(),
@@ -100,15 +100,14 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
               .groups = "drop")
   
   # Get AIS disabling information ----------------------------------------------
-  vessels <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "vi_ssvid_v"))
+  vessels <- tbl(con, DBI::Id(project = "emlab-gcp", dataset = "piracy", table = "vessel_info_v_20250521"))
   segs <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "segs_activity"))
   disab <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "product_events_ais_disabling"))
   gaps <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "product_events_ais_gaps"))
   
   # Non-fishing vessels only
-  non_fishing <- vessels |> 
-    filter(!on_fishing_list_best) |> 
-    select(ssvid) |> 
+  target_vessels <- vessels |> 
+    select(mmsi) |> 
     distinct()
   
   # Identify good segments
@@ -130,7 +129,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
   # And then count number of unique disabling events by grid cell and date
   gridded_gaps <- gaps |> 
     inner_join(good_segs, by = join_by(gap_start_seg_id == seg_id)) |> 
-    inner_join(non_fishing, by = join_by(ssvid)) |> 
+    inner_join(target_vessels, by = join_by(ssvid == mmsi)) |> 
     mutate(gap_date = sql("EXTRACT(DATE FROM gap_start)")) |> 
     inner_join(disab_ids, by = join_by(gap_id == event_id, gap_date == date)) |> 
     mutate(gap_lon_bin = floor(gap_start_lon / res) * res,
