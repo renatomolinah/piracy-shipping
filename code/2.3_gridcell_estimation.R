@@ -8,7 +8,6 @@
 library(here)
 library(conleyreg)
 library(tidyverse)
-library(fixest)
 
 # =============================================================================
 # 1. LOAD PANEL DATA
