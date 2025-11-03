@@ -108,7 +108,7 @@ spec_tables <- expand_grid(outcome_var = outcome_vars,
 # Robustness on AIS disabling events
 AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
                                 spec = "~ post | id + year^month + day_of_week",
-                                hotspot = c("Global", "G. of Aden", "G. of Guinea"),
+                                hotspot = c("Global", "G. of Aden", "G. of Guinea"), # SE Asia excluded because outcome is constant at 0.
                                 res = "0_5") |>
   mutate(model = pmap(.l = list(outcome_var = outcome_var,
                                 spec = spec,
@@ -119,7 +119,7 @@ AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
 
 names(AIS_disab_models$coefficients) <- AIS_disab_models$hotspot
 
-# =============================================================================
+# # =============================================================================
 # EXPORT ALL MODELS
 # # =============================================================================
 save(models,
