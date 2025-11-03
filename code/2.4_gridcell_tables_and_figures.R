@@ -13,13 +13,14 @@ library(modelsummary)
 output_dir <- here("results", "figures_and_tables")
 reg_table_name <- here(output_dir, "cell_post_regression.tex")
 event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3.png")
+supplementary_event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3_by_resolution.png")
 
 # Load models and data
 load(file = here("data", "output", "gridcell_models.RData"))
 
 # LOAD PANEL DATA
-panel <- function() {
-  readRDS(here("data", "processed", "ev_panel.rds")) |>
+panel <- function(res) {
+  readRDS(here("data", "processed", paste0("ev_panel_", res, ".rds"))) |>
     mutate(time_vessels = time_hours/n_vessels,
            dist_vessels = distance_km/n_vessels)
 }
@@ -147,7 +148,7 @@ add_rows_with_observations(reg_table_name, observations_df)
 # =============================================================================
 
 # Function to create event study plot for a given outcome variable
-create_event_study_plot <- function(outcome_var, title, y_label) {
+create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate ± (std.error & 95% CI)") {
   # Run regression for the specific outcome
   model <- conleyreg(
     as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
@@ -155,7 +156,7 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel(),
+    data = panel(res),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -206,16 +207,27 @@ create_event_study_plot <- function(outcome_var, title, y_label) {
 }
 
 # Create all four event study plots
-p1 <- create_event_study_plot("time_hours", "A) Occupancy Time (hours)", "Estimate ± (std.error & 95% CI)")
-p2 <- create_event_study_plot("distance_km", "B) Distance Traveled (km)", "Estimate ± (std.error & 95% CI)")
-p3 <- create_event_study_plot("n_vessels", "C) Transit (# Vessels)", "Estimate ± (std.error & 95% CI)")
-p4 <- create_event_study_plot("n_trips", "D) Transit (# Trips)", "Estimate ± (std.error & 95% CI)")
-p5 <- create_event_study_plot("time_vessels", "E) Occupancy per Vessel (hours / vessel)", "Estimate ± (std.error & 95% CI)")
-p6 <- create_event_study_plot("dist_vessels", "F) Distance Traveled per Vessel (km / vessel)", "Estimate ± (std.error & 95% CI)")
+p1 <- create_event_study_plot("time_hours",
+                              res = "0_5",
+                              title = "A) Occupancy Time (hours)")
+p2 <- create_event_study_plot("distance_km",
+                              res = "0_5",
+                              title = "B) Distance Traveled (km)")
+p3 <- create_event_study_plot("n_vessels",
+                              res = "0_5",
+                              title = "C) Transit (# Vessels)")
+p4 <- create_event_study_plot("n_trips",
+                              res = "0_5",
+                              title = "D) Transit (# Trips)")
+p5 <- create_event_study_plot("time_vessels",
+                              res = "0_5",
+                              title = "E) Occupancy per Vessel (hours / vessel)")
+p6 <- create_event_study_plot("dist_vessels",
+                              res = "0_5",
+                              title = "F) Distance Traveled per Vessel (km / vessel)")
 
 # Combine plots into 2x3 grid
 combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
-
   plot_layout(guides = "collect") &
   theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))
 
@@ -272,3 +284,124 @@ ggsave(plot = res_plot,
        width = 11,
        height = 10)
 
+
+## Supplementary materials event studies
+
+create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimate ± (std.error & 95% CI)") {
+  # Run regression for the specific outcome
+  model_0_1 <- conleyreg(
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    unit = "id",
+    time = "date",
+    lat = "lat_bin",
+    lon = "lon_bin",
+    data = panel("0_1"),
+    dist_cutoff = 50,
+    lag_cutoff = Inf
+  )
+  
+  model_0_5 <- conleyreg(
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    unit = "id",
+    time = "date",
+    lat = "lat_bin",
+    lon = "lon_bin",
+    data = panel("0_5"),
+    dist_cutoff = 50,
+    lag_cutoff = Inf
+  )
+  
+  model_1 <- conleyreg(
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    unit = "id",
+    time = "date",
+    lat = "lat_bin",
+    lon = "lon_bin",
+    data = panel(+1),
+    dist_cutoff = 50,
+    lag_cutoff = Inf
+  )
+  
+  models <- list("0.1°" = model_0_1,
+                 "0.5°" = model_0_5,
+                 "1°" = model_1)
+  
+  # Extract coefficients
+  coeff_data <- map_dfr(models, broom::tidy, .id = "res") |> 
+    filter(str_detect(term, "relative_time::")) %>%
+    mutate(
+      relative_time = as.integer(str_extract(term, "-?\\d+")),
+      ci_low = estimate - 1.96 * std.error,
+      ci_high = estimate + 1.96 * std.error
+    ) %>%
+    arrange(relative_time)
+  
+  # Add the reference point (-1)
+  ref_row <- tibble(
+    term = "relative_time::-1",
+    res = c("0.1°", "0.5°", "1°"),
+    estimate = 0,
+    std.error = 0,
+    statistic = NA,
+    p.value = NA,
+    relative_time = -1,
+    ci_low = 0,
+    ci_high = 0
+  )
+  
+  coeff_data <- bind_rows(coeff_data, ref_row) %>%
+    arrange(relative_time)
+  
+  # Create plot
+  ggplot(coeff_data, aes(x = relative_time, y = estimate, color = res, group = res)) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+    geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+    geom_linerange(aes(ymin = ci_low,
+                       ymax = ci_high),
+                   linewidth = 0.3, color = "black",
+                   position = position_dodge(width = 1)) +
+    geom_linerange(aes(ymin = estimate - std.error,
+                       ymax = estimate + std.error),
+                   linewidth = 1,
+                   position = position_dodge(width = 1)) +
+    geom_point(size = 2, position = position_dodge(width = 1)) +
+    scale_color_manual(values = c("steelblue","cadetblue", "lightblue")) +
+    labs(
+      title = title,
+      x = "Days Relative to Attack",
+      y = y_label,
+      color = "Resolution"
+    ) +
+    theme_minimal(base_size = 10) +
+    scale_x_continuous(breaks = seq(-7, 7, 2))
+}
+
+
+# Create all four event study plots
+sp1 <- create_multi_event_study_plot("time_hours",
+                              title = "A) Occupancy Time (hours)")
+sp2 <- create_multi_event_study_plot("distance_km",
+                              title = "B) Distance Traveled (km)")
+sp3 <- create_multi_event_study_plot("n_vessels",
+                              title = "C) Transit (# Vessels)")
+sp4 <- create_multi_event_study_plot("n_trips",
+                              title = "D) Transit (# Trips)")
+sp5 <- create_multi_event_study_plot("time_vessels",
+                              title = "E) Occupancy per Vessel (hours / vessel)")
+sp6 <- create_multi_event_study_plot("dist_vessels",
+                              title = "F) Distance Traveled per Vessel (km / vessel)")
+
+# Combine plots into 2x3 grid
+s_combined_plot <- (sp1 + sp2) / (sp3 + sp4) / (sp5 + sp6) +
+  plot_layout(guides = "collect") &
+  theme(plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))
+
+
+# Save the combined supplementary plot
+ggsave(
+  filename = supplementary_event_study_figure_name,
+  plot = s_combined_plot,
+  width = 10,
+  height = 10,
+  dpi = 300
+)
