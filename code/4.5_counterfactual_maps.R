@@ -56,19 +56,6 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
-# hotspot <- readRDS("processed_data/hotspots") %>%
-#   mutate(cluster = case_when(cluster == "hotspot_southeast_asia" ~ "Southeast Asia",
-#                              cluster == "hotspot_gulf_of_aden" ~ "Gulf of Aden",
-#                              cluster == "hotspot_gulf_of_guinea" ~ "Gulf of Guinea") %>%
-#            fct_relevel("Gulf of Guinea")) %>%
-#   dplyr::rowwise() %>%
-#   dplyr::mutate(geometry = sf::st_geometry(sf::st_polygon(list(rbind(c(lon_min,lat_min),
-#                                                                      c(lon_max,lat_min),
-#                                                                      c(lon_max,lat_max),
-#                                                                      c(lon_min,lat_max),
-#                                                                      c(lon_min,lat_min)))))) %>%
-#   sf::st_as_sf(sf_column_name = "geometry", crs = 4326)
-
 coast <- rnaturalearth::ne_countries(returnclass = "sf")
 coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
 
