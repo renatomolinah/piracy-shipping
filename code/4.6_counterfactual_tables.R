@@ -22,6 +22,18 @@ pacman::p_load(
   tidyverse
 )
 
+add_adjust_box <- function(file,
+                           line_before = "\\begin{adjustbox}{width = .9\\textwidth}",
+                           line_after = "\\end{adjustbox}",
+                           before = "\\begin{threeparttable}",
+                           after = "\\end{threeparttable}") {
+  lines <- readLines(file)
+  after_line <- grep(after, lines, fixed = TRUE)
+  before_line <- grep(before, lines, fixed = TRUE)
+  lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
+  writeLines(lines, file)
+}
+
 
 # Authenticate using local token -----------------------------------------------
 bq_auth("juancarlos@ucsb.edu")
@@ -37,7 +49,7 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
-pred_info <- tbl(piracy, "full_pred_global_v_20250810") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20251027") %>%
   mutate(
     fuel = p_fuel - np_fuel,
     labor = p_labor - np_labor,
@@ -81,14 +93,14 @@ pred_info_local <- pred_info %>%
 # X ----------------------------------------------------------------------------
 counterfactual_costs <- dsummary((fuel + labor + total) * Hotspot ~ sum * year, data = pred_info_local,
                                  output = "data.frame") %>%
-  mutate_at(3:11, as.numeric) %>%
-  mutate_at(3:11, ~scales::comma(., accuracy = 1)) %>%
-  select(2:11)
+  mutate_at(3:14, as.numeric) %>%
+  mutate_at(3:14, ~scales::comma(., accuracy = 1)) %>%
+  select(2:14)
 
 kbl(x = counterfactual_costs,
     booktabs = TRUE,
-    label = "tab:agg.cost",
-    col.names = c("", 2013:2021),
+    label = "agg_cost",
+    col.names = c("", 2012:2023),
     caption = "Total Costs of Piracy to the Shipping Industry.",
     linesep = "",
     format = "latex") %>%
@@ -106,14 +118,14 @@ add_adjust_box(here("results", "figures_and_tables", "counterfactual_costs.tex")
 # X ----------------------------------------------------------------------------
 counterfactual_emissions <- dsummary((co2 / 1000 + nox + sox) * Hotspot ~ sum * year, data = pred_info_local,
                                      output = "data.frame") %>%
-  mutate_at(3:11, as.numeric) %>%
-  mutate_at(3:11, ~scales::comma(., accuracy = 1)) %>%
-  select(2:11)
+  mutate_at(3:14, as.numeric) %>%
+  mutate_at(3:14, ~scales::comma(., accuracy = 1)) %>%
+  select(2:14)
 
 kbl(x = counterfactual_emissions,
     booktabs = TRUE,
-    label = "tab:counterfactual_emissions",
-    col.names = c("", 2013:2021),
+    label = "counterfactual_emissions",
+    col.names = c("", 2012:2023),
     caption = "Total Emission of Air Pollutants due to Piracy",
     linesep = "",
     format = "latex") %>%
