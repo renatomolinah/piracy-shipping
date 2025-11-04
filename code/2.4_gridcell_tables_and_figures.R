@@ -12,11 +12,14 @@ library(modelsummary)
 # File paths and names
 output_dir <- here("results", "figures_and_tables")
 reg_table_name <- here(output_dir, "cell_post_regression.tex")
+AIS_disab_table_name <- here(output_dir, "AIS_disabling_cell_post_regression.tex")
 event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3.png")
 supplementary_event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3_by_resolution.png")
 
 # Load models and data
 load(file = here("data", "output", "gridcell_models.RData"))
+load(file = here("data", "output", "gridcell_spec_models.RData"))
+load(file = here("data", "output", "gridcell_AIS_disabling.RData"))
 
 # LOAD PANEL DATA
 panel <- function(res) {
@@ -133,7 +136,7 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
                       each column represents a different geographic region.
                       Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
                       The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
-                      All regressions include grid cell, year-month, day of week, and ASAM subregion fixed effects.
+                      All regressions include grid cell, year-month, and day of week.
                       Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
@@ -144,7 +147,7 @@ adjust_notes_font_size(reg_table_name)
 add_rows_with_observations(reg_table_name, observations_df)
 
 # =============================================================================
-# 4. BUILD EVENT-STUDY PLOTS
+# 5. BUILD EVENT-STUDY PLOTS
 # =============================================================================
 
 # Function to create event study plot for a given outcome variable
@@ -240,7 +243,11 @@ ggsave(
   dpi = 300
 )
 
-## Supplementary mateirals plot
+# =============================================================================
+# 7. BUILD EVENT-STUDY PLOTS FOR DIFFERENT RESOLUTIONS
+# =============================================================================
+
+## Supplementary materials plot
 res_plot <- models |> 
   select(1:3, coefficients) |> 
   mutate(coefficients = map(coefficients, broom::tidy, conf.int = T)) |> 
@@ -405,3 +412,36 @@ ggsave(
   height = 10,
   dpi = 300
 )
+
+# =============================================================================
+# 8. BUILD TABLE FOR AIS DISABLING EVENT
+# =============================================================================
+
+AIS_disab <- create_event_study_plot("n_ais_disabling",
+                                     res = "0_5",
+                                     title = "# AIS disabling events")
+AIS_observations_df <- AIS_disab_models |>
+  filter(res == "0_5") |> 
+  select(outcome_var, hotspot, n) |>
+  pivot_wider(names_from = hotspot, values_from = n)
+
+modelsummary(AIS_disab_models$coefficients,
+             coef_rename = c("Post-Attack"),
+             gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+             stars = c('*' = .1, '**' = .05, '***' = .01),
+             fmt = "%.3f",
+             title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:ais-disabling}",
+             notes = list("The unit of observation is a grid cell-day. Each each column represents a different geographic region.
+                      The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels.
+                      Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
+                      The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
+                      All regressions include grid cell, year-month, and day of week fixed effects.
+                      Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
+             threeparttable = TRUE,
+             escape = FALSE,
+             output = AIS_disab_table_name)
+
+# Add other rows
+adjust_notes_font_size(AIS_disab_table_name)
+add_rows_with_observations(reg_table_name, AIS_observations_df)
+
