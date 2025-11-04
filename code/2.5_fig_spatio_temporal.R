@@ -8,6 +8,7 @@ pacman::p_load(
   rnaturalearth,
   zoo,
   cowplot,
+  colorspace,
   tidyverse
 )
 
@@ -42,8 +43,8 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
-grid_level_panel <- readRDS(file = here("processed_data",
-                                        "attacks_and_activity_by_grid.rds"))
+grid_level_panel <- readRDS(file = here("data", "processed",
+                                        "attacks_and_activity_by_grid_0_5.rds"))
 
 ## PROCESSING ##################################################################
 # event_study_panel %>%
@@ -130,7 +131,7 @@ get_tracks <- function(pars) {
   focus_lon <- pars$focus_lon
   
   
-  tracks <- tbl(piracy, "ungridded_data_v_20240228") %>%
+  tracks <- tbl(piracy, "ungridded_data_v_20250521") %>%
     mutate(date = sql("EXTRACT(DATE from timestamp)")) %>% 
     filter(between(lat, focus_lat - 3, focus_lat + 3),
            between(lon, focus_lon - 3, focus_lon + 3),
@@ -226,52 +227,26 @@ case_plot <- function(attack_id) {
 }
 
 # Get data #####################################################################
-pars <- get_pars("-1.5_117 2013-06-19")
-tracks <- get_tracks(pars)
-grid_activity <- get_grid_activity(pars)
-ts <- make_ts_plot(grid_activity)
-spat <- make_spat_plot(tracks, pars)
+sea_plot <- case_plot(attack_id = "-1.5_117 2013-06-19")
 
 goa_plot <- case_plot(attack_id = "22.5_69.5 2015-10-29")
 gog_plot <- case_plot(attack_id = "6_3 2017-09-20")
-sea_plot <- case_plot(attack_id = "-1.5_117 2013-06-19")
 oth_plot <- case_plot(attack_id = "38.5_119 2019-01-30")
 
-# 1 GoA            22.5_69.5 2015-10-29   208   175   -33 -0.159
-# 2 GoG            6_3 2017-09-20         144   118   -26 -0.181
-# 3 None           38.5_119 2019-01-30   1075   844  -231 -0.215
-# 4 SEA            -1.5_117 2013-06-19    270    98  -172 -0.637
-
 ggsave(plot = sea_plot,
-       filename = here("figures", "spatio_temporal_figure.pdf"),
+       filename = here("results", "figures_and_tables", "spatio_temporal_figure_sea.png"),
        width = 12.1,
        height = 8,
        units = "cm")
 
+ggsave(plot = goa_plot,
+       filename = here("results", "figures_and_tables", "spatio_temporal_figure_goa.png"),
+       width = 12.1,
+       height = 8,
+       units = "cm")
 
-tracks2 <- tracks %>%
-  mutate(lon_bin = (floor(lon / 0.25) * 0.25) + 0.125,
-         lat_bin = (floor(lat / 0.25) * 0.25) + 0.125) %>%
-  group_by(post, lat_bin, lon_bin) %>%
-  summarize(h = n_distinct(mmsi), .groups = "drop") %>% 
-  complete(lat_bin, lon_bin, post)
-
-
-ggplot(tracks2, aes(x = lon_bin, y = lat_bin, fill = h)) +
-  geom_raster() +
-  geom_sf(data = coast, inherit.aes = F) +
-  geom_point(data = tracks %>% 
-               mutate(post = fct_relevel(post, "Before encounter", "After encounter")),
-             mapping = aes(x = lon, y = lat), pch = ".", inherit.aes = F) +
-  facet_wrap(~post) +
-  geom_point(aes(x = focus_lon + 0.25, y = focus_lat + 0.25),
-             color = "black", shape = "X", size = 3) +
-  guides(fill = guide_colorsteps(ticks = T)) +
-  # scale_fill_discrete(type = rev(colors)) +
-  # scale_fill_discrete(type = wesanderson::wes_palette("Zissou1", n = 10, type = "continuous")) +
-  scale_fill_viridis_c(option = "mako", trans = "log10", na.value = 0) +
-  scale_x_continuous(limits = c(focus_lon - 3, focus_lon + 3), expand = expansion(0.01, 0)) +
-  scale_y_continuous(limits = c(focus_lat - 3, focus_lat + 3), expand = expansion(0.01, 0)) +
-  theme_map() +
-  theme(panel.spacing.x = unit(2, "lines")) +
-  labs(fill = "Density")
+ggsave(plot = gog_plot,
+       filename = here("results", "figures_and_tables", "spatio_temporal_figure_gog.png"),
+       width = 12.1,
+       height = 8,
+       units = "cm")
