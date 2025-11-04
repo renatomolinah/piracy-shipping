@@ -52,6 +52,39 @@ panel <- function(res) {
                                       T ~ attack_cluster))
 }
 
+# Table of summary stats -------------------------------------------------------
+by_cluster <- datasummary(attack_cluster * (Mean + SD + Median + Max) ~ distance_km + time_hours + n_trips + n_vessels,
+                          data = panel("0_5") %>%
+                            mutate(attack_cluster = ifelse(attack_cluster == "None", "Rest of the world", attack_cluster),
+                                   attack_cluster = fct_relevel(attack_cluster, "G. of Aden", "G. of Guinea", "S.E. Asia", "Rest of the world")),
+                          output = "dataframe") %>%
+  mutate(
+    distance_km = as.numeric(distance_km),
+    time_hours = as.numeric(time_hours),
+    n_trips = as.numeric(n_trips),
+    n_vessels = as.numeric(n_vessels)
+  ) %>%
+  mutate(across(c(distance_km, time_hours, n_trips, n_vessels), ~scales::comma(., accuracy = 0.1))) %>%
+  select(-attack_cluster)
+
+
+kbl(x = by_cluster,
+    booktabs = TRUE,
+    label = "grid_summary",
+    caption = "Summary Statistics for Daily Ship Transit by Grid Cell.",
+    col.names = c("", "Distance (km)", "Occupancy (hr)", "Voyages (#)", "Unique vessels (#)"),
+    align = c("l", "r", "r", "r", "r"), # Set column alignments
+    linesep = "",
+    format = "latex") %>%
+  kable_styling() %>% # Removed position = "right" since it's not supported for standard tables
+  pack_rows("Gulf of Aden", 1, 4) %>%
+  pack_rows("Gulf of Guinea", 5, 8) %>%
+  pack_rows("Southeast Asia", 9, 12) %>%
+  pack_rows("Rest of the World", 13, 16) %>%
+  cat(file = here("results", "figures_and_tables", "grid_summary_stats.tex"))
+
+processKBLoutput(here("results", "figures_and_tables", "grid_summary_stats.tex"))
+
 
 # =============================================================================
 # 2. PRE/POST-REGRESSION ANALYSIS
