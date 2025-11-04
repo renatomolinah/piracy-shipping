@@ -146,7 +146,7 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
   ) +
   scale_color_brewer(palette = "Set1", name = "Grid Footprint:") +
   labs(
-    y = "Estimate ± (std.error & 95%CI)",
+    y = "Estimate ± (std.error & 95% CI)",
     x = "Time window before departure"
   ) +
   theme_bw() +
