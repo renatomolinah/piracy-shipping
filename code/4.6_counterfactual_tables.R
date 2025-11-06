@@ -103,6 +103,7 @@ kbl(x = counterfactual_costs,
     col.names = c("", 2012:2023),
     caption = "Total Costs of Piracy to the Shipping Industry.",
     linesep = "",
+    align = c("l", rep("r", 13)),
     format = "latex") %>%
   kable_styling() %>%
   pack_rows("Fuel (Million USD)", 1, 4) %>%
@@ -128,6 +129,7 @@ kbl(x = counterfactual_emissions,
     col.names = c("", 2012:2023),
     caption = "Total Emission of Air Pollutants due to Piracy",
     linesep = "",
+    align = c("l", rep("r", 13)),
     format = "latex") %>%
   kable_styling() %>%
   pack_rows("CO_2 (Thousand metric tons)", 1, 4) %>%
