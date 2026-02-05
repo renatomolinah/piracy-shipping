@@ -228,32 +228,32 @@ adjust_notes_font_size(here(output_dir, "features.tex"))
 
 # Distance specification regressions
 spec_dist_1 <- feols(distance ~ attacks_7day_num
-                     | month^year, wdb %>% filter(year < 2020),
+                     | month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
 spec_dist_2 <- feols(distance ~ attacks_7day_num + ..wctrl
-                     | month^year, wdb %>% filter(year < 2020),
+                     | month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
 spec_dist_3 <- feols(distance ~ attacks_7day_num + ..wctrl
-                     |country_pair+ month^year, wdb %>% filter(year < 2020),
+                     |country_pair+ month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
 spec_dist_4 <- feols(distance ~ attacks_7day_num + ..wctrl
-                     |country_pair+ vessel_type + tonnage_decile + month^year, wdb %>% filter(year < 2020),
+                     |country_pair+ vessel_type + tonnage_decile + month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
 spec_dist_5 <- feols(distance ~ attacks_7day_num + ..wctrl
-                     |country_pair+ vessel_type + tonnage_decile + hotspot + month^year, wdb %>% filter(year < 2020),
+                     |country_pair+ vessel_type + tonnage_decile + hotspot + month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
 spec_dist_6 <- feols(distance ~ attacks_7day_num + ..wctrl
-                     |country_pair+ vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(year < 2020),
+                     |country_pair+ vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb,
                      cluster = ~country_pair ^ year,
                      lean = T)
 
