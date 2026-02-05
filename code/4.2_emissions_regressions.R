@@ -197,7 +197,7 @@ msummary(list("Panel (A): CO2 (tons)" = regs_co2,
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Emissions. \\label{tab:emission-table}",
          notes = list("The unit of observation is a voyage. Each panel examines a calculated emission in terms of CO2 (tons), NOx (kg), and SOx (kg).
-                      The sample spans from 2013 to 2021. Every column is a different sample:
+                      The sample spans from 2012 to 2023. Every column is a different sample:
                       Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
                       Every panel-column combination is a different regression analysis.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
@@ -251,7 +251,7 @@ msummary(spec_co2,
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on CO2 Emissions. \\label{tab:spec-co2-table}",
          notes = list("The unit of observation is a voyage.
-                      The sample spans from 2013 to 2021.
+                      The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
@@ -284,7 +284,7 @@ msummary(spec_nox,
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on NOx Emissions. \\label{tab:spec-nox-table}",
          notes = list("The unit of observation is a voyage.
-                      The sample spans from 2013 to 2021.
+                      The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
@@ -317,7 +317,7 @@ msummary(spec_sox,
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on SOx Emissions. \\label{tab:spec-sox-table}",
          notes = list("The unit of observation is a voyage.
-                      The sample spans from 2013 to 2021.
+                      The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.

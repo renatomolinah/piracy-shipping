@@ -198,7 +198,7 @@ msummary(list("Panel (A): Fuel Cost (TUSD)" = regs_fuel,
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Cost. \\label{tab:cost-table}",
          notes = list("The unit of observation is a voyage. Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both.
-                      All coefficients are in thousands of US\\$. The sample spans from 2013 to 2021.
+                      All coefficients are in thousands of US\\$. The sample spans from 2012 to 2023.
                       Every column is a different sample: Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
                       Every panel-column combination is a different regression analysis.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
@@ -252,7 +252,7 @@ msummary(spec_fuel,
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Fuel Cost. \\label{tab:spec-fuel-table}",
          notes = list("The unit of observation is a voyage.
-                      The sample spans from 2013 to 2021.
+                      The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
@@ -285,7 +285,7 @@ msummary(spec_labor,
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Labor Cost. \\label{tab:spec-labor-table}",
          notes = list("The unit of observation is a voyage.
-                      The sample spans from 2013 to 2021.
+                      The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
@@ -318,7 +318,7 @@ msummary(spec_total,
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Total Cost. \\label{tab:spec-total-table}",
          notes = list("The unit of observation is a voyage.
-                      The sample spans from 2013 to 2021.
+                      The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
                       Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
