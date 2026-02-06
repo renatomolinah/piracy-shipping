@@ -1,0 +1,35 @@
+\begin{table}
+\centering
+\begin{tabular}[t]{lcccc}
+\toprule
+  & Avg. Attacks & Lagged Avg. Attacks & Total Attacks & Cumulative Attacks (3mo)\\
+\midrule
+avg\_attacks\_7day & \num{11.837}*** &  &  & \\
+ & (\num{3.160}) &  &  & \\
+avg\_wind\_speed & \num{-3.428}*** & \num{-3.391}*** & \num{-3.317}*** & \num{-3.398}***\\
+ & (\num{1.112}) & (\num{1.138}) & (\num{1.113}) & (\num{1.194})\\
+avg\_wind\_vector & \num{-0.165} & \num{-0.167} & \num{-0.096} & \num{-0.171}\\
+ & (\num{0.171}) & (\num{0.177}) & (\num{0.165}) & (\num{0.185})\\
+avg\_wave\_height & \num{-4.673} & \num{-4.567} & \num{-5.118} & \num{-3.902}\\
+ & (\num{4.026}) & (\num{4.173}) & (\num{4.093}) & (\num{4.266})\\
+lag\_avg\_attacks\_7day &  & \num{-0.976} &  & \\
+ &  & (\num{0.811}) &  & \\
+total\_attacks\_7day &  &  & \num{0.499}*** & \\
+ &  &  & (\num{0.116}) & \\
+cum\_attacks\_3month &  &  &  & \num{0.917}**\\
+ &  &  &  & (\num{0.447})\\
+\midrule
+Num.Obs. & \num{391242} & \num{384256} & \num{391242} & \num{372123}\\
+R2 & \num{0.752} & \num{0.753} & \num{0.752} & \num{0.756}\\
+R2 Adj. & \num{0.748} & \num{0.749} & \num{0.748} & \num{0.752}\\
+R2 Within & \num{0.000} & \num{0.000} & \num{0.002} & \num{0.000}\\
+R2 Within Adj. & \num{0.000} & \num{0.000} & \num{0.002} & \num{0.000}\\
+Std.Errors & by: combine\_fixef\_keep\_names(country\_pair, year) & by: combine\_fixef\_keep\_names(country\_pair, year) & by: combine\_fixef\_keep\_names(country\_pair, year) & by: combine\_fixef\_keep\_names(country\_pair, year)\\
+FE: country_pair & X & X & X & X\\
+FE: hotspot & X & X & X & X\\
+FE: month^year & X & X & X & X\\
+\bottomrule
+\multicolumn{5}{l}{\rule{0pt}{1em}* p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01}\\
+\multicolumn{5}{l}{\rule{0pt}{1em}The unit of observation is a country-pair-month-year combination. The outcome is the number of trips taken on that route in that time period. The sample spans from 2012 to 2023. Each column uses a different measure of pirate encounters: average encounters in the 7 days preceding trips in that cell, lagged average encounters (previous month), total encounters, or cumulative encounters over the previous 3 months. Controls include average wind speed, wind-resistance index, and wave height. Fixed effects include country-to-country combination, hotspot, and month-by-year.}\\
+\end{tabular}
+\end{table}

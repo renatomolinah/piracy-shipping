@@ -201,8 +201,9 @@ msummary(list("Panel (A): CO2 (tons)" = regs_co2,
                       Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
                       Every panel-column combination is a different regression analysis.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
+                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
+                      Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -254,8 +255,9 @@ msummary(spec_co2,
                       The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
+                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
+                      Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_co2.tex"))
@@ -287,8 +289,9 @@ msummary(spec_nox,
                       The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
+                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
+                      Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_nox.tex"))
@@ -320,8 +323,9 @@ msummary(spec_sox,
                       The sample spans from 2012 to 2023.
                       Every column is a different specification.
                       Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies."),
+                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
+                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
+                      Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_sox.tex"))
