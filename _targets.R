@@ -32,7 +32,7 @@ list(
   # Set version of model run
   tar_target(
     name = model_version,
-    "20250521"
+    "20260224"
   ),
   # Set study period range
   # We will only pull GFW data for this time range
