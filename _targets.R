@@ -845,5 +845,100 @@ list(
       ),
       bq_billing_project = bq_billing_project
     )
+  ),
+  # Gather all individual AIS pings that were on trips that went through
+  # either the Suez Canal, or around the Cape of Good Hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_pings_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_pings.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_pings_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # summary of trips, by departure month, that go through either
+  # suez canal or around cape of good hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_monthly_trips_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_monthly_trips.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          suez_canal_or_cape_good_hope_pings_table = suez_canal_or_cape_good_hope_pings_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_monthly_trips_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure month, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_monthly_trips_file,
+    pull_gfw_data_locally(
+      bq_table_name = suez_canal_or_cape_good_hope_monthly_trips_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/suez_canal_or_cape_good_hope_monthly_trips_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
+  ),
+  # summary of annual spatial activity in 2012 and 2023, that go through either
+  # suez canal or around cape of good hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_spatial_activity_bq,
+    command = here::here(
+      "sql/suez_canal_or_cape_good_hope_spatial_activity.sql"
+    ),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          suez_canal_or_cape_good_hope_pings_table = suez_canal_or_cape_good_hope_pings_bq$tableReference$tableId,
+          pixel_size = 0.5
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_spatial_activity_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # pull summary of annual spatial activity in 2012 and 2023, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_spatial_activity_file,
+    pull_gfw_data_locally(
+      bq_table_name = suez_canal_or_cape_good_hope_spatial_activity_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/suez_canal_or_cape_good_hope_spatial_activity_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
   )
 )
