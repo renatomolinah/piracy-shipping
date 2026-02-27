@@ -866,11 +866,11 @@ list(
       bq_billing_project = bq_billing_project
     )
   ),
-  # summary of trips, by departure month, that go through either
+  # summary of trips, by departure date, that go through either
   # suez canal or around cape of good hope
   tar_file_read(
-    name = suez_canal_or_cape_good_hope_monthly_trips_bq,
-    command = here::here("sql/suez_canal_or_cape_good_hope_monthly_trips.sql"),
+    name = suez_canal_or_cape_good_hope_daily_trips_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_daily_trips.sql"),
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
@@ -879,23 +879,23 @@ list(
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
       bq_table_name = paste0(
-        "suez_canal_or_cape_good_hope_monthly_trips_v_",
+        "suez_canal_or_cape_good_hope_daily_trips_v_",
         model_version
       ),
       bq_billing_project = bq_billing_project
     )
   ),
-  # Pull summary of trips, by departure month, that go through either
+  # Pull summary of trips, by departure date, that go through either
   # suez canal or around cape of good hope
   tar_target(
-    name = suez_canal_or_cape_good_hope_monthly_trips_file,
+    name = suez_canal_or_cape_good_hope_daily_trips_file,
     pull_gfw_data_locally(
-      bq_table_name = suez_canal_or_cape_good_hope_monthly_trips_bq$tableReference$tableId,
+      bq_table_name = suez_canal_or_cape_good_hope_daily_trips_bq$tableReference$tableId,
       bq_billing_project = bq_billing_project
     ) |>
       save_as_csv(here::here(
         paste0(
-          "data/processed/suez_canal_or_cape_good_hope_monthly_trips_",
+          "data/processed/suez_canal_or_cape_good_hope_daily_trips_",
           model_version,
           ".csv"
         )
