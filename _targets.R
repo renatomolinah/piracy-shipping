@@ -888,11 +888,17 @@ list(
   # Pull summary of trips, by departure date, that go through either
   # suez canal or around cape of good hope
   tar_target(
-    name = suez_canal_or_cape_good_hope_daily_trips_file,
+    name = suez_canal_or_cape_good_hope_daily_trips,
     pull_gfw_data_locally(
       bq_table_name = suez_canal_or_cape_good_hope_daily_trips_bq$tableReference$tableId,
       bq_billing_project = bq_billing_project
-    ) |>
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_daily_trips_file,
+    suez_canal_or_cape_good_hope_daily_trips |>
       save_as_csv(here::here(
         paste0(
           "data/processed/suez_canal_or_cape_good_hope_daily_trips_",
@@ -940,5 +946,13 @@ list(
         )
       )),
     format = "file"
+  ),
+  tar_target(
+    suez_canal_cape_good_hope_timeseries_figure,
+    make_suez_canal_cape_good_hope_timeseries_figure(
+      asam_with_hotspots,
+      asam_data,
+      suez_canal_or_cape_good_hope_daily_trips
+    )
   )
 )
