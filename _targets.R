@@ -866,6 +866,47 @@ list(
       bq_billing_project = bq_billing_project
     )
   ),
+  # Pull trip-level summary data for those that pass through suez canal or around cape of good hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_trip_level_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_trip_level.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          suez_canal_or_cape_good_hope_pings_table = suez_canal_or_cape_good_hope_pings_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_trip_level_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_trip_level,
+    pull_gfw_data_locally(
+      bq_table_name = suez_canal_or_cape_good_hope_trip_level_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_trip_level_file,
+    suez_canal_or_cape_good_hope_trip_level |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/suez_canal_or_cape_good_hope_trip_level_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
+  ),
   # summary of trips, by departure date, that go through either
   # suez canal or around cape of good hope
   tar_file_read(
