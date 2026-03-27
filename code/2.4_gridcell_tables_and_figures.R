@@ -154,12 +154,20 @@ add_rows_with_observations(reg_table_name, observations_df)
 create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate ± (std.error & 95% CI)") {
   # Run regression for the specific outcome
   model <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    # as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + date + id^month")),
     unit = "id",
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel(res),
+    data = panel(res) |> 
+      drop_na(outcome_var) |> 
+      add_count(date, name = "n_int") |>
+      filter(n_int > 1) |>
+      select(-n_int) |>
+      add_count(id, month, name = "n_int2") |>
+      filter(n_int2 > 1) |>
+      select(-n_int2),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
