@@ -37,8 +37,17 @@ WITH
     FROM
       `emlab-gcp.piracy.{wind_data_daily_table}`
   ),
+  daily_wave_data AS (
+    SELECT
+      date,
+      lat_bin,
+      lon_bin,
+      surface_wave_height_m
+    FROM
+      `emlab-gcp.piracy.{wave_data_daily_table}`
+  ),
   -- Now add wind and wave data to AIS messages by appropriate location, month and year
-  ais_positions_with_wind AS (
+  ais_positions_with_wind_and_wave AS (
     SELECT
       *,
       -- Calculate wind vector, which combines wind speed and vessel heading
@@ -49,6 +58,9 @@ WITH
     LEFT JOIN
       daily_wind_data
       USING (lat_bin, lon_bin, date)
+    LEFT JOIN
+      daily_wave_data
+      USING (lat_bin, lon_bin, date)
   )
 SELECT
   trip_id,
@@ -56,8 +68,9 @@ SELECT
   AVG(wind_speed_vector_ms) wind_speed_vector_ms,
   AVG(wind_direction_degrees) wind_direction_degrees,
   AVG(heading) heading,
-  AVG(wind_vector) wind_vector
+  AVG(wind_vector) wind_vector,
+  AVG(surface_wave_height_m) surface_wave_height_m
 FROM
-  ais_positions_with_wind
+  ais_positions_with_wind_and_wave
 GROUP BY
   trip_id
