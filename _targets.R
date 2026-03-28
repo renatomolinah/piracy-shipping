@@ -173,7 +173,8 @@ list(
   # Process the daily wave data
   tar_target(
     name = wave_data_daily,
-    process_wave_data(wave_daily_files, pixel_size = 5)
+    process_wave_data(wave_daily_files, pixel_size = 5),
+    pattern = map(wave_daily_files)
   ),
   # Upload daily wave data to BQ
   tar_target(
@@ -314,8 +315,8 @@ list(
   ),
   ## Make a table that has the average wind conditions during each trip, using daily wind data
   tar_file_read(
-    name = wind_data_during_trip_from_daily_bq,
-    command = here::here("sql/wind_data_during_trip_from_daily.sql"),
+    name = wind_wave_data_during_trip_from_daily_bq,
+    command = here::here("sql/wind_wave_data_during_trip_from_daily.sql"),
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
@@ -326,7 +327,7 @@ list(
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
       bq_table_name = paste0(
-        "wind_data_during_trip_from_daily_v_",
+        "wind_wave_data_during_trip_from_daily_v_",
         model_version
       ),
       bq_billing_project = bq_billing_project
@@ -334,14 +335,14 @@ list(
   ),
   # Download these data locally, for use in the trip-level analysis
   tar_target(
-    name = wind_data_during_trip_from_daily,
+    name = wind_wave_data_during_trip_from_daily,
     pull_gfw_data_locally(
-      bq_table_name = wind_data_during_trip_from_daily_bq$tableReference$tableId,
+      bq_table_name = wind_wave_data_during_trip_from_daily_bq$tableReference$tableId,
       bq_billing_project = bq_billing_project
     ) |>
       save_as_csv(here::here(
         paste0(
-          "data/processed/wind_data_during_trip_from_daily_",
+          "data/processed/wind_wave_data_during_trip_from_daily_",
           model_version,
           ".csv"
         )
@@ -349,18 +350,19 @@ list(
   ),
   ## Make a table that has the average wind conditions in the 7 days prior to each trip
   tar_file_read(
-    name = wind_data_before_trip_departure_bq,
-    command = here::here("sql/wind_data_before_trip_departure.sql"),
+    name = wind_wave_data_before_trip_departure_bq,
+    command = here::here("sql/wind_wave_data_before_trip_departure.sql"),
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
           gridded_data_5_table = gridded_data_5_bq$tableReference$tableId,
-          wind_data_daily_table = wind_data_daily_bq$tableReference$tableId
+          wind_data_daily_table = wind_data_daily_bq$tableReference$tableId,
+          wave_data_daily_table = wave_data_daily_bq$tableReference$tableId
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
       bq_table_name = paste0(
-        "wind_data_before_trip_departure_v_",
+        "wind_wave_data_before_trip_departure_v_",
         model_version
       ),
       bq_billing_project = bq_billing_project
@@ -368,14 +370,14 @@ list(
   ),
   # Now download these data locally, for use in the trip-level analysis
   tar_target(
-    name = wind_data_before_trip_departure,
+    name = wind_wave_data_before_trip_departure,
     pull_gfw_data_locally(
-      bq_table_name = wind_data_before_trip_departure_bq$tableReference$tableId,
+      bq_table_name = wind_wave_data_before_trip_departure_bq$tableReference$tableId,
       bq_billing_project = bq_billing_project
     ) |>
       save_as_csv(here::here(
         paste0(
-          "data/processed/wind_data_before_trip_departure_",
+          "data/processed/wind_wave_data_before_trip_departure_",
           model_version,
           ".csv"
         )
