@@ -197,14 +197,7 @@ msummary(list("Panel (A): Fuel Cost (TUSD)" = regs_fuel,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Cost. \\label{tab:cost-table}",
-         notes = list("The unit of observation is a voyage. Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both.
-                      All coefficients are in thousands of US\\$. The sample spans from 2012 to 2023.
-                      Every column is a different sample: Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
-                      Every panel-column combination is a different regression analysis.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2) in the main text. Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both. All coefficients are in thousands of US\\$. Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -224,25 +217,28 @@ spec_fuel_3 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + mon
 spec_fuel_4 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_fuel_5 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_fuel_6 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_fuel_7 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | route_port_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
-spec_fuel <- list(spec_fuel_1, spec_fuel_2, spec_fuel_3, spec_fuel_4, spec_fuel_5, spec_fuel_6)
+spec_fuel <- list(spec_fuel_1, spec_fuel_2, spec_fuel_3, spec_fuel_4, spec_fuel_5, spec_fuel_6, spec_fuel_7)
 
 rows_spec <- tribble(
-  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)", ~"(5)", ~"(6)",
-  "", "", "", "", "", "", "",
+  ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)", ~"(5)", ~"(6)", ~"(7)",
+  "", "", "", "", "", "", "", "",
   "Observations", as.character(nobs(spec_fuel_1) %>% format(big.mark = ",")),
   as.character(nobs(spec_fuel_2) %>% format(big.mark = ",")),
   as.character(nobs(spec_fuel_3) %>% format(big.mark = ",")),
   as.character(nobs(spec_fuel_4) %>% format(big.mark = ",")),
   as.character(nobs(spec_fuel_5) %>% format(big.mark = ",")),
   as.character(nobs(spec_fuel_6) %>% format(big.mark = ",")),
-  "", "", "", "", "", "", "",
-  "Country Combo. FE", "", "", "X", "X", "X", "X",
-  "Vessel Type FE",    "", "", "", "X", "X", "X",
-  "Vessel Size FE",    "", "", "", "X", "X", "X",
-  "Hotspot FE",        "", "", "", "", "X", "X",
-  "Top Route FE",      "", "", "", "", "", "X",
-  "Month-by-Year FE",  "X", "X", "X", "X", "X", "X"
+  as.character(nobs(spec_fuel_7) %>% format(big.mark = ",")),
+  "", "", "", "", "", "", "", "",
+  "Country Combo. FE", "", "", "X", "X", "X", "X", "",
+  "Vessel Type FE",    "", "", "", "X", "X", "X", "X",
+  "Vessel Size FE",    "", "", "", "X", "X", "X", "X",
+  "Hotspot FE",        "", "", "", "", "X", "X", "X",
+  "Top Route FE",      "", "", "", "", "", "X", "",
+  "Port-to-Port FE",   "", "", "", "", "", "", "X",
+  "Month-by-Year FE",  "X", "X", "X", "X", "X", "X", "X"
 )
 
 msummary(spec_fuel,
@@ -252,13 +248,7 @@ msummary(spec_fuel,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Fuel Cost. \\label{tab:spec-fuel-table}",
-         notes = list("The unit of observation is a voyage.
-                      The sample spans from 2012 to 2023.
-                      Every column is a different specification.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2) in the main text. Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_fuel.tex"))
@@ -276,8 +266,9 @@ spec_labor_3 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + m
 spec_labor_4 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_labor_5 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_labor_6 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_labor_7 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | route_port_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
-spec_labor <- list(spec_labor_1, spec_labor_2, spec_labor_3, spec_labor_4, spec_labor_5, spec_labor_6)
+spec_labor <- list(spec_labor_1, spec_labor_2, spec_labor_3, spec_labor_4, spec_labor_5, spec_labor_6, spec_labor_7)
 
 msummary(spec_labor,
          coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
@@ -286,13 +277,7 @@ msummary(spec_labor,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Labor Cost. \\label{tab:spec-labor-table}",
-         notes = list("The unit of observation is a voyage.
-                      The sample spans from 2012 to 2023.
-                      Every column is a different specification.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2) in the main text. Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_labor.tex"))
@@ -310,8 +295,9 @@ spec_total_3 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + m
 spec_total_4 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_total_5 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_total_6 <- feols(total_cost ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
+spec_total_7 <- feols(total_cost ~ attacks_7day_num + ..wctrl | route_port_pair + vessel_type + tonnage_decile + hotspot + month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 
-spec_total <- list(spec_total_1, spec_total_2, spec_total_3, spec_total_4, spec_total_5, spec_total_6)
+spec_total <- list(spec_total_1, spec_total_2, spec_total_3, spec_total_4, spec_total_5, spec_total_6, spec_total_7)
 
 msummary(spec_total,
          coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
@@ -320,13 +306,7 @@ msummary(spec_total,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Total Cost. \\label{tab:spec-total-table}",
-         notes = list("The unit of observation is a voyage.
-                      The sample spans from 2012 to 2023.
-                      Every column is a different specification.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2) in the main text. Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_total.tex"))

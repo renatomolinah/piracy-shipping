@@ -1,8 +1,17 @@
 # =============================================================================
-# TRIP FEATURE REGRESSIONS
+# VOYAGE-LEVEL ROBUSTNESS
 # =============================================================================
-# This script performs regression analysis on trip-level features (distance, time, speed)
-# examining how pirate attacks affect shipping behavior across different regions.
+# Robustness checks for the voyage-level analysis:
+#   - Route-port-pair FE (tighter than country-pair FE)
+#   - Alternative clustering (country-pair only)
+#   - Forward-attack placebo
+#   - Prior-route exposure robustness
+#
+# Outputs:
+#   features_routefe.tex
+#   features_country_cluster.tex
+#   forward_attack_placebo.tex
+#   route_history_exposure_robustness.tex
 # =============================================================================
 
 library(here)
@@ -200,17 +209,7 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Voyages. \\label{tab:feature-routefe-table}",
-         notes = list("The unit of observation is a voyage. Each panel examines an observed feature in terms of total distance in kilometers (km),
-                      total time of the voyage in hours (hr), and the average speed of the voyage (km/hr).
-                      The sample spans from 2012 to 2023.
-                      Every column is a different sample:
-                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing
-                      through one of the hotspots, respectively. Every panel-column combination is a different regression analysis.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot,
-                      and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2) in the main text. Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. This table replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Other fixed effects include vessel type, vessel size, hotspot, and month-by-year. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -330,17 +329,7 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Voyages. \\label{tab:feature-country-cluster-table}",
-         notes = list("The unit of observation is a voyage. Each panel examines an observed feature in terms of total distance in kilometers (km),
-                      total time of the voyage in hours (hr), and the average speed of the voyage (km/hr).
-                      The sample spans from 2012 to 2023.
-                      Every column is a different sample:
-                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing
-                      through one of the hotspots, respectively. Every panel-column combination is a different regression analysis.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot,
-                      and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2) in the main text. Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,

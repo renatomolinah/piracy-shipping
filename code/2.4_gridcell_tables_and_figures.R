@@ -132,12 +132,7 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
          title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Each panel examines a different shipping activity measure and
-                      each column represents a different geographic region.
-                      Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
-                      The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
-                      All regressions include grid cell, year-month, and day of week.
-                      Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
+         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1) in the main text. Each panel examines a different shipping activity measure and each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff)."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)
@@ -439,12 +434,7 @@ modelsummary(AIS_disab_models$coefficients,
              stars = c('*' = .1, '**' = .05, '***' = .01),
              fmt = "%.3f",
              title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:ais-disabling}",
-             notes = list("The unit of observation is a grid cell-day. Each each column represents a different geographic region.
-                      The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels.
-                      Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell.
-                      The analysis uses a 7-day window around attacks to identify pre- and post-attack periods.
-                      All regressions include grid cell, year-month, and day of week fixed effects.
-                      Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
+             notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1) in the main text. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff)."),
              threeparttable = TRUE,
              escape = FALSE,
              output = AIS_disab_table_name)
