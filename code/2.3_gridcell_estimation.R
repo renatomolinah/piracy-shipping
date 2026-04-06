@@ -8,6 +8,9 @@
 library(here)
 library(conleyreg)
 library(tidyverse)
+library(modelsummary)
+library(kableExtra)
+library(scales)
 
 processKBLoutput <- function(file_path) {
   
@@ -85,12 +88,13 @@ kbl(x = by_cluster,
   pack_rows("Gulf of Guinea", 5, 8) %>%
   pack_rows("Southeast Asia", 9, 12) %>%
   pack_rows("Rest of the World", 13, 16) %>%
-  footnote(general = "The unit of observation is a grid cell-day on a $0.5^\\\\circ \\\\times 0.5^\\\\circ$ grid. The sample includes 618 grid cells with at least one pirate encounter during the 2012--2023 period. Each column reports a different measure of daily shipping activity within a cell. P5 and P95 denote the 5th and 95th percentiles, respectively.",
+  footnote(general = "The unit of observation is a grid cell-day on a $0.5^{\\\\circ} \\\\times 0.5^{\\\\circ}$ grid. The sample includes 618 grid cells with at least one pirate encounter during the 2012--2023 period. Each column reports a different measure of daily shipping activity within a cell. P5 and P95 denote the 5th and 95th percentiles, respectively.",
            general_title = "",
            escape = FALSE,
            threeparttable = TRUE) %>%
   cat(file = here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
+# Post-process: fix hotspot names
 processKBLoutput(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
 
