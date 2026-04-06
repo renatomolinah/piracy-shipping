@@ -94,6 +94,16 @@ latex_table <- kbl(
 output_file <- here("results", "figures_and_tables", "summary.tex")
 cat(latex_table, file = output_file)
 
+# Add adjustbox wrapper for width control
+add_adjust_box <- function(file, line_before = "\\begin{adjustbox}{width = .9\\textwidth}", line_after = "\\end{adjustbox}", before = "\\begin{threeparttable}", after = "\\end{threeparttable}") {
+  lines <- readLines(file)
+  after_line <- grep(after, lines, fixed = TRUE)
+  before_line <- grep(before, lines, fixed = TRUE)
+  lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
+  writeLines(lines, file)
+}
+add_adjust_box(output_file)
+
 cat("LaTeX table saved to:", output_file, "\n")
 
 # =============================================================================
