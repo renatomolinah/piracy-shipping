@@ -85,7 +85,11 @@ latex_table <- kbl(
   pack_rows("Gulf of Aden", 1, 4) %>%
   pack_rows("Gulf of Guinea", 5, 8) %>%
   pack_rows("Southeast Asia", 9, 12) %>%
-  pack_rows("Rest of the World", 13, 16)
+  pack_rows("Rest of the World", 13, 16) %>%
+  footnote(general = "The unit of observation is a voyage. The sample includes all cargo vessel voyages from 2012 to 2023 that pass through at most one piracy hotspot. Voyage features report total distance (km), total time (hr), and average speed (km/hr). Encounters report the count of pirate encounters recorded in the projected path of the vessel using a 5-degree spatial footprint over the preceding 7, 15, and 30 days, respectively. P5 and P95 denote the 5th and 95th percentiles, respectively.",
+           general_title = "",
+           escape = FALSE,
+           threeparttable = TRUE)
 
 output_file <- here("results", "figures_and_tables", "summary.tex")
 cat(latex_table, file = output_file)
