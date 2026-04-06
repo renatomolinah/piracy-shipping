@@ -433,7 +433,7 @@ modelsummary(AIS_disab_models$coefficients,
              gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
              stars = c('*' = .1, '**' = .05, '***' = .01),
              fmt = "%.3f",
-             title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:ais-disabling}",
+             title = "Effect of Pirate Encounters on AIS Disabling Events. \\label{tab:ais-disabling}",
              notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1) in the main text. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff)."),
              threeparttable = TRUE,
              escape = FALSE,
@@ -441,5 +441,5 @@ modelsummary(AIS_disab_models$coefficients,
 
 # Add other rows
 adjust_notes_font_size(AIS_disab_table_name)
-add_rows_with_observations(reg_table_name, AIS_observations_df)
+add_rows_with_observations(AIS_disab_table_name, AIS_observations_df)
 
