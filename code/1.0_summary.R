@@ -40,7 +40,9 @@ voyage_data <- readRDS(voyage_data_path) %>%
     )
   )  %>%
   mutate(
-    recent_attacks = number_previous_attacks_7_days_5_degrees
+    attacks_7d  = number_previous_attacks_7_days_5_degrees,
+    attacks_15d = number_previous_attacks_15_days_5_degrees,
+    attacks_30d = number_previous_attacks_1_month_5_degrees
   )
 
 cat("Loaded", nrow(voyage_data), "voyage records for summary statistics\n")
@@ -49,16 +51,19 @@ cat("Loaded", nrow(voyage_data), "voyage records for summary statistics\n")
 # 2. CREATE SUMMARY STATISTICS BY REGION
 # =============================================================================
 
+P5 <- function(x) quantile(x, 0.05, na.rm = TRUE)
+P95 <- function(x) quantile(x, 0.95, na.rm = TRUE)
+
 summary_by_region <-
   datasummary(
-    hotspot_region * (Mean + SD + Min + Max) ~ distance + time + speed + recent_attacks,
+    hotspot_region * (Mean + SD + P5 + P95) ~ distance + time + speed + attacks_7d + attacks_15d + attacks_30d,
     data = voyage_data,
     output = "dataframe") |>
   mutate(
-    across(c(distance, time, speed, recent_attacks), as.numeric)
+    across(c(distance, time, speed, attacks_7d, attacks_15d, attacks_30d), as.numeric)
   ) |>
   mutate(
-    across(c(distance, time, speed, recent_attacks),
+    across(c(distance, time, speed, attacks_7d, attacks_15d, attacks_30d),
            ~scales::comma(., accuracy = 0.1))
   )
 
@@ -69,19 +74,20 @@ summary_by_region <-
 latex_table <- kbl(
   x = summary_by_region,
   booktabs = TRUE,
-  label = "summary_statistics",
-  caption = "Summary Statistics for Voyages by Piracy Hotspot Region",
-  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km/hr)", "Recent Attacks (#/7 days)"),
-  align = c("l", "l", "r", "r", "r", "r"),
+  label = "summary",
+  caption = "Summary Statistics for Individual Voyage Features.",
+  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km/hr)", "7 days", "15 days", "30 days"),
+  align = c("l", "l", "r", "r", "r", "r", "r", "r"),
   format = "latex"
 ) %>%
   kable_styling() %>%
+  add_header_above(c(" " = 2, "Voyage Features" = 3, "Encounters (\\\\#)" = 3), escape = FALSE) %>%
   pack_rows("Gulf of Aden", 1, 4) %>%
   pack_rows("Gulf of Guinea", 5, 8) %>%
   pack_rows("Southeast Asia", 9, 12) %>%
   pack_rows("Rest of the World", 13, 16)
 
-output_file <- here("results", "figures_and_tables", "summary_statistics.tex")
+output_file <- here("results", "figures_and_tables", "summary.tex")
 cat(latex_table, file = output_file)
 
 cat("LaTeX table saved to:", output_file, "\n")
@@ -95,10 +101,12 @@ clean_latex_output <- function(file_path) {
   lines <- readLines(file_path, warn = FALSE)
 
   cleanup_patterns <- c(
-    "\\\\hspace\\{1em\\}G\\. of Aden" = "\\\\hspace{1em}",
-    "\\\\hspace\\{1em\\}G\\. of Guinea" = "\\\\hspace{1em}",
+    "\\\\hspace\\{1em\\}Gulf of Aden" = "\\\\hspace{1em}",
+    "\\\\hspace\\{1em\\}Gulf of Guinea" = "\\\\hspace{1em}",
     "\\\\hspace\\{1em\\}Southeast Asia" = "\\\\hspace{1em}",
-    "\\\\hspace\\{1em\\}Rest of the World" = "\\\\hspace{1em}"
+    "\\\\hspace\\{1em\\}Rest of the World" = "\\\\hspace{1em}",
+    "\\\\hspace\\{1em\\}G\\. of Aden" = "\\\\hspace{1em}",
+    "\\\\hspace\\{1em\\}G\\. of Guinea" = "\\\\hspace{1em}"
   )
 
   modified_lines <- lines
