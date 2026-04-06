@@ -1,0 +1,28 @@
+
+\begingroup
+\centering
+\begin{tabular}{lcccccccc}
+   \tabularnewline \midrule \midrule
+   Dependent Variables: & \multicolumn{2}{c}{asinh(time\_hours)} & \multicolumn{2}{c}{asinh(distance\_km)} & \multicolumn{2}{c}{asinh(time\_hours)} & \multicolumn{2}{c}{asinh(distance\_km)}\\
+   Model:          & (1)            & (2)      & (3)      & (4)      & (5)           & (6)          & (7)           & (8)\\  
+   \midrule
+   \emph{Variables}\\
+   post            & -0.0282$^{**}$ & -0.0181  & -0.0107  & 0.0015   & 0.0726$^{**}$ & 0.0714$^{*}$ & 0.1544$^{**}$ & 0.1452$^{**}$\\   
+                   & (0.0143)       & (0.0151) & (0.0186) & (0.0198) & (0.0358)      & (0.0377)     & (0.0661)      & (0.0694)\\   
+   \midrule
+   \emph{Fixed-effects}\\
+   id              & Yes            &          & Yes      &          & Yes           &              & Yes           & \\  
+   year-month      & Yes            &          & Yes      &          & Yes           &              & Yes           & \\  
+   day\_of\_week   & Yes            & Yes      & Yes      & Yes      & Yes           & Yes          & Yes           & Yes\\  
+   id-month        &                & Yes      &          & Yes      &               & Yes          &               & Yes\\  
+   year            &                & Yes      &          & Yes      &               & Yes          &               & Yes\\  
+   \midrule
+   \emph{Fit statistics}\\
+   Observations    & 32,129         & 32,063   & 32,129   & 32,063   & 3,394         & 3,383        & 3,394         & 3,383\\  
+   \midrule \midrule
+   \multicolumn{9}{l}{\emph{Clustered (id) standard-errors in parentheses}}\\
+   \multicolumn{9}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+

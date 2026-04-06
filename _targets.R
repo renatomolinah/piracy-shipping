@@ -111,7 +111,46 @@ list(
     ),
     read = process_wind_data(!!.x, pixel_size = 5)
   ),
-  # Upload wind data to BQ
+  # List all daily u-component wind nc files
+  # Automatically re-run when files are added/removed from the folder
+  tar_files(
+    name = wind_u_daily_files,
+    command = list.files(
+      here::here("data/raw/era5_wind/daily/wind_u_component"),
+      pattern = "\\.nc$",
+      full.names = TRUE
+    )
+  ),
+  # List all daily v-component wind nc files
+  # Automatically re-run when files are added/removed from the folder
+  tar_files(
+    name = wind_v_daily_files,
+    command = list.files(
+      here::here("data/raw/era5_wind/daily/wind_v_component"),
+      pattern = "\\.nc$",
+      full.names = TRUE
+    )
+  ),
+  # Combine u and v component daily data, and calculate daily average wind speed (vector and scalar) and direction
+  tar_target(
+    name = wind_data_daily,
+    process_and_combine_wind_data(
+      wind_u_daily_files,
+      wind_v_daily_files,
+      pixel_size = 5
+    )
+  ),
+  # Upload daily wind data to BQ
+  tar_target(
+    name = wind_data_daily_bq,
+    upload_df_to_bq(
+      df_to_upload = wind_data_daily,
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("wind_data_daily_5_v_", model_version)
+    )
+  ),
+  # Upload daily wind data to BQ
   tar_target(
     name = wind_data_bq,
     upload_df_to_bq(
@@ -121,7 +160,33 @@ list(
       bq_table_name = paste0("wind_data_5_v_", model_version)
     )
   ),
-  # Process wave data to 5x5 degree grids
+  # Process daily wave data to 5x5 degree grids
+  # Automatically re-run when files are added/removed from the folder
+  tar_files(
+    name = wave_daily_files,
+    command = list.files(
+      here::here("data/raw/era5_surface_wave_height/daily"),
+      pattern = "\\.nc$",
+      full.names = TRUE
+    )
+  ),
+  # Process the daily wave data
+  tar_target(
+    name = wave_data_daily,
+    process_wave_data(wave_daily_files, pixel_size = 5),
+    pattern = map(wave_daily_files)
+  ),
+  # Upload daily wave data to BQ
+  tar_target(
+    name = wave_data_daily_bq,
+    upload_df_to_bq(
+      df_to_upload = wave_data_daily,
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("wave_data_daily_5_v_", model_version)
+    )
+  ),
+  # Process monthly wave data to 5x5 degree grids
   tar_file_read(
     name = wave_data,
     command = here::here(
@@ -245,6 +310,98 @@ list(
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
       bq_table_name = paste0("gridded_data_5_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  ## Make a table that has the average wind conditions during each trip, using daily wind data
+  tar_file_read(
+    name = wind_wave_data_during_trip_from_daily_bq,
+    command = here::here("sql/wind_wave_data_during_trip_from_daily.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
+          wind_data_daily_table = wind_data_daily_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "wind_wave_data_during_trip_from_daily_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  # Download these data locally, for use in the trip-level analysis
+  tar_target(
+    name = wind_wave_data_during_trip_from_daily,
+    pull_gfw_data_locally(
+      bq_table_name = wind_wave_data_during_trip_from_daily_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/wind_wave_data_during_trip_from_daily_",
+          model_version,
+          ".csv"
+        )
+      ))
+  ),
+  ## Make a table that has the average wind conditions in the 7 days prior to each trip
+  tar_file_read(
+    name = wind_wave_data_before_trip_departure_bq,
+    command = here::here("sql/wind_wave_data_before_trip_departure.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          gridded_data_5_table = gridded_data_5_bq$tableReference$tableId,
+          wind_data_daily_table = wind_data_daily_bq$tableReference$tableId,
+          wave_data_daily_table = wave_data_daily_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "wind_wave_data_before_trip_departure_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  # Now download these data locally, for use in the trip-level analysis
+  tar_target(
+    name = wind_wave_data_before_trip_departure,
+    pull_gfw_data_locally(
+      bq_table_name = wind_wave_data_before_trip_departure_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/wind_wave_data_before_trip_departure_",
+          model_version,
+          ".csv"
+        )
+      ))
+  ),
+  # Make a table that has all combinations of pixels and dates
+  # We'll use this for generating wind and wave data
+  tar_file_read(
+    name = all_pixel_dates_bq,
+    command = here::here("sql/all_pixel_dates.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          gridded_data_table = gridded_data_5_bq$tableReference$tableId,
+          study_period_starting_date = study_period_starting_date,
+          study_period_ending_date = study_period_ending_date,
+          pixel_size = 5
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "all_pixel_dates_v_",
+        model_version
+      ),
       bq_billing_project = bq_billing_project
     ),
   ),
