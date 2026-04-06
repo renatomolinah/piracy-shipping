@@ -1,0 +1,26 @@
+\begin{table}
+
+\caption{Effect of Pirate Encounters on Trip Frequency. \label{tab:trip-count}}
+\centering
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & Global & G. of Aden & G. of Guinea & S.E. Asia\\
+\midrule
+Avg. Encounters (7-day lag) & -0.0112*** & 0.0075 & -0.0006 & -0.0168***\\
+ & (0.0026) & (0.0074) & (0.0034) & (0.0036)\\
+.theta & 6.7033*** & 20.5954*** & 66.1344*** & 9.6202***\\
+ & (0.2056) & (1.9521) & (16.9247) & (0.6765)\\
+ &  &  &  & \\
+Observations & 1,042,303 & 106,961 & 120,343 & 140,283\\
+ &  &  &  & \\
+Country-Pair FE & X & X & X & X\\
+Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
+Month-by-Year FE & X & X & X & X\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a country-pair by 7-day window. The outcome is the count of cargo vessel trips on that route in that week. The model is Negative Binomial; coefficients are log-multiplicative and approximately equal to percentage changes in trips for small values. The sample spans from 2012 to 2023. Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict the sample to routes passing through each hotspot, respectively. Avg. Encounters (7-day lag) is the average of each voyage's 7-day pirate encounter count in the prior 7-day window on the same route, using a 5-degree spatial footprint. This mirrors the 7-day encounter window used in the main voyage-level analysis. Controls include average wind speed, the wind-resistance index, and average wave height. Fixed effects include country-to-country combination, hotspot, and month-by-year. Standard errors are clustered by country-to-country route by year.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

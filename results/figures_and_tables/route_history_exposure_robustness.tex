@@ -1,0 +1,45 @@
+
+\begingroup
+\centering
+\begin{tabular}{lcccccccc}
+   \tabularnewline \midrule \midrule
+   Dependent Variables: & \multicolumn{3}{c}{Distance} & Time & Speed & Distance & Time & Speed\\
+   Model:                                & (1)             & (2)             & (3)             & (4)            & (5)             & (6)             & (7)            & (8)\\  
+   \midrule
+   \emph{Variables}\\
+   Current path attacks (1-7d)           & 34.55$^{***}$   & 39.32$^{***}$   &                 &                &                 &                 &                &   \\   
+                                         & (3.100)         & (3.439)         &                 &                &                 &                 &                &   \\   
+   Current path attacks (31-365d)        & 47.73$^{***}$   & 47.31$^{***}$   &                 &                &                 &                 &                &   \\   
+                                         & (2.619)         & (2.606)         &                 &                &                 &                 &                &   \\   
+   wind\_speed                           & 71.38$^{***}$   & 71.55$^{***}$   & 59.75$^{***}$   & 1.349$^{**}$   & 0.2790$^{***}$  & 59.44$^{***}$   & 1.336$^{**}$   & 0.2789$^{***}$\\   
+                                         & (9.759)         & (9.766)         & (10.29)         & (0.5279)       & (0.0296)        & (10.29)         & (0.5287)       & (0.0296)\\   
+   wind\_vector                          & 0.2948          & 0.3201          & -4.033$^{***}$  & -0.1807        & 0.0272          & -4.135$^{***}$  & -0.1820        & 0.0270\\   
+                                         & (1.003)         & (1.002)         & (1.052)         & (0.1405)       & (0.0184)        & (1.035)         & (0.1396)       & (0.0184)\\   
+   wave\_height                          & 1,153.4$^{***}$ & 1,152.7$^{***}$ & 1,221.7$^{***}$ & 59.54$^{***}$  & -0.6293$^{***}$ & 1,225.3$^{***}$ & 59.69$^{***}$  & -0.6279$^{***}$\\   
+                                         & (69.15)         & (69.18)         & (77.21)         & (3.590)        & (0.1114)        & (77.41)         & (3.597)        & (0.1114)\\   
+   Future attacks (1-7d)                 &                 & 27.41$^{***}$   &                 &                &                 &                 &                &   \\   
+                                         &                 & (3.521)         &                 &                &                 &                 &                &   \\   
+   Prior-route average attacks (1-7d)    &                 &                 & 6.228$^{**}$    & 0.5344$^{***}$ & -0.0120         &                 &                &   \\   
+                                         &                 &                 & (2.463)         & (0.1746)       & (0.0103)        &                 &                &   \\   
+   Prior-route average attacks (31-365d) &                 &                 & 1.206$^{***}$   & 0.0276         & 0.0015          &                 &                &   \\   
+                                         &                 &                 & (0.4672)        & (0.0286)       & (0.0020)        &                 &                &   \\   
+   Prior-route total attacks (1-7d)      &                 &                 &                 &                &                 & 34.57$^{***}$   & 1.593$^{***}$  & 0.0049\\   
+                                         &                 &                 &                 &                &                 & (3.126)         & (0.1582)       & (0.0075)\\   
+   Prior-route total attacks (31-365d)   &                 &                 &                 &                &                 & 3.478$^{***}$   & 0.1614$^{***}$ & 0.0014\\   
+                                         &                 &                 &                 &                &                 & (0.3187)        & (0.0217)       & (0.0013)\\   
+   \midrule
+   \emph{Fixed-effects}\\
+   route\_port\_pair                     & Yes             & Yes             & Yes             & Yes            & Yes             & Yes             & Yes            & Yes\\  
+   country\_pair-month-year              & Yes             & Yes             & Yes             & Yes            & Yes             & Yes             & Yes            & Yes\\  
+   vessel\_type                          & Yes             & Yes             & Yes             & Yes            & Yes             & Yes             & Yes            & Yes\\  
+   tonnage\_decile                       & Yes             & Yes             & Yes             & Yes            & Yes             & Yes             & Yes            & Yes\\  
+   \midrule
+   \emph{Fit statistics}\\
+   Observations                          & 1,223,468       & 1,223,468       & 1,223,468       & 1,223,468      & 1,223,468       & 1,223,468       & 1,223,468      & 1,223,468\\  
+   \midrule \midrule
+   \multicolumn{9}{l}{\emph{Clustered (country\_pair,year)) standard-errors in parentheses}}\\
+   \multicolumn{9}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+
