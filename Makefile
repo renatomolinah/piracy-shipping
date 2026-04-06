@@ -12,7 +12,7 @@ OUTPUT_DATA=data/output/
 # ==============================================================================
 all: gridcell_pipeline trip_pipeline cost_pipeline
 # By pipeline
-gridcell_pipeline: $(CONTENT)cell_post_regression.tex $(CONTENT)cell_level_event_study_2x2.png $(CONTENT)grid_level_event_study_multiple_gt_dyn.pdf
+gridcell_pipeline: $(CONTENT)cell_post_regression.tex $(CONTENT)cell_level_event_study_2x2.png $(CONTENT)grid_level_event_study_DC_did_multiplegt_dyn_0_5.png $(CONTENT)grid_level_did_multiplegt_dyn_summary.tex
 trip_pipeline: $(CONTENT)all_features.png $(PROCESSED_DATA)voyages.rds $(CONTENT)spec_distance.tex $(CONTENT)spec_speed.tex
 cost_pipeline: $(CONTENT)counterfactual_maps.png $(CONTENT)total_map.png $(CONTENT)counterfactual_costs.tex $(CONTENT)counterfactual_emissions.tex
 
@@ -36,6 +36,8 @@ $(CONTENT)summary_statistics.tex: code/1.0_summary.R $(PROCESSED_DATA)voyages.rd
 # 2.1 Download data from BigQuery
 $(PROCESSED_DATA)attacks_and_activity_by_grid.rds: code/2.1_gridcell_download_attacks_and_activity.R
 		cd $(<D);Rscript $(<F)
+$(PROCESSED_DATA)attacks_and_activity_by_grid_0_5.rds: code/2.1_gridcell_download_attacks_and_activity.R
+		cd $(<D);Rscript $(<F)
 # 2.2 Build event study panel
 $(PROCESSED_DATA)ev_panel.rds: code/2.2_gridcell_build_event_study_panel.R $(PROCESSED_DATA)attacks_and_activity_by_grid.rds
 		cd $(<D);Rscript $(<F)
@@ -49,8 +51,10 @@ $(CONTENT)cell_post_regression.tex: code/2.4_gridcell_tables_and_figures.R $(OUT
 ## Event-study plot
 $(CONTENT)cell_level_event_study_2x2.png: code/2.4_gridcell_tables_and_figures.R $(OUTPUT_DATA)gridcell_models.RData
 		cd $(<D);Rscript $(<F)
-## A la clement
-$(CONTENT)grid_level_event_study_multiple_gt_dyn.pdf: code/2.5b_gridcell_estimation_a_la_Clement.R $(PROCESSED_DATA)attacks_and_activity_by_grid.rds
+## did_multiplegt_dyn (de Chaisemartin) event-study outputs
+$(CONTENT)grid_level_event_study_DC_did_multiplegt_dyn_0_5.png: code/2.4c_DC_gridcell_did_multiplegt_dyn.R $(PROCESSED_DATA)attacks_and_activity_by_grid_0_5.rds
+		cd $(<D);Rscript $(<F)
+$(CONTENT)grid_level_did_multiplegt_dyn_summary.tex: code/2.4c_DC_gridcell_did_multiplegt_dyn.R $(PROCESSED_DATA)attacks_and_activity_by_grid_0_5.rds
 		cd $(<D);Rscript $(<F)
 
 # Trip level analysis ----------------------------------------------------------
