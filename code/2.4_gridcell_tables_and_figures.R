@@ -131,8 +131,8 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
-         title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1) in the main text. Each panel examines a different shipping activity measure and each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff)."),
+         title = "Effect of Pirate Encounters on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
+         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. ~(\\\\ref{event.study.grid}). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)
@@ -150,7 +150,8 @@ create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate
   # Run regression for the specific outcome
   model <- conleyreg(
     # as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + date + id^month")),
+    # as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + date + id^month")),
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
     unit = "id",
     time = "date",
     lat = "lat_bin",
@@ -252,7 +253,7 @@ ggsave(
 
 ## Supplementary materials plot
 res_plot <- models |> 
-  select(1:3, coefficients) |> 
+  select(1:4, coefficients) |> 
   mutate(coefficients = map(coefficients, broom::tidy, conf.int = T)) |> 
   unnest(coefficients) |> 
   mutate(outcome_var = case_when(outcome_var == "asinh(time_hours)" ~ "Occupancy Time (hours)",
@@ -300,34 +301,55 @@ ggsave(plot = res_plot,
 create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimate ± (std.error & 95% CI)") {
   # Run regression for the specific outcome
   model_0_1 <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
     unit = "id",
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel("0_1"),
+    data = panel("0_1") |> 
+      drop_na(outcome_var) |> 
+      add_count(date, name = "n_int") |>
+      filter(n_int > 1) |>
+      select(-n_int) |>
+      add_count(id, month, name = "n_int2") |>
+      filter(n_int2 > 1) |>
+      select(-n_int2),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
   
   model_0_5 <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
     unit = "id",
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel("0_5"),
+    data = panel("0_5") |> 
+      drop_na(outcome_var) |> 
+      add_count(date, name = "n_int") |>
+      filter(n_int > 1) |>
+      select(-n_int) |>
+      add_count(id, month, name = "n_int2") |>
+      filter(n_int2 > 1) |>
+      select(-n_int2),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
   
   model_1 <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week + asam_subregion")),
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
     unit = "id",
     time = "date",
     lat = "lat_bin",
     lon = "lon_bin",
-    data = panel(+1),
+    data = panel("1") |> 
+      drop_na(outcome_var) |> 
+      add_count(date, name = "n_int") |>
+      filter(n_int > 1) |>
+      select(-n_int) |>
+      add_count(id, month, name = "n_int2") |>
+      filter(n_int2 > 1) |>
+      select(-n_int2),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -434,7 +456,7 @@ modelsummary(AIS_disab_models$coefficients,
              stars = c('*' = .1, '**' = .05, '***' = .01),
              fmt = "%.3f",
              title = "Effect of Pirate Encounters on AIS Disabling Events. \\label{tab:ais-disabling}",
-             notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1) in the main text. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff)."),
+             notes = list("This table tests whether vessels disable their AIS transponders following a piracy report. The unit of observation is a grid cell-day. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
              threeparttable = TRUE,
              escape = FALSE,
              output = AIS_disab_table_name)
