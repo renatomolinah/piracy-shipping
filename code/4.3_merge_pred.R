@@ -24,7 +24,7 @@ pred_emissions <- readRDS(here("data", "processed", "emissions_pred_global.rds")
 
 # Merge cost and emissions predictions
 total_pred <- left_join(pred_cost, pred_emissions, by = join_by(trip_id,
-                                                                attacks_15day_num,
+                                                                attacks_7day_num,
                                                                 wind_speed,
                                                                 wind_vector,
                                                                 wave_height,
