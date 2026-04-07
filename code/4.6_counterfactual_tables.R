@@ -115,6 +115,29 @@ add_adjust_box(here("results", "figures_and_tables", "counterfactual_costs.tex")
                before = "\\begin{tabular}",
                after = "\\end{tabular}")
 
+# Add threeparttable + footnote
+add_threeparttable_note <- function(file, note_text) {
+  lines <- readLines(file, warn = FALSE)
+  # Find adjustbox open/close
+  adj_open <- grep("\\\\begin\\{adjustbox\\}", lines)
+  adj_close <- grep("\\\\end\\{adjustbox\\}", lines)
+  # Insert \begin{threeparttable} after adjustbox open
+  lines <- c(lines[1:adj_open], "\\begin{threeparttable}", lines[(adj_open+1):length(lines)])
+  # Re-find adjustbox close (shifted by 1)
+  adj_close <- grep("\\\\end\\{adjustbox\\}", lines)
+  # Insert tablenotes + \end{threeparttable} before adjustbox close
+  note_lines <- c("\\begin{tablenotes}",
+                   paste0("\\item \\scriptsize ", note_text),
+                   "\\end{tablenotes}",
+                   "\\end{threeparttable}")
+  lines <- c(lines[1:(adj_close-1)], note_lines, lines[adj_close:length(lines)])
+  writeLines(lines, file)
+}
+
+add_threeparttable_note(
+  here("results", "figures_and_tables", "counterfactual_costs.tex"),
+  "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2) in the main text, 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. Values are aggregated annually by hotspot region."
+)
 
 # X ----------------------------------------------------------------------------
 counterfactual_emissions <- dsummary((co2 / 1000 + nox + sox) * Hotspot ~ sum * year, data = pred_info_local,
@@ -140,3 +163,8 @@ kbl(x = counterfactual_emissions,
 add_adjust_box(here("results", "figures_and_tables","counterfactual_emissions.tex"),
                before = "\\begin{tabular}",
                after = "\\end{tabular}")
+
+add_threeparttable_note(
+  here("results", "figures_and_tables", "counterfactual_emissions.tex"),
+  "Counterfactual emissions are derived from the fully specified global voyage-level model (Eq. (2) in the main text, 5-degree grid, 7-day window). For each voyage, we predict emissions under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. CO$_2$ emissions are calculated using a standard linear fuel-to-carbon conversion. NO$_\\text{x}$ and SO$_\\text{x}$ emissions are calculated using engine-type-specific emission factors. Values are aggregated annually by hotspot region."
+)
