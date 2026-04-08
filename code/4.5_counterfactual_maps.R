@@ -56,9 +56,12 @@ piracy <- dbConnect(
 )
 
 # Load data --------------------------------------------------------------------
+# Spatial vector files
+# Land and coastlines
 coast <- rnaturalearth::ne_countries(returnclass = "sf")
 coastline <- rnaturalearth::ne_coastline(returnclass = "sf")
 
+# Load ASAM subregions
 asam_regions <- asam_subregions() %>%
   select(asam_region = REGION) %>%
   st_buffer(dist = 0.01) %>%
@@ -66,15 +69,19 @@ asam_regions <- asam_subregions() %>%
   summarize() %>%
   ungroup()
 
+# Load Exclusive Economic Zones (EEZ); 200 nm and territorial seas (12 nm)
 eez <- st_read(dsn = here("data/raw/World_EEZ_v12_20231025_gpkg/eez_v12.gpkg")) %>%
   select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
-territorial_seas <- st_read(dsn = "data/raw/World_24NM_v4_20231025_gpkg/eez_24nm_v4.gpkg") %>%
+territorial_seas <- st_read(dsn = "data/raw/World_12NM_v4_20231025_gpkg/eez_12nm_v4.gpkg") %>%
   select(iso_sov = ISO_SOV1) %>%
   rmapshaper::ms_simplify(keep_shapes = T, keep = 0.01)
 
-track_info <- tbl(piracy, "gridded_data_0_5_v_20250521") %>%
+# Now connect to BigQuery datasets.
+# This first one contains the track info, gridded at the 0.5° resolution. We use these
+# to spatially attrbute the counterfactual predictions.
+track_info <- tbl(piracy, "gridded_data_0_5_v_20260224") %>%
   mutate(year = sql("EXTRACT(YEAR FROM date)")) %>%
   select(year, lon_bin, lat_bin, trip_id) %>%
   group_by(trip_id) %>%
@@ -83,7 +90,10 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20250521") %>%
   mutate(lon_bin = lon_bin + 0.25,
          lat_bin = lat_bin + 0.25)
 
-pred_info <- tbl(piracy, "full_pred_global_v_20251027") %>%
+# These are the counterfactual predictions, along with the predicted values.
+# The effect of piracy is the difference in predictions with and without pirates.
+# Data with piracy is labeled p, data without piracy is labeled np.
+pred_info <- tbl(piracy, "full_pred_global_v_20260407") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
@@ -91,6 +101,8 @@ pred_info <- tbl(piracy, "full_pred_global_v_20251027") %>%
   select(trip_id, cost, co2, nox, sox)
 
 # Build data --------------------------------------------------------------------
+# After identifying the trip-level costs, we combine it with the track info and
+# assume that the cost is divided equally across all days from a trip.
 grided <- pred_info %>%
   left_join(track_info, by = "trip_id") %>%
   group_by(year, lat_bin, lon_bin) %>%
@@ -174,7 +186,6 @@ total_by_sea <- total_grided_by_sea %>%
   summarize_all(sum, na.rm = T)
 
 # Some stats by EEZ and sea:
-
 (total_by_eez$public / total$public) * 100
 (total_by_sea$public / total$public) * 100
 
@@ -212,7 +223,7 @@ make_map <- function(data,
                   aes(label = asam_region),
                   nudge_y = -8,
                   size = 2,
-                  label.size = 0.1,
+                  linewidth = 0.1,
                   label.padding = unit(0.1, "lines")) +
     scale_fill_viridis_c(option = option, trans = "log10") +
     # scale_color_brewer(palette = "Paired") +
@@ -314,7 +325,7 @@ ggsave(plot = total_map,
        units = "cm")
 
 
-tbl(piracy, "full_pred_global_v_20250810") %>%
+tbl(piracy, "full_pred_global_v_20260407") %>%
   select(year, matches("total|co2|sox|nox")) %>%
   group_by(year) %>%
   summarize_all(sum) %>%
