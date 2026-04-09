@@ -1,39 +1,35 @@
 \begin{table}
-
+\centering
 \caption{Effect of Past Pirate Encounters on Total Cost. \label{tab:spec-total-table}}
 \centering
 \begin{adjustbox}{width = .9\textwidth}
 \begin{threeparttable}
-\begin{tabular}[t]{lcccccc}
+\begin{tabular}[t]{lccccccc}
 \toprule
-  & (1) & (2) & (3) & (4) & (5) & (6)\\
+  & (1) & (2) & (3) & (4) & (5) & (6) & (7)\\
 \midrule
-Encounters (7 day) & \num{21.07}*** & \num{23.29}*** & \num{2.66}*** & \num{2.50}*** & \num{2.48}*** & \num{2.48}***\\
- & (\num{1.70}) & (\num{1.49}) & (\num{0.28}) & (\num{0.28}) & (\num{0.28}) & (\num{0.28})\\
-Wind Speed (m/s) &  & \num{3.94}*** & \num{0.11} & \num{0.21}** & \num{0.11} & \num{0.11}\\
- &  & (\num{0.69}) & (\num{0.10}) & (\num{0.10}) & (\num{0.10}) & (\num{0.10})\\
-Wind Resistance Index (m/s) &  & \num{-0.45}*** & \num{-0.21}*** & \num{-0.18}*** & \num{-0.19}*** & \num{-0.19}***\\
- &  & (\num{0.08}) & (\num{0.03}) & (\num{0.03}) & (\num{0.03}) & (\num{0.03})\\
-Wave Height (m) &  & \num{32.13}*** & \num{7.58}*** & \num{6.78}*** & \num{6.29}*** & \num{6.28}***\\
- &  & (\num{2.76}) & (\num{0.52}) & (\num{0.42}) & (\num{0.45}) & (\num{0.44})\\
- &  &  &  &  &  & \\
-Observations & 32,440,604 & 26,304,136 & 26,304,136 & 26,304,136 & 26,304,136 & 26,304,136\\
- &  &  &  &  &  & \\
-Country Combo. FE &  &  & X & X & X & X\\
-Vessel Type FE &  &  &  & X & X & X\\
-Vessel Size FE &  &  &  & X & X & X\\
-Hotspot FE &  &  &  &  & X & X\\
-Top Route FE &  &  &  &  &  & X\\
-Month-by-Year FE & X & X & X & X & X & X\\
+Encounters (7 day) & \num{21.07}*** & \num{23.29}*** & \num{2.66}*** & \num{2.51}*** & \num{2.48}*** & \num{2.48}*** & \num{1.75}***\\
+ & (\num{1.70}) & (\num{1.49}) & (\num{0.28}) & (\num{0.28}) & (\num{0.28}) & (\num{0.28}) & (\num{0.24})\\
+Wind Speed (m/s) &  & \num{3.94}*** & \num{0.11} & \num{0.21}** & \num{0.11} & \num{0.11} & \num{0.24}***\\
+ &  & (\num{0.69}) & (\num{0.10}) & (\num{0.10}) & (\num{0.10}) & (\num{0.10}) & (\num{0.07})\\
+Wind Resistance Index (m/s) &  & \num{-0.45}*** & \num{-0.21}*** & \num{-0.18}*** & \num{-0.19}*** & \num{-0.19}*** & \num{-0.06}***\\
+ &  & (\num{0.08}) & (\num{0.03}) & (\num{0.03}) & (\num{0.03}) & (\num{0.03}) & (\num{0.02})\\
+Wave Height (m) &  & \num{32.13}*** & \num{7.58}*** & \num{6.78}*** & \num{6.29}*** & \num{6.28}*** & \num{1.78}***\\
+ &  & (\num{2.76}) & (\num{0.52}) & (\num{0.42}) & (\num{0.45}) & (\num{0.44}) & (\num{0.25})\\
+ &  &  &  &  &  &  & \\
+Observations & 32,439,587 & 26,303,074 & 26,303,074 & 26,303,074 & 26,303,074 & 26,303,074 & 26,303,074\\
+ &  &  &  &  &  &  & \\
+Country Combo. FE &  &  & X & X & X & X & \\
+Vessel Type FE &  &  &  & X & X & X & X\\
+Vessel Size FE &  &  &  & X & X & X & X\\
+Hotspot FE &  &  &  &  & X & X & X\\
+Top Route FE &  &  &  &  &  & X & \\
+Port-to-Port FE &  &  &  &  &  &  & X\\
+Month-by-Year FE & X & X & X & X & X & X & X\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage.
-                      The sample spans from 2012 to 2023.
-                      Every column is a different specification.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year.
 \end{tablenotes}
 \end{threeparttable}
 \end{adjustbox}

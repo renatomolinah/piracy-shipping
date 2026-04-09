@@ -1,0 +1,44 @@
+\begin{table}
+\centering
+\caption{Route Choice Between the Suez Canal and the Cape of Good Hope: Trip-Level Evidence \label{tab:suez-cape-trip-level-rev2}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lccccccccc}
+\toprule
+  & (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8) & (9)\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{10}{l}{\textit{Panel (A): Continuous encounter intensity}}\\
+\midrule \hspace{1em}Encounters in prior 7 days & -0.003 & -0.004 & 0.048 &  &  &  &  &  & \\
+\hspace{1em} & (0.022) & (0.022) & (0.079) &  &  &  &  &  & \\
+\hspace{1em}Encounters in prior 15 days &  &  &  & -0.025 & -0.024 & 0.094 &  &  & \\
+\hspace{1em} &  &  &  & (0.021) & (0.021) & (0.073) &  &  & \\
+\hspace{1em}Encounters in prior 30 days &  &  &  &  &  &  & -0.012 & -0.011 & 0.064\\
+\hspace{1em} &  &  &  &  &  &  & (0.021) & (0.021) & (0.057)\\
+\addlinespace[0.5em]
+\multicolumn{10}{l}{\textit{Panel (B): High-encounter indicator}}\\
+\midrule \hspace{1em}High encounters (7d window) & -0.008 & -0.005 & 0.075 &  &  &  &  &  & \\
+\hspace{1em} & (0.049) & (0.050) & (0.229) &  &  &  &  &  & \\
+\hspace{1em}High encounters (15d window) &  &  &  & -0.040 & -0.037 & 0.192 &  &  & \\
+\hspace{1em} &  &  &  & (0.062) & (0.062) & (0.228) &  &  & \\
+\hspace{1em}High encounters (30d window) &  &  &  &  &  &  & 0.076 & 0.075 & 0.202\\
+\hspace{1em} &  &  &  &  &  &  & (0.095) & (0.095) & (0.290)\\
+ &  &  &  &  &  &  &  &  \vphantom{1} & \\
+Observations & 538,054 & 538,054 & 83,626 & 538,054 & 538,054 & 83,626 & 538,054 & 538,054 & 83,626\\
+ &  &  &  &  &  &  &  &  & \\
+DoW FE &  & X & X &  & X & X &  & X & X\\
+Country Combo. FE &  &  & X &  &  & X &  &  & X\\
+Vessel Type FE &  & X & X &  & X & X &  & X & X\\
+Vessel Size FE &  & X & X &  & X & X &  & X & X\\
+Top Route FE &  &  & X &  &  & X &  &  & X\\
+Weather controls & X & X & X & X & X & X & X & X & X\\
+Month-by-Year FE & X & X & X & X & X & X & X & X & X\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is an individual vessel trip. The outcome is a binary indicator equal to one if the trip used the Cape of Good Hope route (zero for Suez Canal). The sample spans from 2012 to 2023. Encounters in prior X days is the count of pirate encounters recorded in the Gulf of Aden in the preceding X days from the departure date. Panel B defines high-encounter periods as those above the 75th percentile of the encounter distribution within each window. Columns (2), (5), and (8) add day-of-week, vessel-type, and vessel-size fixed effects. Columns (3), (6), and (9) further add country-pair and top-route fixed effects. Controls include average wind speed, the wind-resistance index, and average wave height. Standard errors are clustered by month-by-year.
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}

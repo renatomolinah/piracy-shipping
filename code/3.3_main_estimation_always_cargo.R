@@ -1,9 +1,4 @@
-# =============================================================================
-# MAIN ESTIMATION ANALYSIS - ALWAYS CARGO VESSELS
-# =============================================================================
-# This script performs the main regression analysis examining how pirate attacks
-# affect shipping behavior for vessels that are always cargo carriers.
-# =============================================================================
+# Main estimation restricted to vessels classified as always-cargo carriers
 
 library(here)
 library(tidyverse)
@@ -11,11 +6,8 @@ library(fixest)
 library(viridis)
 library(broom)
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
+# --- Load and prepare data ---
 
-# Load the main dataset
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
@@ -27,9 +19,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
                             ifelse(asia == 1, "Southeast Asia", "None")))
   )
 
-# Create attack variables for different time windows and spatial footprints
 wdb <- wdb %>% mutate(
-  # 3-degree spatial footprint
   attacks_7day_num_3 = number_previous_attacks_7_days_3_degrees,
   attacks_15day_num_3 = number_previous_attacks_15_days_3_degrees,
   attacks_30day_num_3 = number_previous_attacks_1_month_3_degrees,
@@ -37,7 +27,6 @@ wdb <- wdb %>% mutate(
   attacks_6mo_num_3 = number_previous_attacks_6_months_3_degrees,
   attacks_12mo_num_3 = number_previous_attacks_12_months_3_degrees,
 
-  # 5-degree spatial footprint
   attacks_7day_num_5 = number_previous_attacks_7_days_5_degrees,
   attacks_15day_num_5 = number_previous_attacks_15_days_5_degrees,
   attacks_30day_num_5 = number_previous_attacks_1_month_5_degrees,
@@ -45,7 +34,6 @@ wdb <- wdb %>% mutate(
   attacks_6mo_num_5 = number_previous_attacks_6_months_5_degrees,
   attacks_12mo_num_5 = number_previous_attacks_12_months_5_degrees,
 
-  # 7-degree spatial footprint
   attacks_7day_num_7 = number_previous_attacks_7_days_7_degrees,
   attacks_15day_num_7 = number_previous_attacks_15_days_7_degrees,
   attacks_30day_num_7 = number_previous_attacks_1_month_7_degrees,
@@ -54,25 +42,16 @@ wdb <- wdb %>% mutate(
   attacks_12mo_num_7 = number_previous_attacks_12_months_7_degrees
 )
 
-# =============================================================================
-# 2. SET UP FORMULAS AND CONTROLS
-# =============================================================================
+# --- Formulas and controls ---
 
-# Define weather controls (now including wave height)
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
-# =============================================================================
-# 3. MAIN REGRESSIONS
-# =============================================================================
+# --- Estimation ---
 
-# Run regressions for all specifications (7, 15, and 30 day windows only)
 feature_coefficients <- feols(
   c(distance, time, speed) ~ sw(
-    # 3-degree footprint
     attacks_7day_num_3, attacks_15day_num_3, attacks_30day_num_3,
-    # 5-degree footprint  
     attacks_7day_num_5, attacks_15day_num_5, attacks_30day_num_5,
-    # 7-degree footprint
     attacks_7day_num_7, attacks_15day_num_7, attacks_30day_num_7
   ) + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
   lean = TRUE,
@@ -81,14 +60,10 @@ feature_coefficients <- feols(
   cluster = ~country_pair ^ year
 )
 
-# Save regression results
 saveRDS(feature_coefficients, here("data", "output", "feature_coefficients_always_cargo.rds"))
 
-# =============================================================================
-# 4. PROCESS COEFFICIENTS FOR VISUALIZATION
-# =============================================================================
+# --- Process coefficients ---
 
-# Extract and clean coefficient data
 coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int = TRUE) %>%
   filter(str_detect(term, "^attacks_")) %>%
   mutate(
@@ -125,14 +100,10 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
   filter(timing != "Other") %>%
   arrange(sample, timing, degrees, term)
 
-# Save processed coefficient data
 saveRDS(coef_data, here("data", "processed", "feature_coefficients_always_cargo_clean.rds"))
 
-# =============================================================================
-# 5. CREATE VISUALIZATION
-# =============================================================================
+# --- Visualization ---
 
-# Create comprehensive feature specification plot
 feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees, group = degrees)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_linerange(
@@ -172,7 +143,6 @@ feature_plot <- ggplot(coef_data, aes(x = timing, y = estimate, color = degrees,
     axis.title.y = element_text(size = 20, margin = margin(r = 10))
   )
 
-# Save plot
 ggsave(
   filename = here("results", "figures_and_tables", "all_features_always_cargo.png"),
   plot = feature_plot,
@@ -182,16 +152,10 @@ ggsave(
   dpi = 300
 )
 
-# =============================================================================
-# 6. SUMMARY STATISTICS
-# =============================================================================
+# --- Summary ---
 
-# Print summary of results
 cat("Main estimation analysis (always cargo) completed.\n")
 cat("Number of specifications:", length(feature_coefficients), "\n")
 cat("Number of observations:", nrow(wdb), "\n")
 cat("Results saved to:", here("data", "output", "feature_coefficients_always_cargo.rds"), "\n")
 cat("Plot saved to:", here("results", "figures_and_tables", "all_features_always_cargo.png"), "\n")
-
-
-

@@ -10,8 +10,8 @@
 \midrule
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
-\midrule \hspace{1em}Encounters (7 day) & 39.93*** & 85.18*** & 28.91*** & 35.39***\\
-\hspace{1em} & (5.08) & (5.54) & (2.12) & (5.56)\\
+\midrule \hspace{1em}Encounters (7 day) & 39.93*** & 85.19*** & 28.93*** & 35.39***\\
+\hspace{1em} & (5.10) & (5.56) & (2.15) & (5.58)\\
 \addlinespace[0.5em]
 \multicolumn{5}{l}{\textit{Panel (B): Total Time (hr)}}\\
 \midrule \hspace{1em}Encounters (7 day) & 2.08*** & 3.40*** & 1.82*** & 1.92***\\
@@ -21,23 +21,13 @@
 \midrule \hspace{1em}Encounters (7 day) & -0.00 & 0.12*** & -0.02 & -0.01\\
 \hspace{1em} & (0.01) & (0.02) & (0.02) & (0.01)\\
  &  &  &  \vphantom{1} & \\
-Observations & 26,574,974 & 995,990 & 339,286 & 6,329,740\\
+Observations & 26,775,456 & 1,003,341 & 346,665 & 6,377,438\\
  &  &  &  & \\
 Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Each panel examines an observed feature in terms of total distance in kilometers (km),
-                      total time of the voyage in hours (hr), and the average speed of the voyage (km/hr).
-                      The sample spans from 2012 to 2023.
-                      Every column is a different sample:
-                      Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing
-                      through one of the hotspots, respectively. Every panel-column combination is a different regression analysis.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed, the wind-resistance index, and average wave height along the voyage.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot,
-                      and a battery of month by year and top port-to-port combination for country-to-country combination dummies. 
-                      Standard errors are clustered by country-to-country route by year.
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. This table replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Other fixed effects include vessel type, vessel size, hotspot, and month-by-year. Standard errors are clustered by country-to-country route by year.
 \end{tablenotes}
 \end{threeparttable}
 \end{adjustbox}

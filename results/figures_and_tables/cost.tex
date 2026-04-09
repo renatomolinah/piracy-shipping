@@ -1,5 +1,5 @@
 \begin{table}
-
+\centering
 \caption{Effect of Past Pirate Encounters on Shipping Cost. \label{tab:cost-table}}
 \centering
 \begin{adjustbox}{width = .9\textwidth}
@@ -21,19 +21,13 @@
 \midrule \hspace{1em}Encounters (7 day) & 2.48*** & 13.68*** & 1.46*** & 1.95***\\
 \hspace{1em} & (0.28) & (1.25) & (0.21) & (0.32)\\
  &  &  &  \vphantom{1} & \\
-Observations & 26,304,136 & 984,899 & 341,556 & 6,254,926\\
+Observations & 26,303,074 & 984,770 & 341,511 & 6,254,683\\
  &  &  &  & \\
 Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both.
-                      All coefficients are in thousands of US$. The sample spans from 2012 to 2023.
-                      Every column is a different sample: Global is the analysis using the whole sample. G. of Aden, S.E. Asia, and G. of Guinea restrict the sample to vessels passing through one of the hotspots, respectively.
-                      Every panel-column combination is a different regression analysis.
-                      Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5 degree spatial footprint.
-                      Controls include average wind speed along the voyage, the wind-resistance index, and wave height.
-                      Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, and a battery of month by year and top port-to-port combination for country-to-country combination dummies.
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both. All coefficients are in thousands of US\$. Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year.
 \end{tablenotes}
 \end{threeparttable}
 \end{adjustbox}
