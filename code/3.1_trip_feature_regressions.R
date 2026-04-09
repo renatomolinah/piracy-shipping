@@ -1,23 +1,14 @@
-# =============================================================================
-# TRIP FEATURE REGRESSIONS
-# =============================================================================
-# This script performs regression analysis on trip-level features (distance, time, speed)
-# examining how pirate attacks affect shipping behavior across different regions.
-# =============================================================================
+# Regression analysis of trip features (distance, time, speed) on pirate encounters by region
 
 library(here)
 library(tidyverse)
 library(fixest)
 library(modelsummary)
 
-# Specify output directory
 output_dir <- here("results", "figures_and_tables")
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
+# --- Load and prepare data ---
 
-# Load the main dataset
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
@@ -29,17 +20,12 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
                             ifelse(asia == 1, "Asia", "None")))
   )
 
-# Create attack variable
 wdb <- wdb %>% mutate(attacks_7day_num = number_previous_attacks_7_days_5_degrees)
 
-# =============================================================================
-# 2. SET UP FORMULAS AND CONTROLS
-# =============================================================================
+# --- Formulas and controls ---
 
-# Define weather controls (now including wave height)
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
-# Set up variable dictionary for clean output
 setFixest_dict(c(
   time = "Total Time (hrs)",
   distance = "Total Distance (km)",
@@ -56,16 +42,10 @@ setFixest_dict(c(
   wave_height = "Wave Height (m)"
 ))
 
-# =============================================================================
-# 3. HELPER FUNCTIONS FOR LATEX TABLES
-# =============================================================================
 source(here("code", "table_helpers.R"))
 
-# =============================================================================
-# 4. MAIN FEATURE REGRESSIONS
-# =============================================================================
+# --- Main feature regressions ---
 
-# Distance regressions
 m1_dist <- feols(distance ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
@@ -90,7 +70,6 @@ m4_dist <- feols(distance ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-# Time regressions
 m1_time <- feols(time ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
@@ -115,7 +94,6 @@ m4_time <- feols(time ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-# Speed regressions
 m1_speed <- feols(speed ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
@@ -140,16 +118,12 @@ m4_speed <- feols(speed ~ attacks_7day_num + ..wctrl
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-# =============================================================================
-# 5. CREATE MAIN FEATURE TABLE
-# =============================================================================
+# --- Main feature table ---
 
-# Set up results for manuscript table
 regs_dist <- list(m1_dist, m2_dist, m3_dist, m4_dist)
 regs_time <- list(m1_time, m2_time, m3_time, m4_time)
 regs_speed <- list(m1_speed, m2_speed, m3_speed, m4_speed)
 
-# Create rows for additional information
 rows <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
   "", "", "", "", "",
@@ -161,7 +135,6 @@ rows <- tribble(
   "Hotspot FE",  "X", "$\\bullet$", "$\\bullet$", "$\\bullet$"
 )
 
-# Create main feature table
 msummary(list("Panel (A): Total Distance (km)" = regs_dist,
               "Panel (B): Total Time (hr)" = regs_time,
               "Panel (C): Average Speed (km/hr)" = regs_speed),
@@ -178,16 +151,12 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          escape = FALSE,
          output = here(output_dir, "features.tex"))
 
-# Apply formatting
 add_adjust_box(here(output_dir, "features.tex"))
 replace_table_headers(here(output_dir, "features.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "features.tex"))
 
-# =============================================================================
-# 6. SPECIFICATION ANALYSIS - DISTANCE
-# =============================================================================
+# --- Specification analysis: distance ---
 
-# Distance specification regressions
 spec_dist_1 <- feols(distance ~ attacks_7day_num
                      | month^year, wdb,
                      cluster = ~country_pair ^ year,
@@ -223,10 +192,8 @@ spec_dist_7 <- feols(distance ~ attacks_7day_num + ..wctrl
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-# Set up results for distance specification table
 spec_dist <- list(spec_dist_1, spec_dist_2, spec_dist_3, spec_dist_4, spec_dist_5, spec_dist_6, spec_dist_7)
 
-# Create rows for distance specification table
 rows_spec <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)", ~"(5)", ~"(6)", ~"(7)",
   "", "", "", "", "", "", "", "",
@@ -247,7 +214,6 @@ rows_spec <- tribble(
   "Month-by-Year FE",  "X", "X", "X", "X", "X", "X", "X"
 )
 
-# Create distance specification table
 msummary(spec_dist,
          coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -263,11 +229,8 @@ msummary(spec_dist,
 add_adjust_box(here(output_dir, "spec_distance.tex"))
 adjust_notes_font_size(here(output_dir, "spec_distance.tex"))
 
-# =============================================================================
-# 7. SPECIFICATION ANALYSIS - TIME
-# =============================================================================
+# --- Specification analysis: time ---
 
-# Time specification regressions
 spec_time_1 <- feols(time ~ attacks_7day_num
                      | month^year, wdb,
                      cluster = ~country_pair ^ year,
@@ -303,10 +266,8 @@ spec_time_7 <- feols(time ~ attacks_7day_num + ..wctrl
                      cluster = ~country_pair ^ year,
                      lean = T)
 
-# Set up results for time specification table
 spec_time <- list(spec_time_1, spec_time_2, spec_time_3, spec_time_4, spec_time_5, spec_time_6, spec_time_7)
 
-# Create time specification table
 msummary(spec_time,
          coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -322,11 +283,8 @@ msummary(spec_time,
 add_adjust_box(here(output_dir, "spec_time.tex"))
 adjust_notes_font_size(here(output_dir, "spec_time.tex"))
 
-# =============================================================================
-# 8. SPECIFICATION ANALYSIS - SPEED
-# =============================================================================
+# --- Specification analysis: speed ---
 
-# Speed specification regressions
 spec_speed_1 <- feols(speed ~ attacks_7day_num
                       | month^year, wdb,
                       cluster = ~country_pair ^ year,
@@ -362,10 +320,8 @@ spec_speed_7 <- feols(speed ~ attacks_7day_num + ..wctrl
                       cluster = ~country_pair ^ year,
                       lean = T)
 
-# Set up results for speed specification table
 spec_speed <- list(spec_speed_1, spec_speed_2, spec_speed_3, spec_speed_4, spec_speed_5, spec_speed_6, spec_speed_7)
 
-# Create speed specification table
 msummary(spec_speed,
          coef_rename = c("Encounters (7 day)", "Wind Speed (m/s)", "Wind Resistance Index (m/s)", "Wave Height (m)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -381,11 +337,8 @@ msummary(spec_speed,
 add_adjust_box(here(output_dir, "spec_speed.tex"))
 adjust_notes_font_size(here(output_dir, "spec_speed.tex"))
 
-# =============================================================================
-# 9. SUMMARY STATISTICS
-# =============================================================================
+# --- Summary ---
 
-# Print summary of results
 cat("Trip feature regressions completed.\n")
 cat("Number of observations:", nrow(wdb), "\n")
 cat("Tables saved to:", here("results", "figures_and_tables"), "\n")

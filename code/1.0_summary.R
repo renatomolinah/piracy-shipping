@@ -1,9 +1,6 @@
-# =============================================================================
-# VOYAGE DATA SUMMARY STATISTICS SCRIPT
-# =============================================================================
-# This script creates summary statistics tables for voyage data by piracy hotspot regions
-# and exports them in LaTeX format for academic papers.
-# =============================================================================
+# Summary statistics tables for voyage data by piracy hotspot region
+
+# --- Setup ---
 library(here)
 library(tidyverse)
 library(ggpubr)
@@ -14,17 +11,13 @@ library(scales)
 
 source(here("code", "table_helpers.R"))
 
-# =============================================================================
-# 1. LOAD AND PREPARE VOYAGE DATA
-# =============================================================================
-voyage_data_path <- here("data", "processed", "voyages.rds")
-
-voyage_data <- readRDS(voyage_data_path) %>%
+# --- Load and prepare data ---
+voyage_data <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     in_piracy_hotspot = guinea + aden + asia
   ) %>%
   filter(
-    in_piracy_hotspot <= 1, best_vessel_type_cargo # Quiere decir que solamente nos quedamos con trips que pasan por un solo hotspot y que son de cargo ships?
+    in_piracy_hotspot <= 1, best_vessel_type_cargo
   ) %>%
   mutate(
     hotspot_region = case_when(
@@ -49,10 +42,7 @@ voyage_data <- readRDS(voyage_data_path) %>%
 
 cat("Loaded", nrow(voyage_data), "voyage records for summary statistics\n")
 
-# =============================================================================
-# 2. CREATE SUMMARY STATISTICS BY REGION
-# =============================================================================
-
+# --- Summary statistics by region ---
 P5 <- function(x) quantile(x, 0.05, na.rm = TRUE)
 P95 <- function(x) quantile(x, 0.95, na.rm = TRUE)
 
@@ -69,10 +59,7 @@ summary_by_region <-
            ~scales::comma(., accuracy = 0.1))
   )
 
-# =============================================================================
-# 3. EXPORT TO LATEX FORMAT
-# =============================================================================
-
+# --- Export summary table ---
 latex_table <- kbl(
   x = summary_by_region,
   booktabs = TRUE,
@@ -100,12 +87,8 @@ add_adjust_box(output_file)
 
 cat("LaTeX table saved to:", output_file, "\n")
 
-# =============================================================================
-# 4. POST-PROCESS LATEX OUTPUT
-# =============================================================================
-
+# --- Post-process LaTeX ---
 clean_latex_output <- function(file_path) {
-
   lines <- readLines(file_path, warn = FALSE)
 
   cleanup_patterns <- c(
@@ -125,7 +108,6 @@ clean_latex_output <- function(file_path) {
   }
 
   writeLines(modified_lines, file_path)
-
   cat("LaTeX file has been cleaned and saved.\n")
 }
 
@@ -135,14 +117,9 @@ if(require(beepr)){beep(4)}
 
 output_dir <- here("results", "figures_and_tables")
 
-# =============================================================================
-# 5. ASAM REPORTING LAGS
-# =============================================================================
-# How long between an attack occurring and it appearing in the ASAM database?
-# This informs the 7-day window choice: captains can only respond to public info.
-
-cat("\n=== ASAM REPORTING LAGS ===\n")
-
+# --- ASAM reporting lags ---
+# How long between an attack and its ASAM database entry?
+# Informs the 7-day window: captains can only respond to public info.
 asam_sf <- sf::read_sf(here("data", "processed", "clean_asam_data.gpkg")) %>%
   rename(geometry = geom) %>%
   mutate(
@@ -159,11 +136,10 @@ asam <- asam_sf %>%
   filter(
     date >= lubridate::ymd("2012-01-01"),
     date <= lubridate::ymd("2023-12-31"),
-    lag_days >= 0  # drop negative lags (data entry errors)
+    lag_days >= 0
   )
 
-# Hotspot bounding boxes from generate_hotspot_boundaries() in targets pipeline.
-# DBSCAN (eps=10, MinPts=150) on 2012-2023 attacks, snapped to nearest 5 degrees.
+# DBSCAN-derived bounding boxes (eps=10, MinPts=150), snapped to nearest 5 degrees
 hotspot_boxes <- tibble(
   cluster = c("Gulf of Aden", "Gulf of Guinea", "Southeast Asia"),
   lon_min = c(35, -15, 95),
@@ -191,7 +167,6 @@ asam <- asam %>%
     )
   )
 
-# Compute summary by sample
 lag_summary <- bind_rows(
   asam %>%
     summarise(
@@ -214,10 +189,8 @@ lag_summary <- bind_rows(
 )
 
 write_csv(lag_summary, here(output_dir, "asam_reporting_lags_summary.csv"))
-cat("Wrote asam_reporting_lags_summary.csv\n")
 print(lag_summary %>% select(sample, n, median_lag, share_le_7, share_le_14, share_le_30))
 
-# LaTeX table for reporting lags (written directly, no kableExtra)
 lag_for_tex <- lag_summary %>%
   filter(sample != "Other") %>%
   mutate(
@@ -264,16 +237,9 @@ lag_tex_lines <- c(lag_tex_lines,
 )
 
 writeLines(lag_tex_lines, here(output_dir, "asam_reporting_lags.tex"))
-cat("Wrote asam_reporting_lags.tex\n")
 
-# =============================================================================
-# 6. ATTACK PERSISTENCE (SPATIAL RECURRENCE)
-# =============================================================================
-# For each attack, what is the probability of another attack in the same
-# 0.5 x 0.5 degree grid cell within k days?
-
-cat("\n=== ATTACK PERSISTENCE ===\n")
-
+# --- Attack persistence ---
+# P(another attack in same 0.5x0.5 degree cell within k days)
 asam_persistence <- asam %>%
   mutate(
     cell_lon = floor(lon * 2) / 2,
@@ -283,7 +249,6 @@ asam_persistence <- asam %>%
 compute_persistence <- function(data, k_values = c(1, 7, 15, 30), sample_label = "Global") {
   results <- tibble()
   for (k in k_values) {
-    # For each attack, check if there's another attack in the same cell within k days
     has_reattack <- data %>%
       group_by(cell_lon, cell_lat) %>%
       arrange(date) %>%
@@ -315,16 +280,12 @@ persistence_summary <- bind_rows(
 )
 
 write_csv(persistence_summary, here(output_dir, "attack_persistence_summary.csv"))
-cat("Wrote attack_persistence_summary.csv\n")
 
-# Print readable table
 persistence_wide <- persistence_summary %>%
   select(sample, k_days, p_reattack) %>%
   pivot_wider(names_from = sample, values_from = p_reattack)
-cat("\nProbability of re-attack in same 0.5° cell within k days:\n")
 print(persistence_wide)
 
-# LaTeX table for persistence (written directly)
 persist_for_tex <- persistence_summary %>%
   filter(sample != "Other") %>%
   mutate(
@@ -368,17 +329,3 @@ persist_tex_lines <- c(persist_tex_lines,
 )
 
 writeLines(persist_tex_lines, here(output_dir, "attack_persistence.tex"))
-cat("Wrote attack_persistence.tex\n")
-
-# =============================================================================
-# 7. PRINT SUMMARY INFORMATION
-# =============================================================================
-
-cat("\n=== ALL SUMMARY STATISTICS COMPLETED ===\n")
-cat("Total voyages analyzed:", nrow(voyage_data), "\n")
-cat("Voyages by region:\n")
-print(table(voyage_data$hotspot_region))
-cat("\nOutput files:\n")
-cat("  -", output_file, "\n")
-cat("  -", here(output_dir, "asam_reporting_lags_summary.csv"), "\n")
-cat("  -", here(output_dir, "attack_persistence_summary.csv"), "\n")

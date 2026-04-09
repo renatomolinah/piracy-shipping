@@ -1,9 +1,4 @@
-# =============================================================================
-# COST REGRESSIONS ANALYSIS
-# =============================================================================
-# This script performs regression analysis on shipping costs (fuel, labor, total)
-# examining how pirate attacks affect shipping costs across different regions.
-# =============================================================================
+# Regression analysis of pirate encounter effects on shipping costs (fuel, labor, total)
 
 library(here)
 library(tidyverse)
@@ -12,9 +7,7 @@ library(modelsummary)
 
 output_dir <- here("results", "figures_and_tables")
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
+# --- Load and prepare data ---
 
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
@@ -32,9 +25,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   ) |>
   mutate(attacks_7day_num = number_previous_attacks_7_days_5_degrees)
 
-# =============================================================================
-# 2. SET UP FORMULAS AND CONTROLS
-# =============================================================================
+# --- Formulas and controls ---
 
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
@@ -54,16 +45,12 @@ setFixest_dict(c(
   wave_height = "Wave Height (m)"
 ))
 
-# =============================================================================
-# 3. HELPER FUNCTIONS FOR LATEX TABLES
-# =============================================================================
+# --- Table helpers ---
+
 source(here("code", "table_helpers.R"))
 
-# =============================================================================
-# 4. MAIN COST REGRESSIONS
-# =============================================================================
+# --- Main cost regressions ---
 
-# Fuel cost regressions
 m1_fuel <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
@@ -88,7 +75,6 @@ m4_fuel <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-# Labor cost regressions
 m1_labor <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
@@ -113,7 +99,6 @@ m4_labor <- feols(labor_cost ~ attacks_7day_num + ..wctrl
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-# Total cost regressions
 m1_total <- feols(total_cost ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
@@ -138,9 +123,7 @@ m4_total <- feols(total_cost ~ attacks_7day_num + ..wctrl
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-# =============================================================================
-# 5. CREATE MAIN COST TABLE
-# =============================================================================
+# --- Main cost table ---
 
 regs_fuel <- list(m1_fuel, m2_fuel, m3_fuel, m4_fuel)
 regs_labor <- list(m1_labor, m2_labor, m3_labor, m4_labor)
@@ -177,9 +160,7 @@ add_adjust_box(here(output_dir, "cost.tex"))
 replace_table_headers(here(output_dir, "cost.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "cost.tex"))
 
-# =============================================================================
-# 6. SPECIFICATION ANALYSIS - FUEL COST
-# =============================================================================
+# --- Specification analysis: fuel cost ---
 
 spec_fuel_1 <- feols(fuel_cost ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_fuel_2 <- feols(fuel_cost ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
@@ -226,9 +207,7 @@ msummary(spec_fuel,
 add_adjust_box(here(output_dir, "spec_fuel.tex"))
 adjust_notes_font_size(here(output_dir, "spec_fuel.tex"))
 
-# =============================================================================
-# 7. SPECIFICATION ANALYSIS - LABOR COST
-# =============================================================================
+# --- Specification analysis: labor cost ---
 
 spec_labor_1 <- feols(labor_cost ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_labor_2 <- feols(labor_cost ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
@@ -255,9 +234,7 @@ msummary(spec_labor,
 add_adjust_box(here(output_dir, "spec_labor.tex"))
 adjust_notes_font_size(here(output_dir, "spec_labor.tex"))
 
-# =============================================================================
-# 8. SPECIFICATION ANALYSIS - TOTAL COST
-# =============================================================================
+# --- Specification analysis: total cost ---
 
 spec_total_1 <- feols(total_cost ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_total_2 <- feols(total_cost ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
@@ -284,12 +261,9 @@ msummary(spec_total,
 add_adjust_box(here(output_dir, "spec_total.tex"))
 adjust_notes_font_size(here(output_dir, "spec_total.tex"))
 
-# =============================================================================
-# 9. BACK OF ENVELOPE CALCULATIONS
-# =============================================================================
+# --- Back-of-envelope predictions ---
 
-# Re-estimate the models used for predictions without lean = TRUE
-# These models need to store fixed effects information for predictions
+# Re-estimate without lean=TRUE so fixed effects are stored for predict()
 m1_fuel_pred <- feols(fuel_cost ~ attacks_7day_num + ..wctrl
                       | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                       wdb,
@@ -336,9 +310,7 @@ pred_global <- pred_global %>%
 
 write_rds(pred_global, here("data", "processed", "cost_pred_global.rds"))
 
-# =============================================================================
-# 10. SUMMARY STATISTICS
-# =============================================================================
+# --- Summary ---
 
 cat("Cost regressions completed.\n")
 cat("Number of observations:", nrow(wdb), "\n")
@@ -347,4 +319,3 @@ cat("- cost.tex: Main cost table\n")
 cat("- spec_fuel.tex: Fuel cost specification table\n")
 cat("- spec_labor.tex: Labor cost specification table\n")
 cat("- spec_total.tex: Total cost specification table\n")
-

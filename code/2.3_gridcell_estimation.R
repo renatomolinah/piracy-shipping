@@ -1,10 +1,6 @@
-################################################################################
-#
-# Estimates gridcell analysis in event study and post approaches
-#
-################################################################################
+# Estimate gridcell event study and pre/post regressions with Conley standard errors
 
-# Load packages
+# --- Setup ---
 library(here)
 library(conleyreg)
 library(tidyverse)
@@ -15,38 +11,29 @@ library(scales)
 source(here("code", "table_helpers.R"))
 
 processKBLoutput <- function(file_path) {
-  
-  # Read the content of the LaTeX file
+
   lines <- readLines(file_path, warn = FALSE)
-  
-  # Define the patterns for hotspots as they appear in the document, prepared for regex matching
+
   hotspots_patterns <- c(
     "\\\\hspace\\{1em\\}G\\. of Aden",
     "\\\\hspace\\{1em\\}Southeast Asia",
     "\\\\hspace\\{1em\\}G\\. of Guinea",
     "\\\\hspace\\{1em\\}Rest of the World"
   )
-  
-  # Process each line to remove the specified hotspot text
+
   modified_lines <- lines
   for (i in seq_along(modified_lines)) {
     for (pattern in hotspots_patterns) {
-      # This ensures we're matching the exact string with regex, and replace it
       modified_lines[i] <- gsub(pattern, "\\\\hspace{1em}", modified_lines[i])
     }
   }
-  
-  # Write the modified lines back to the same file or a new file
+
   writeLines(modified_lines, file_path)
-  
+
   cat("The LaTeX file has been successfully processed and saved.\n")
 }
 
-
-
-# =============================================================================
-# 1. LOAD PANEL DATA
-# =============================================================================
+# --- Load panel data ---
 panel <- function(res) {
   readRDS(here("data", "processed", paste0("ev_panel_", res, ".rds"))) |>
     mutate(time_vessels = time_hours/n_vessels,
@@ -57,7 +44,7 @@ panel <- function(res) {
                                       T ~ attack_cluster))
 }
 
-# Table of summary stats -------------------------------------------------------
+# --- Summary statistics table ---
 P5 <- function(x) quantile(x, 0.05, na.rm = TRUE)
 P95 <- function(x) quantile(x, 0.95, na.rm = TRUE)
 
@@ -96,35 +83,24 @@ kbl(x = by_cluster,
            threeparttable = TRUE) %>%
   cat(file = here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
-# Post-process: fix hotspot names and add scriptsize to notes
 processKBLoutput(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 adjust_notes_font_size(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
-
-# =============================================================================
-# 2. PRE/POST-REGRESSION ANALYSIS
-# =============================================================================
-
-# A function to perform the estimation
+# --- Pre/post regression analysis ---
 run_estimation <- function(outcome_var,
                            spec = "~ post | id + year^month + day_of_week",
                            hotspot = "Global",
                            res = "0_5") {
-  # If hotspot is provided, we filter the data to only include the hotspot
-  # If hotspot is not provided, we use the entire dataset
   if(hotspot != "Global") {
     data <- panel(res) |> filter(attack_cluster == hotspot)
   } else {
     data <- panel(res)
   }
 
-  # Main specification formula
   fml <- as.formula(paste(outcome_var, spec))
 
   cat("Estimating for", outcome_var, "in", hotspot, "at a resolution of", res)
 
-
-  # Run the estimation
   results <- conleyreg(formula = fml,
                        unit = "id",
                        time = "date",
@@ -138,10 +114,6 @@ run_estimation <- function(outcome_var,
   return(results)
 }
 
-
-# Define all outcomes, specifications, resolutions and samples -----------------
-
-# Outcomes of interest
 outcome_vars <- c("asinh(time_hours)",
                   "asinh(distance_km)",
                   "asinh(n_vessels)",
@@ -149,19 +121,14 @@ outcome_vars <- c("asinh(time_hours)",
                   "asinh(time_vessels)",
                   "asinh(dist_vessels)")
 
-# All specifications
 all_specs <- c("~ post",
                "~ post | id ",
                "~ post | id + year^month")
 
-# Sub-sample specifications
 hotspots <- c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia")
 
-# Different resolutions
 res <- c("0_1", "0_5", "1")
 
-
-# Run main post-regressions ----------------------------------------------------
 models <- expand_grid(outcome_var = outcome_vars,
                       hotspot = hotspots,
                       spec = "~ post | id + year^month + day_of_week",
@@ -172,7 +139,6 @@ models <- expand_grid(outcome_var = outcome_vars,
 
 names(models$coefficients) <- models$hotspot
 
-# Run specification tables post-regressions ------------------------------------
 spec_tables <- expand_grid(outcome_var = outcome_vars,
                            spec = all_specs) |>
   mutate(model = pmap(.l = list(outcome_var = outcome_var, spec = spec),
@@ -182,11 +148,10 @@ spec_tables <- expand_grid(outcome_var = outcome_vars,
          coefficients = map(model, coefficients),
          n = map_dbl(model, nobs))
 
-
-# Robustness on AIS disabling events
+# SE Asia excluded from AIS disabling because outcome is constant at 0
 AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
                                 spec = "~ post | id + year^month + day_of_week",
-                                hotspot = c("Global", "G. of Aden", "G. of Guinea"), # SE Asia excluded because outcome is constant at 0.
+                                hotspot = c("Global", "G. of Aden", "G. of Guinea"),
                                 res = "0_5") |>
   mutate(model = pmap(.l = list(outcome_var = outcome_var,
                                 spec = spec,
@@ -197,9 +162,7 @@ AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
 
 names(AIS_disab_models$coefficients) <- AIS_disab_models$hotspot
 
-# # =============================================================================
-# EXPORT ALL MODELS
-# # =============================================================================
+# --- Export all models ---
 save(models,
      file = here("data", "output", "gridcell_models.RData"))
 save(spec_tables,

@@ -1,13 +1,4 @@
-# =============================================================================
-# CLUSTERING ROBUSTNESS: Country-pair only (R1 Point 6d)
-# =============================================================================
-# Re-estimates the main voyage-level feature regressions clustering by
-# country-pair only (instead of country-pair x year) to address Reviewer 1's
-# concern about temporal autocorrelation in errors.
-#
-# Output:
-#   results/figures_and_tables/features_country_cluster.tex
-# =============================================================================
+# Re-estimate voyage-level feature regressions clustering by country-pair only (instead of country-pair x year)
 
 library(here)
 library(tidyverse)
@@ -16,9 +7,7 @@ library(modelsummary)
 
 output_dir <- here("results", "figures_and_tables")
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
+# --- Setup ---
 
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(drop = guinea + aden + asia) %>%
@@ -29,10 +18,6 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
                             ifelse(asia == 1, "Asia", "None"))),
     attacks_7day_num = number_previous_attacks_7_days_5_degrees
   )
-
-# =============================================================================
-# 2. SET UP FORMULAS AND DICTIONARY
-# =============================================================================
 
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
@@ -52,36 +37,26 @@ setFixest_dict(c(
   wave_height = "Wave Height (m)"
 ))
 
-# =============================================================================
-# 3. HELPER FUNCTIONS
-# =============================================================================
 source(here("code", "table_helpers.R"))
 
-# =============================================================================
-# 4. REGRESSIONS — clustering by country-pair only
-# =============================================================================
+# --- Regressions ---
 
-# Distance
 m1_dist <- feols(distance ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair, lean = T)
 m2_dist <- feols(distance ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(aden == 1), cluster = ~country_pair, lean = T)
 m3_dist <- feols(distance ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(guinea == 1), cluster = ~country_pair, lean = T)
 m4_dist <- feols(distance ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(asia == 1), cluster = ~country_pair, lean = T)
 
-# Time
 m1_time <- feols(time ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair, lean = T)
 m2_time <- feols(time ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(aden == 1), cluster = ~country_pair, lean = T)
 m3_time <- feols(time ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(guinea == 1), cluster = ~country_pair, lean = T)
 m4_time <- feols(time ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(asia == 1), cluster = ~country_pair, lean = T)
 
-# Speed
 m1_speed <- feols(speed ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb, cluster = ~country_pair, lean = T)
 m2_speed <- feols(speed ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(aden == 1), cluster = ~country_pair, lean = T)
 m3_speed <- feols(speed ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(guinea == 1), cluster = ~country_pair, lean = T)
 m4_speed <- feols(speed ~ attacks_7day_num + ..wctrl | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year, wdb %>% filter(asia == 1), cluster = ~country_pair, lean = T)
 
-# =============================================================================
-# 5. OUTPUT TABLE
-# =============================================================================
+# --- Export ---
 
 regs_dist <- list(m1_dist, m2_dist, m3_dist, m4_dist)
 regs_time <- list(m1_time, m2_time, m3_time, m4_time)

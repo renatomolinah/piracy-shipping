@@ -1,32 +1,14 @@
-# =============================================================================
-# VOYAGE-LEVEL ROBUSTNESS
-# =============================================================================
-# Robustness checks for the voyage-level analysis:
-#   - Route-port-pair FE (tighter than country-pair FE)
-#   - Alternative clustering (country-pair only)
-#   - Forward-attack placebo
-#   - Prior-route exposure robustness
-#
-# Outputs:
-#   features_routefe.tex
-#   features_country_cluster.tex
-#   forward_attack_placebo.tex
-#   route_history_exposure_robustness.tex
-# =============================================================================
+# Robustness checks: port-pair FE, country-pair clustering, forward-attack placebo, route exposure
 
 library(here)
 library(tidyverse)
 library(fixest)
 library(modelsummary)
 
-# Specify output directory
 output_dir <- here("results", "figures_and_tables")
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
+# --- Load and prepare data ---
 
-# Load the main dataset
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
     drop = guinea + aden + asia
@@ -38,17 +20,12 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
                             ifelse(asia == 1, "Asia", "None")))
   )
 
-# Create attack variable
 wdb <- wdb %>% mutate(attacks_7day_num = number_previous_attacks_7_days_5_degrees)
 
-# =============================================================================
-# 2. SET UP FORMULAS AND CONTROLS
-# =============================================================================
+# --- Formulas and controls ---
 
-# Define weather controls (now including wave height)
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
-# Set up variable dictionary for clean output
 setFixest_dict(c(
   time = "Total Time (hrs)",
   distance = "Total Distance (km)",
@@ -65,16 +42,10 @@ setFixest_dict(c(
   wave_height = "Wave Height (m)"
 ))
 
-# =============================================================================
-# 3. HELPER FUNCTIONS FOR LATEX TABLES
-# =============================================================================
 source(here("code", "table_helpers.R"))
 
-# =============================================================================
-# 5.R1 - Comment 6.c: Route fixed effects
-# =============================================================================
+# --- Route-port-pair fixed effects ---
 
-# Distance regressions
 m1_dist <- feols(distance ~ attacks_7day_num + ..wctrl
                  | route_port_pair + vessel_type + tonnage_decile + hotspot + month^year,
                  wdb,
@@ -99,7 +70,6 @@ m4_dist <- feols(distance ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-# Time regressions
 m1_time <- feols(time ~ attacks_7day_num + ..wctrl
                  | route_port_pair + vessel_type + tonnage_decile + hotspot + month^year,
                  wdb,
@@ -124,7 +94,6 @@ m4_time <- feols(time ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair ^ year,
                  lean = T)
 
-# Speed regressions
 m1_speed <- feols(speed ~ attacks_7day_num + ..wctrl
                   | route_port_pair + vessel_type + tonnage_decile + hotspot + month^year,
                   wdb,
@@ -149,13 +118,10 @@ m4_speed <- feols(speed ~ attacks_7day_num + ..wctrl
                   cluster = ~country_pair ^ year,
                   lean = T)
 
-
-# Set up results for manuscript table
 regs_dist <- list(m1_dist, m2_dist, m3_dist, m4_dist)
 regs_time <- list(m1_time, m2_time, m3_time, m4_time)
 regs_speed <- list(m1_speed, m2_speed, m3_speed, m4_speed)
 
-# Create rows for additional information
 rows <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
   "", "", "", "", "",
@@ -167,7 +133,6 @@ rows <- tribble(
   "Hotspot FE",  "X", "$\\bullet$", "$\\bullet$", "$\\bullet$"
 )
 
-# Create main feature table
 msummary(list("Panel (A): Total Distance (km)" = regs_dist,
               "Panel (B): Total Time (hr)" = regs_time,
               "Panel (C): Average Speed (km/hr)" = regs_speed),
@@ -184,17 +149,12 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          escape = FALSE,
          output = here(output_dir, "features_routefe.tex"))
 
-# Apply formatting
 add_adjust_box(here(output_dir, "features_routefe.tex"))
 replace_table_headers(here(output_dir, "features_routefe.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "features_routefe.tex"))
 
+# --- Country-pair-only clustering ---
 
-# =============================================================================
-# 4.R1 - Comment 6.d: Country-country clustering 
-# =============================================================================
-
-# Distance regressions
 m1_dist <- feols(distance ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
@@ -219,7 +179,6 @@ m4_dist <- feols(distance ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair,
                  lean = T)
 
-# Time regressions
 m1_time <- feols(time ~ attacks_7day_num + ..wctrl
                  | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                  wdb,
@@ -244,7 +203,6 @@ m4_time <- feols(time ~ attacks_7day_num + ..wctrl
                  cluster = ~country_pair,
                  lean = T)
 
-# Speed regressions
 m1_speed <- feols(speed ~ attacks_7day_num + ..wctrl
                   | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                   wdb,
@@ -269,13 +227,10 @@ m4_speed <- feols(speed ~ attacks_7day_num + ..wctrl
                   cluster = ~country_pair,
                   lean = T)
 
-
-# Set up results for manuscript table
 regs_dist <- list(m1_dist, m2_dist, m3_dist, m4_dist)
 regs_time <- list(m1_time, m2_time, m3_time, m4_time)
 regs_speed <- list(m1_speed, m2_speed, m3_speed, m4_speed)
 
-# Create rows for additional information
 rows <- tribble(
   ~term, ~"(1)", ~"(2)", ~"(3)", ~"(4)",
   "", "", "", "", "",
@@ -287,7 +242,6 @@ rows <- tribble(
   "Hotspot FE",  "X", "$\\bullet$", "$\\bullet$", "$\\bullet$"
 )
 
-# Create main feature table
 msummary(list("Panel (A): Total Distance (km)" = regs_dist,
               "Panel (B): Total Time (hr)" = regs_time,
               "Panel (C): Average Speed (km/hr)" = regs_speed),
@@ -304,12 +258,6 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          escape = FALSE,
          output = here(output_dir, "features_country_cluster.tex"))
 
-# Apply formatting
 add_adjust_box(here(output_dir, "features_country_cluster.tex"))
 replace_table_headers(here(output_dir, "features_country_cluster.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "features_country_cluster.tex"))
-
-
-
-
-

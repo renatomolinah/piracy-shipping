@@ -1,16 +1,4 @@
-# =============================================================================
-# ADDITIONAL ADJUSTMENTS
-# =============================================================================
-# Addresses R1: are there margins of adjustment beyond route length/duration?
-#
-# Part 1 — Trip frequency (extensive margin)
-#   Negative Binomial on weekly country-pair trip counts.
-#   Output: trip_count.tex
-#
-# Part 2 — Route choice: Suez Canal vs Cape of Good Hope
-#   Trip-level logit (feglm, binomial) on route indicator.
-#   Output: suez_cape_route_choice_trip_level.tex
-# =============================================================================
+# Additional margins of adjustment: trip frequency (NegBin) and Suez/Cape route choice (logit)
 
 library(here)
 library(tidyverse)
@@ -27,9 +15,7 @@ output_dir <- here("results", "figures_and_tables")
 
 roll_sum <- function(x, k) as.numeric(stats::filter(x, rep(1, k), sides = 1))
 
-# =============================================================================
-# SHARED DATA
-# =============================================================================
+# --- Shared data ---
 
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(drop = guinea + aden + asia) %>%
@@ -40,9 +26,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
                             ifelse(asia == 1, "Asia", "None")))
   )
 
-# =============================================================================
-# PART 1: TRIP FREQUENCY (EXTENSIVE MARGIN)
-# =============================================================================
+# --- Part 1: Trip frequency (extensive margin) ---
 
 cat("--- Part 1: Trip frequency ---\n")
 
@@ -147,13 +131,10 @@ strip_pkg_declarations(here(output_dir, "trip_count.tex"))
 
 cat("Table written to: trip_count.tex\n\n")
 
-# =============================================================================
-# PART 2: ROUTE CHOICE — SUEZ CANAL VS CAPE OF GOOD HOPE
-# =============================================================================
+# --- Part 2: Route choice (Suez Canal vs Cape of Good Hope) ---
 
 cat("--- Part 2: Suez/Cape route choice ---\n")
 
-# Helpers
 find_latest_versioned_csv <- function(prefix) {
   files <- list.files(
     here("data", "processed"),
@@ -177,6 +158,7 @@ format_est_se <- function(model, term, vc = ~month^year) {
   list(est = paste0(fmt_num(est), star_code(p)), se = paste0("(", fmt_num(se), ")"))
 }
 
+# Binarize encounter counts at the 75th percentile for the high-encounter indicator
 make_high_indicator <- function(x, q = 0.75) {
   cutoff <- as.numeric(quantile(x, q, na.rm = TRUE))
   if (cutoff <= min(x, na.rm = TRUE)) {
@@ -186,7 +168,6 @@ make_high_indicator <- function(x, q = 0.75) {
   }
 }
 
-# Load trip-level Suez/Cape data
 trip_file <- find_latest_versioned_csv("suez_canal_or_cape_good_hope_trip_level")
 cat("Using trip file:", basename(trip_file), "\n")
 
@@ -197,7 +178,6 @@ trips <- read_csv(trip_file, show_col_types = FALSE) %>%
     ship           = as.character(mmsi)
   )
 
-# Merge controls from voyages.rds
 voyage_controls <- wdb %>%
   select(trip_id, vessel_type, tonnage_decile, wind_speed, wind_vector, wave_height,
          country_pair, route_port_pair, top_route)
@@ -205,7 +185,7 @@ voyage_controls <- wdb %>%
 trips <- trips %>% left_join(voyage_controls, by = "trip_id")
 rm(voyage_controls)
 
-# Build daily encounter series and rolling windows
+# Build daily encounter series from Gulf of Aden attack data and compute rolling windows
 aden_attacks <- read_csv(
   here("data", "processed", "attack_timeseries_gulf_aden_daily.csv"),
   show_col_types = FALSE
@@ -250,12 +230,7 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
 cat("Estimating models (3 specs x 3 windows x 2 panels = 18 models)...\n")
 
-# Specs (same for all windows):
-#   Spec 1: Month-by-Year FE + weather only
-#   Spec 2: Spec 1 + DoW + Vessel Type + Vessel Size FE
-#   Spec 3: Spec 2 + Country Combo. + Top Route FE
-
-# Panel A — continuous encounter intensity
+# Panel A: continuous encounter intensity
 m1_7  <- feglm(cape ~ attacks_7d  + ..wctrl | month^year,                                                                 data = dat, family = binomial)
 m2_7  <- feglm(cape ~ attacks_7d  + ..wctrl | vessel_type + tonnage_decile + dow + month^year,                           data = dat, family = binomial)
 m3_7  <- feglm(cape ~ attacks_7d  + ..wctrl | vessel_type + tonnage_decile + country_pair + top_route + dow + month^year, data = dat, family = binomial)
@@ -266,7 +241,7 @@ m1_30 <- feglm(cape ~ attacks_30d + ..wctrl | month^year,                       
 m2_30 <- feglm(cape ~ attacks_30d + ..wctrl | vessel_type + tonnage_decile + dow + month^year,                           data = dat, family = binomial)
 m3_30 <- feglm(cape ~ attacks_30d + ..wctrl | vessel_type + tonnage_decile + country_pair + top_route + dow + month^year, data = dat, family = binomial)
 
-# Panel B — binary high-encounter indicator
+# Panel B: binary high-encounter indicator
 h1_7  <- feglm(cape ~ high_7d  + ..wctrl | month^year,                                                                 data = dat, family = binomial)
 h2_7  <- feglm(cape ~ high_7d  + ..wctrl | vessel_type + tonnage_decile + dow + month^year,                           data = dat, family = binomial)
 h3_7  <- feglm(cape ~ high_7d  + ..wctrl | vessel_type + tonnage_decile + country_pair + top_route + dow + month^year, data = dat, family = binomial)
@@ -279,7 +254,6 @@ h3_30 <- feglm(cape ~ high_30d + ..wctrl | vessel_type + tonnage_decile + countr
 
 cat("Done.\n\n")
 
-# Observations per column
 o1 <- format(nobs(m1_7),  big.mark = ","); o2 <- format(nobs(m2_7),  big.mark = ","); o3 <- format(nobs(m3_7),  big.mark = ",")
 o4 <- format(nobs(m1_15), big.mark = ","); o5 <- format(nobs(m2_15), big.mark = ","); o6 <- format(nobs(m3_15), big.mark = ",")
 o7 <- format(nobs(m1_30), big.mark = ","); o8 <- format(nobs(m2_30), big.mark = ","); o9 <- format(nobs(m3_30), big.mark = ",")

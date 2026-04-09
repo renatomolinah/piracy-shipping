@@ -1,18 +1,5 @@
-################################################################################
-# title
-################################################################################
-#
-# Juan Carlos Villaseñor-Derbez
-# juancvd@stanford.edu
-# date
-#
-# Description
-#
-################################################################################
+# Generate counterfactual cost and emissions tables by hotspot and year
 
-## SET UP ######################################################################
-
-# Load packages ----------------------------------------------------------------
 pacman::p_load(
   here,
   DBI,
@@ -24,10 +11,10 @@ pacman::p_load(
 
 source(here("code", "table_helpers.R"))
 
-# Authenticate using local token -----------------------------------------------
+# --- Setup: BigQuery connection ---
+
 bq_auth("juancarlos@ucsb.edu")
 
-# Establish a connection to BigQuery -------------------------------------------
 piracy <- dbConnect(
   bigquery(),
   project = "emlab-gcp",
@@ -37,7 +24,8 @@ piracy <- dbConnect(
   allowLargeResults = TRUE
 )
 
-# Load data --------------------------------------------------------------------
+# --- Load data ---
+
 pred_info <- tbl(piracy, "full_pred_global_v_20260407") %>%
   mutate(
     fuel = p_fuel - np_fuel,
@@ -50,9 +38,9 @@ pred_info <- tbl(piracy, "full_pred_global_v_20260407") %>%
   summarize_at(.vars = c("fuel", "labor", "total", "co2", "nox", "sox"),
                sum,
                na.rm = T)
-## PROCESSING ##################################################################
 
-# X ----------------------------------------------------------------------------
+# --- Build tables ---
+
 global_costs <- pred_info %>%
   select(-hotspot) %>%
   group_by(year) %>%
@@ -77,9 +65,8 @@ pred_info_local <- pred_info %>%
          sox = sox / 1e3) %>%
   rename(Hotspot = hotspot)
 
-## VISUALIZE ###################################################################
+# --- Cost table ---
 
-# X ----------------------------------------------------------------------------
 counterfactual_costs <- dsummary((fuel + labor + total) * Hotspot ~ sum * year, data = pred_info_local,
                                  output = "data.frame") %>%
   mutate_at(3:14, as.numeric) %>%
@@ -109,7 +96,8 @@ add_threeparttable_note(
   "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. All costs are deflated to constant 2020 USD using the CPI-U annual average. Values are aggregated annually by hotspot region."
 )
 
-# X ----------------------------------------------------------------------------
+# --- Emissions table ---
+
 counterfactual_emissions <- dsummary((co2 / 1000 + nox + sox) * Hotspot ~ sum * year, data = pred_info_local,
                                      output = "data.frame") %>%
   mutate_at(3:14, as.numeric) %>%

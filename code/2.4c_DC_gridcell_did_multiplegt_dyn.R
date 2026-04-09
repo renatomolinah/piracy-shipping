@@ -1,19 +1,6 @@
-################################################################################
-# Gridcell event study robustness using did_multiplegt_dyn (de Chaisemartin)
-################################################################################
-#
-# This script implements a robustness event-study design at the grid-cell level
-# using DIDmultiplegtDYN::did_multiplegt_dyn on the existing daily panel from
-# 2.1.
-#
-# Main specification: attack-day treatment (1 on attack day, 0 otherwise).
-# We estimate 7 placebo leads and 7 dynamic effects to mirror the ±7-day
-# window in the main event-study specification.
-#
-################################################################################
+# Robustness event study using did_multiplegt_dyn (de Chaisemartin and D'Haultfoeuille)
 
-## SET UP ######################################################################
-
+# --- Setup ---
 library(DIDmultiplegtDYN)
 library(polars)
 library(tidyverse)
@@ -24,16 +11,13 @@ source(here("code", "table_helpers.R"))
 
 theme_set(theme_minimal(base_size = 10))
 
-## 1. LOAD DAILY PANEL #########################################################
+# --- Load daily panel ---
 
-# Helper to load the daily grid-cell panel for a given resolution and construct
-# transformed outcomes plus the treatment variable used in this script:
-#   - attack_day: binary indicator, 1 when an attack occurs in that cell-day
+# Constructs transformed outcomes and a binary attack_day treatment indicator
 load_dc_panel <- function(res = "0_5") {
   raw <- readRDS(here("data", "processed", paste0("attacks_and_activity_by_grid_", res, ".rds")))
 
   raw |>
-    # Robustly handle NAs in key outcomes
     replace_na(replace = list(
       time_hours      = 0,
       distance_km     = 0,
@@ -45,16 +29,13 @@ load_dc_panel <- function(res = "0_5") {
     arrange(grid_id, date) |>
     group_by(grid_id) |>
     mutate(
-      # Treat missing days_since_attack as non-attack days
       attack_day = if_else(!is.na(days_since_attack) & days_since_attack == 0, 1L, 0L)
     ) |>
     ungroup() |>
-    # Build per-vessel quantities safely (before asinh)
     mutate(
       time_per_vessel_raw = if_else(n_vessels > 0, time_hours / n_vessels, 0),
       dist_per_vessel_raw = if_else(n_vessels > 0, distance_km / n_vessels, 0)
     ) |>
-    # Apply inverse hyperbolic sine transformation (daily level)
     mutate(
       time_hours       = asinh(time_hours),
       distance_km      = asinh(distance_km),
@@ -63,23 +44,21 @@ load_dc_panel <- function(res = "0_5") {
       time_per_vessel  = asinh(time_per_vessel_raw),
       dist_per_vessel  = asinh(dist_per_vessel_raw)
     ) |>
-    group_by(grid_id) |> 
-    mutate(tot = sum(attack_day)) |> 
+    group_by(grid_id) |>
+    mutate(tot = sum(attack_day)) |>
+    # Restrict to single-switcher cells for clean identification
     filter(tot == 1) |>
     ungroup()
 }
 
-## 2. ESTIMATION SETTINGS ######################################################
-
-effects  <- 7  # dynamic effects (post-treatment)
-placebos <- 7  # pre-treatment placebos
+# --- Estimation settings ---
+effects  <- 7
+placebos <- 7
 group    <- "grid_id"
-time     <- "date"  # daily time index (Date column)
+time     <- "date"
 
-# Main treatment: binary ever-attacked-from-first-attack-onward
 treatment_main <- "attack_day"
 
-# Outcomes to estimate (transformed daily outcomes)
 outcomes <- c(
   "time_hours",
   "distance_km",
@@ -107,8 +86,7 @@ outcome_titles <- c(
   dist_per_vessel = "F) Distance Traveled per Vessel (km / vessel)"
 )
 
-## 3. WRAPPER TO RUN did_multiplegt_dyn ########################################
-
+# --- Estimation wrapper ---
 run_dc_estimation <- function(res = "0_5", treatment_var = treatment_main, force = FALSE) {
   message("Loading panel for resolution: ", res)
   panel <- load_dc_panel(res = res)
@@ -145,8 +123,7 @@ run_dc_estimation <- function(res = "0_5", treatment_var = treatment_main, force
   walk(outcomes, wrap)
 }
 
-## 4. VISUALIZATION HELPERS ####################################################
-
+# --- Visualization helpers ---
 extract_dc_model_diagnostics <- function(model) {
   results <- model[["results"]]
   args <- model[["args"]]
@@ -198,8 +175,7 @@ build_dc_summary_table <- function(mods) {
     )
 }
 
-# Build a tidy coefficient table with event-time indexing, following the
-# standard did_multiplegt_dyn Placebos/Effects output layout.
+# Tidy coefficient table with event-time indexing from Placebos/Effects output
 build_dc_coef_table <- function(model) {
   bind_rows(
     as_tibble(model$results$Placebos, rownames = NA),
@@ -212,7 +188,6 @@ build_dc_coef_table <- function(model) {
       event = if_else(str_detect(term, "Placebo"), -1, 1) * event
     ) |>
     janitor::clean_names() |>
-    # Add event = 0 normalization point
     bind_rows(tibble(
       term     = "Placebo 0",
       event    = 0,
@@ -255,14 +230,11 @@ build_dc_event_study_plot <- function(coef_table) {
     scale_x_continuous(breaks = seq(-7, 7, 2))
 }
 
-## 5. RUN MAIN SPECIFICATION (WHEN SCRIPT IS EXECUTED) #########################
-
+# --- Run main specification ---
 res <- "0_5"
 
-# Main specification: attack-day treatment
 run_dc_estimation(res = res, treatment_var = treatment_main, force = TRUE)
 
-# Build and save event-study figure for main specification
 out_dir_main <- here("data", "output", paste0("es_DC_", treatment_main, "_", res))
 
 files <- list.files(
@@ -271,7 +243,7 @@ files <- list.files(
     full.names = TRUE
 )
 
-  
+
 mods <- map(files, readRDS)
 
 es_plot_dc <- mods |>
@@ -314,14 +286,11 @@ datasummary_df(
   escape = FALSE
 )
 
-# Post-process: remove any multicolumn note rows datasummary_df may have added,
-# then wrap in threeparttable + tablenotes with standardized formatting
+# Post-process: wrap in threeparttable with standardized formatting
 tex_lines <- readLines(dc_summary_file, warn = FALSE)
 tex_lines <- tex_lines[!grepl("\\\\multicolumn.*\\\\rule", tex_lines)]
 writeLines(tex_lines, dc_summary_file)
 
-# Add threeparttable + tablenotes + adjustbox
-# First wrap tabular in threeparttable manually since datasummary_df doesn't do it
 tex_lines <- readLines(dc_summary_file, warn = FALSE)
 tabular_begin <- grep("\\\\begin\\{tabular\\}", tex_lines)[1]
 tabular_end <- grep("\\\\end\\{tabular\\}", tex_lines)
@@ -339,4 +308,3 @@ tex_lines <- c(
   tex_lines[(tabular_end + 1):length(tex_lines)]
 )
 writeLines(tex_lines, dc_summary_file)
-

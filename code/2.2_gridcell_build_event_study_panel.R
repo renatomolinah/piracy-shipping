@@ -1,31 +1,24 @@
-################################################################################
-#
-# Builds the event horizon event study panel for gridcell analysis
-#
-################################################################################
+# Build event-horizon event study panel for gridcell analysis
 
-# Load packages
+# --- Setup ---
 library(here)
 library(tidyverse)
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
-
+# --- Load and prepare data ---
 panel <- function(res = "0_5"){
   print("Loading data")
-  
+
   readRDS(here("data", "processed", paste0("attacks_and_activity_by_grid_", res, ".rds"))) %>%
-    mutate(attack = ifelse(days_since_attack == 0, TRUE, FALSE)) |> 
+    mutate(attack = ifelse(days_since_attack == 0, TRUE, FALSE)) |>
     mutate(month = month(date),
-           year = year(date)) |> 
+           year = year(date)) |>
     rename(id = grid_id)
 }
 
-# =============================================================================
-# 2. EVENT STUDY FUNCTIONS
-# =============================================================================
+# --- Event study functions ---
 
+# Groups attack days into episodes: consecutive attacks within 2*window days
+# are assigned the same attack_id, then fills gaps between matched attacks
 identify_and_populate_attacks <- function(id, dates, attack, window) {
   attack_id <- rep(NA, length(attack))
   attack_counter <- 0
@@ -79,6 +72,7 @@ identify_and_populate_attacks <- function(id, dates, attack, window) {
   return(attack_id)
 }
 
+# Uses run-length encoding to assign relative_time (days before/after attack episode)
 calculate_relative_time_rle <- function(dates, id, attack_id, window) {
   relative_time <- rep(NA, length(attack_id))
   unique_ids <- unique(id)
@@ -120,6 +114,7 @@ calculate_relative_time_rle <- function(dates, id, attack_id, window) {
   return(relative_time)
 }
 
+# Extends attack_id labels to observations within the event window (pre/post)
 propagate_attack_id <- function(dates, id, attack_id, window) {
   if (length(dates) != length(attack_id) || length(dates) != length(id)) {
     stop("Dates, id, and attack_id must have the same length.")
@@ -164,10 +159,7 @@ propagate_attack_id <- function(dates, id, attack_id, window) {
   return(propagated_attack_id)
 }
 
-# =============================================================================
-# 3. BUILD PANEL
-# =============================================================================
-
+# --- Build panel ---
 make_panel <- function(res = c("0_5", "0_1", "1"), window = 7){
   data <- panel(res) %>%
     arrange(id, date) %>%
@@ -177,7 +169,7 @@ make_panel <- function(res = c("0_5", "0_1", "1"), window = 7){
       relative_time = calculate_relative_time_rle(date, id, attack_id, window = window),
       attack_id = propagate_attack_id(date, id, attack_id, window = window)
     ) %>%
-    ungroup() |> 
+    ungroup() |>
     filter(!is.na(relative_time)) %>%
     group_by(id) %>%
     mutate(
@@ -187,14 +179,11 @@ make_panel <- function(res = c("0_5", "0_1", "1"), window = 7){
       date = as.numeric(date)
     ) %>%
     ungroup()
-  
-  # Export the resulting file
+
   saveRDS(data, here("data", "processed", paste0("ev_panel_", res, ".rds")))
-  
+
 }
 
-# Now run the pipeline for each 
 make_panel("0_1")
 make_panel("0_5")
 make_panel("1")
-

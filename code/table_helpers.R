@@ -1,9 +1,4 @@
-# =============================================================================
-# Centralized LaTeX Table Helper Functions
-# =============================================================================
-# Source this file from any script that generates tables:
-#   source(here("code", "table_helpers.R"))
-# =============================================================================
+# Shared LaTeX table post-processing helpers for modelsummary output
 
 # Wrap threeparttable inside adjustbox for width control
 add_adjust_box <- function(file,
@@ -50,7 +45,7 @@ strip_pkg_declarations <- function(file) {
   writeLines(lines, file)
 }
 
-# Add observation rows after each sub-panel in grid-cell tables
+# Insert observation-count rows after each sub-panel in grid-cell tables
 add_rows_with_observations <- function(file, observations_df) {
   lines <- readLines(file)
 
@@ -79,6 +74,7 @@ add_rows_with_observations <- function(file, observations_df) {
     obs_row <- paste("\\hspace{1em}Observations", paste(obs_values_formatted, collapse = " & "), "\\\\", sep = " & ")
 
     lines <- c(lines[1:panel_end], obs_row, lines[(panel_end + 1):length(lines)])
+    # Re-find headers since line indices shifted after insertion
     panel_headers <- grep("Panel \\([A-F]\\):", lines)
   }
 

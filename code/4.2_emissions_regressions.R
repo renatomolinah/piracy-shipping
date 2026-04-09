@@ -1,9 +1,4 @@
-# =============================================================================
-# EMISSIONS REGRESSIONS ANALYSIS
-# =============================================================================
-# This script performs regression analysis on shipping emissions (CO2, NOx, SOx)
-# examining how pirate attacks affect emissions across different regions.
-# =============================================================================
+# Regression analysis of pirate encounter effects on shipping emissions (CO2, NOx, SOx)
 
 library(here)
 library(tidyverse)
@@ -12,9 +7,7 @@ library(modelsummary)
 
 output_dir <- here("results", "figures_and_tables")
 
-# =============================================================================
-# 1. LOAD AND PREPARE DATA
-# =============================================================================
+# --- Load and prepare data ---
 
 wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   mutate(
@@ -31,9 +24,7 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
   ) %>%
   mutate(attacks_7day_num = number_previous_attacks_7_days_5_degrees)
 
-# =============================================================================
-# 2. SET UP FORMULAS AND CONTROLS
-# =============================================================================
+# --- Formulas and controls ---
 
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
@@ -53,16 +44,12 @@ setFixest_dict(c(
   wave_height = "Wave Height (m)"
 ))
 
-# =============================================================================
-# 3. HELPER FUNCTIONS FOR LATEX TABLES
-# =============================================================================
+# --- Table helpers ---
+
 source(here("code", "table_helpers.R"))
 
-# =============================================================================
-# 4. MAIN EMISSIONS REGRESSIONS
-# =============================================================================
+# --- Main emissions regressions ---
 
-# CO2 regressions
 m1_co2 <- feols(total_co2 ~ attacks_7day_num + ..wctrl
                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb,
@@ -87,7 +74,6 @@ m4_co2 <- feols(total_co2 ~ attacks_7day_num + ..wctrl
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-# NOx regressions
 m1_nox <- feols(total_nox ~ attacks_7day_num + ..wctrl
                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb,
@@ -112,7 +98,6 @@ m4_nox <- feols(total_nox ~ attacks_7day_num + ..wctrl
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-# SOx regressions
 m1_sox <- feols(total_sox ~ attacks_7day_num + ..wctrl
                 | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                 wdb,
@@ -137,9 +122,7 @@ m4_sox <- feols(total_sox ~ attacks_7day_num + ..wctrl
                 cluster = ~country_pair ^ year,
                 lean = T)
 
-# =============================================================================
-# 5. CREATE MAIN EMISSIONS TABLE
-# =============================================================================
+# --- Main emissions table ---
 
 regs_co2 <- list(m1_co2, m2_co2, m3_co2, m4_co2)
 regs_nox <- list(m1_nox, m2_nox, m3_nox, m4_nox)
@@ -176,9 +159,7 @@ add_adjust_box(here(output_dir, "emissions.tex"))
 replace_table_headers(here(output_dir, "emissions.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "emissions.tex"))
 
-# =============================================================================
-# 6. SPECIFICATION ANALYSIS - CO2
-# =============================================================================
+# --- Specification analysis: CO2 ---
 
 spec_co2_1 <- feols(total_co2 ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_co2_2 <- feols(total_co2 ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
@@ -225,9 +206,7 @@ msummary(spec_co2,
 add_adjust_box(here(output_dir, "spec_co2.tex"))
 adjust_notes_font_size(here(output_dir, "spec_co2.tex"))
 
-# =============================================================================
-# 7. SPECIFICATION ANALYSIS - NOX
-# =============================================================================
+# --- Specification analysis: NOx ---
 
 spec_nox_1 <- feols(total_nox ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_nox_2 <- feols(total_nox ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
@@ -254,9 +233,7 @@ msummary(spec_nox,
 add_adjust_box(here(output_dir, "spec_nox.tex"))
 adjust_notes_font_size(here(output_dir, "spec_nox.tex"))
 
-# =============================================================================
-# 8. SPECIFICATION ANALYSIS - SOX
-# =============================================================================
+# --- Specification analysis: SOx ---
 
 spec_sox_1 <- feols(total_sox ~ attacks_7day_num | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
 spec_sox_2 <- feols(total_sox ~ attacks_7day_num + ..wctrl | month^year, wdb, cluster = ~country_pair ^ year, lean = T)
@@ -283,12 +260,9 @@ msummary(spec_sox,
 add_adjust_box(here(output_dir, "spec_sox.tex"))
 adjust_notes_font_size(here(output_dir, "spec_sox.tex"))
 
-# =============================================================================
-# 9. BACK OF ENVELOPE CALCULATIONS
-# =============================================================================
+# --- Back-of-envelope predictions ---
 
-# Re-estimate the models used for predictions without lean = TRUE
-# These models need to store fixed effects information for predictions
+# Re-estimate without lean=TRUE so fixed effects are stored for predict()
 m1_co2_pred <- feols(total_co2 ~ attacks_7day_num + ..wctrl
                      | country_pair + vessel_type + tonnage_decile + hotspot + top_route + month^year,
                      wdb,
@@ -326,9 +300,7 @@ pred_global <- pred_global %>%
 
 write_rds(pred_global, here("data", "processed", "emissions_pred_global.rds"))
 
-# =============================================================================
-# 10. SUMMARY STATISTICS
-# =============================================================================
+# --- Summary ---
 
 cat("Emissions regressions completed.\n")
 cat("Number of observations:", nrow(wdb), "\n")
