@@ -12,6 +12,8 @@ library(modelsummary)
 library(kableExtra)
 library(scales)
 
+source(here("code", "table_helpers.R"))
+
 # =============================================================================
 # 1. LOAD AND PREPARE VOYAGE DATA
 # =============================================================================
@@ -93,15 +95,7 @@ latex_table <- kbl(
 
 output_file <- here("results", "figures_and_tables", "summary.tex")
 cat(latex_table, file = output_file)
-
-# Add adjustbox wrapper for width control
-add_adjust_box <- function(file, line_before = "\\begin{adjustbox}{width = .9\\textwidth}", line_after = "\\end{adjustbox}", before = "\\begin{threeparttable}", after = "\\end{threeparttable}") {
-  lines <- readLines(file)
-  after_line <- grep(after, lines, fixed = TRUE)
-  before_line <- grep(before, lines, fixed = TRUE)
-  lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
-  writeLines(lines, file)
-}
+adjust_notes_font_size(output_file)
 add_adjust_box(output_file)
 
 cat("LaTeX table saved to:", output_file, "\n")
@@ -263,8 +257,7 @@ lag_tex_lines <- c(lag_tex_lines,
   "\\bottomrule",
   "\\end{tabular}",
   "\\begin{tablenotes}",
-  "\\scriptsize",
-  "\\item \\textit{Notes:} Each row reports the distribution of reporting lags (in days) between the recorded date of occurrence and the ASAM database entry date. The share columns indicate the fraction of encounters publicly available within the given window. Sample restricted to 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
+  "\\item \\scriptsize Each row reports the distribution of reporting lags (in days) between the recorded date of occurrence and the ASAM database entry date. The share columns indicate the fraction of encounters publicly available within the given window. Sample restricted to 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
   "\\end{tablenotes}",
   "\\end{threeparttable}",
   "\\end{table}"
@@ -368,8 +361,7 @@ persist_tex_lines <- c(persist_tex_lines,
   "\\bottomrule",
   "\\end{tabular}",
   "\\begin{tablenotes}",
-  "\\scriptsize",
-  "\\item \\textit{Notes:} Each cell reports the probability that, conditional on an attack occurring in a $0.5^\\circ \\times 0.5^\\circ$ grid cell, at least one additional attack occurs in the same cell within the specified time window. Sample: 2,611 encounters from 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
+  "\\item \\scriptsize Each cell reports the probability that, conditional on an attack occurring in a $0.5^\\circ \\times 0.5^\\circ$ grid cell, at least one additional attack occurs in the same cell within the specified time window. Sample: 2,611 encounters from 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
   "\\end{tablenotes}",
   "\\end{threeparttable}",
   "\\end{table}"

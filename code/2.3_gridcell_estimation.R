@@ -12,6 +12,8 @@ library(modelsummary)
 library(kableExtra)
 library(scales)
 
+source(here("code", "table_helpers.R"))
+
 processKBLoutput <- function(file_path) {
   
   # Read the content of the LaTeX file
@@ -94,8 +96,9 @@ kbl(x = by_cluster,
            threeparttable = TRUE) %>%
   cat(file = here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
-# Post-process: fix hotspot names
+# Post-process: fix hotspot names and add scriptsize to notes
 processKBLoutput(here("results", "figures_and_tables", "grid_summary_stats.tex"))
+adjust_notes_font_size(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
 
 # =============================================================================

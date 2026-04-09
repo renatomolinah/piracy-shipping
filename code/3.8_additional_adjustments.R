@@ -19,25 +19,11 @@ library(modelsummary)
 library(lubridate)
 
 source(here("r", "table_format_helpers.R"))
+source(here("code", "table_helpers.R"))
 
 options("modelsummary_format_numeric_latex" = "plain")
 
 output_dir <- here("results", "figures_and_tables")
-
-# Shared helpers
-adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
-  lines <- readLines(file)
-  item_line_index <- grep("\\item", lines, fixed = TRUE)
-  if (length(item_line_index) > 0)
-    lines[item_line_index] <- gsub("\\item", paste0("\\item ", font_size_command), lines[item_line_index], fixed = TRUE)
-  writeLines(lines, file)
-}
-
-strip_pkg_declarations <- function(file) {
-  lines <- readLines(file)
-  lines <- lines[!grepl("^\\\\usepackage|^\\\\newcolumntype", lines)]
-  writeLines(lines, file)
-}
 
 roll_sum <- function(x, k) as.numeric(stats::filter(x, rep(1, k), sides = 1))
 

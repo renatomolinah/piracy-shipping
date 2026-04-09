@@ -32,75 +32,7 @@ panel <- function(res) {
 # =============================================================================
 # 2. HELPER FUNCTIONS
 # =============================================================================
-
-# LaTeX table helper functions
-add_adjust_box <- function(file,
-                           line_before = "\\begin{adjustbox}{width = .9\\textwidth}",
-                           line_after = "\\end{adjustbox}",
-                           before = "\\begin{threeparttable}",
-                           after = "\\end{threeparttable}") {
-  lines <- readLines(file)
-  after_line <- grep(after, lines, fixed = TRUE)
-  before_line <- grep(before, lines, fixed = TRUE)
-  lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
-  writeLines(lines, file)
-}
-
-adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
-  lines <- readLines(file)
-  item_line_index <- grep("\\item", lines, fixed = TRUE)
-  if (length(item_line_index) > 0) {
-    lines[item_line_index] <- gsub("\\item", paste0("\\item ", font_size_command), lines[item_line_index], fixed = TRUE)
-  }
-  writeLines(lines, file)
-}
-
-# Function to add rows with model observations after each sub-panel
-add_rows_with_observations <- function(file, observations_df) {
-  lines <- readLines(file)
-  
-  # Define panel order and their corresponding outcome variables
-  panel_order <- c("Panel (A): Total Time (hours)" = "asinh(time_hours)",
-                   "Panel (B): Total Distance (km)" = "asinh(distance_km)",
-                   "Panel (C): Vessels (#)" = "asinh(n_vessels)",
-                   "Panel (D): Voyages (#)" = "asinh(n_trips)",
-                   "Panel (E): Time per Vessel (hours / vessel)" = "asinh(time_vessels)",
-                   "Panel (F): Distance per Vessel (km / vessel)" = "asinh(dist_vessels)")
-  
-  # Find the end of each panel by looking for the next panel header or end of table
-  panel_headers <- grep("Panel \\([A-F]\\):", lines)
-  
-  # Add observations row after each panel
-  for (i in seq_along(panel_headers)) {
-    outcome_var <- panel_order[i]
-
-    # Find the end of this panel (start of next panel or before bottomrule)
-    if (i < length(panel_headers)) {
-      panel_end <- panel_headers[i + 1] - 1
-    } else {
-      # For the last panel, find the bottomrule line and insert before it
-      bottomrule_line <- grep("\\\\bottomrule", lines)[1]
-      panel_end <- bottomrule_line - 1
-    }
-
-    # Get the observations for this panel
-    panel_obs <- observations_df[observations_df$outcome_var == outcome_var, ]
-
-    # Create the observations row
-    obs_values <- panel_obs[, -1] # Remove outcome_var
-    # Format each numeric value with commas
-    obs_values_formatted <- sapply(obs_values, function(x) format(x, big.mark = ",", scientific = FALSE))
-    obs_row <- paste("\\hspace{1em}Observations", paste(obs_values_formatted, collapse = " & "), "\\\\", sep = " & ")
-
-    # Insert the observations row before the end of this panel
-    lines <- c(lines[1:panel_end], obs_row, lines[(panel_end + 1):length(lines)])
-
-    # Update panel_headers indices since we added a line
-    panel_headers <- grep("Panel \\([A-F]\\):", lines)
-  }
-
-  writeLines(lines, file)
-}
+source(here("code", "table_helpers.R"))
 
 # =============================================================================
 # 4. BUILD LATEX TABLE
@@ -132,7 +64,7 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
          title = "Effect of Pirate Encounters on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. ~(\\\\ref{event.study.grid}). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
+         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)

@@ -20,6 +20,7 @@ library(tidyverse)
 library(here)
 library(modelsummary)
 source(here("r", "table_format_helpers.R"))
+source(here("code", "table_helpers.R"))
 
 theme_set(theme_minimal(base_size = 10))
 
@@ -298,31 +299,44 @@ dc_summary_display <- dc_summary_tbl |>
 
 dc_summary_file <- here("results", "figures_and_tables", "grid_level_did_multiplegt_dyn_summary.tex")
 
+dc_note_text <- paste0(
+  "Each row corresponds to one transformed shipping-activity outcome estimated from the daily grid-cell panel. ",
+  "ATE is the average cumulative effect from DIDmultiplegtDYN and p-values correspond to the joint null tests for post-treatment effects and placebo leads. ",
+  "All regressions use N = ", format(unique(dc_summary_tbl$n_ate), big.mark = ","),
+  " of which N = ", format(unique(dc_summary_tbl$switchers_ate), big.mark = ","), " come from switchers."
+)
+
 datasummary_df(
   dc_summary_display,
   output = dc_summary_file,
   fmt = 3,
   title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:grid-level-did-multiplegt-dyn-summary}",
-  notes = c(
-    paste0("Each row corresponds to one transformed shipping-activity outcome estimated from the daily grid-cell panel.
-    ATE is the average cumulative effect from DIDmultiplegtDYN and p-values correspond to the joint null tests for post-treatment effects and placebo leads.",
-    "All regressions use N = ", unique(dc_summary_tbl$n_ate), " of which N = ", unique(dc_summary_tbl$switchers_ate), " come from switchers.")
-  ),
   escape = FALSE
 )
 
+# Post-process: remove any multicolumn note rows datasummary_df may have added,
+# then wrap in threeparttable + tablenotes with standardized formatting
 tex_lines <- readLines(dc_summary_file, warn = FALSE)
-if (any(grepl("\\\\begin\\{threeparttable\\}", tex_lines)) &&
-    any(grepl("\\\\end\\{threeparttable\\}", tex_lines))) {
-  add_adjust_box(dc_summary_file)
-}
+tex_lines <- tex_lines[!grepl("\\\\multicolumn.*\\\\rule", tex_lines)]
+writeLines(tex_lines, dc_summary_file)
 
-# Make note rows wrap by switching from {l} to {p{\linewidth}}
+# Add threeparttable + tablenotes + adjustbox
+# First wrap tabular in threeparttable manually since datasummary_df doesn't do it
 tex_lines <- readLines(dc_summary_file, warn = FALSE)
-tex_lines <- gsub(
-  "\\\\multicolumn\\{(\\d+)\\}\\{l\\}\\{\\\\rule",
-  "\\\\multicolumn{\\1}{p{0.9\\\\linewidth}}{\\\\rule",
-  tex_lines
+tabular_begin <- grep("\\\\begin\\{tabular\\}", tex_lines)[1]
+tabular_end <- grep("\\\\end\\{tabular\\}", tex_lines)
+tabular_end <- tabular_end[length(tabular_end)]
+tex_lines <- c(
+  tex_lines[1:(tabular_begin - 1)],
+  "\\begin{adjustbox}{width = .9\\textwidth}",
+  "\\begin{threeparttable}",
+  tex_lines[tabular_begin:tabular_end],
+  "\\begin{tablenotes}",
+  paste0("\\item \\scriptsize ", dc_note_text),
+  "\\end{tablenotes}",
+  "\\end{threeparttable}",
+  "\\end{adjustbox}",
+  tex_lines[(tabular_end + 1):length(tex_lines)]
 )
 writeLines(tex_lines, dc_summary_file)
 
