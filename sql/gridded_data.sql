@@ -3,8 +3,6 @@
 -- we aggregate shipping activity at the vessel level based on voyage departure date, 
 -- and determine our pirate attack indicators based on that voyage departure date 
 -- This dataset will be the one that gets aggregated to the voyage-level dataset. 
--- We also add monthly wind speed and heading data for each grid 
--- matched to the month each voyage passes through each grid. This is used to calculate the wind vector
 #standardSQL
 CREATE TEMPORARY FUNCTION
   pixel_size() AS ({pixel_size});
@@ -25,49 +23,12 @@ WITH
     aux_fuel_consumption_mt_inst,
     -- Assign lat and lon bins based on pixel size
     FLOOR(lat/pixel_size()) * pixel_size() lat_bin,
-    FLOOR(lon/pixel_size()) * pixel_size() lon_bin,
-    -- We will add wind and wave data at the actual date on which activity occurred, not the departure date
-    DATE_TRUNC(DATE(timestamp),MONTH) truncated_date
+    FLOOR(lon/pixel_size()) * pixel_size() lon_bin
   FROM
     `emlab-gcp.piracy.{ungridded_data_table}`
     -- Only keep data from list of filtered trips
   JOIN(SELECT trip_id FROM `emlab-gcp.piracy.{keep_these_trips_table}`) USING(trip_id)),
-  -- Load 5x5 degree wind data
-  wind_info AS(
-  SELECT
-    DATE_TRUNC(date,MONTH) truncated_date,
-    lat_bin,
-    lon_bin,
-    wind_speed_ms,
-    wind_direction_degrees
-  FROM
-    `emlab-gcp.piracy.{wind_table}`),
-      -- Load 5x5 degree wave data
-  wave_info AS(
-  SELECT
-    DATE_TRUNC(date,MONTH) truncated_date,
-    lat_bin,
-    lon_bin,
-    surface_wave_height_m
-  FROM
-    `emlab-gcp.piracy.{wave_table}`),
-  -- Now add wind and wave data to AIS messages by appropriate location, month and year
-  ais_positions_with_wind_and_waves as(
-    SELECT
-    *,
-    -- Calculate wind vector, which combines wind speed and vessel heading
-    COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector
-    FROM
-    ais_positions
-    LEFT JOIN
-    wind_info
-    USING(lat_bin,lon_bin,truncated_date)
-    LEFT JOIN
-    wave_info
-    USING(lat_bin,lon_bin,truncated_date)
-  ),
   -- Summarize hours, distance, and message by vessel-by-trip-by-departure_date-by-grid
-  -- Also take average of wind vector, wind speed, and wave height
   binned AS(
   SELECT
     mmsi,
@@ -80,12 +41,9 @@ WITH
     COUNT(*) ais_messages,
     AVG(heading) heading,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
-    SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
-    AVG(wind_vector) wind_vector,
-    AVG(wind_speed_ms) wind_speed_ms,
-    AVG(surface_wave_height_m) surface_wave_height_m
+    SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst
   FROM
-    ais_positions_with_wind_and_waves
+    ais_positions
   GROUP BY
     mmsi,
     trip_id,

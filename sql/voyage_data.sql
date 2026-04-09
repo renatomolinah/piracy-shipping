@@ -1,6 +1,8 @@
 #standardSQL
 CREATE TEMP FUNCTION
   RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
+CREATE TEMPORARY FUNCTION
+  pixel_size() AS ({pixel_size});
 WITH
 vessel_info AS(
   SELECT
@@ -17,11 +19,49 @@ vessel_info AS(
     total_haversine_distance_km
   FROM
     `emlab-gcp.piracy.{voyage_info_table}` ),
+  -- Next add gridded 5x5 degree data, the primary grid size from which our
+  -- voyage level data are constructed
   gridded_data AS(
   SELECT
-    *
+    *,
+    -- We will add wind and wave data at the actual date on which activity occurred, not the departure date
+    DATE_TRUNC(DATE(timestamp),MONTH) truncated_date
   FROM
     `emlab-gcp.piracy.{gridded_data_5_table}`),
+     -- Load 5x5 degree wind data
+  wind_info AS(
+  SELECT
+    DATE_TRUNC(date,MONTH) truncated_date,
+    lat_bin,
+    lon_bin,
+    wind_speed_ms,
+    wind_direction_degrees
+  FROM
+    `emlab-gcp.piracy.{wind_table}`),
+      -- Load 5x5 degree wave data
+  wave_info AS(
+  SELECT
+    DATE_TRUNC(date,MONTH) truncated_date,
+    lat_bin,
+    lon_bin,
+    surface_wave_height_m
+  FROM
+    `emlab-gcp.piracy.{wave_table}`),
+  -- Now add wind and wave data to gridded data by appropriate location, month and year
+  gridded_data_wind_and_waves as(
+    SELECT
+    *,
+    -- Calculate wind vector, which combines wind speed and vessel heading
+    COS(RADIANS(wind_direction_degrees - heading)) * wind_speed_ms wind_vector
+    FROM
+    gridded_data
+    LEFT JOIN
+    wind_info
+    USING(lat_bin,lon_bin,truncated_date)
+    LEFT JOIN
+    wave_info
+    USING(lat_bin,lon_bin,truncated_date)
+  ),
   # We will add fuel prices based on the voyage departure date
   fuel_prices AS(
   SELECT
@@ -61,7 +101,7 @@ vessel_info AS(
     SUM(hotspot_gulf_of_aden) hotspot_gulf_of_aden,
     SUM(hotspot_gulf_of_guinea) hotspot_gulf_of_guinea
   FROM
-    gridded_data
+    gridded_data_wind_and_waves
   GROUP BY
     mmsi,
     trip_id,

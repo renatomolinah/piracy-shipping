@@ -325,8 +325,10 @@ process_wind_data <- function(wind_file, pixel_size) {
     dplyr::inner_join(wind_v, by = c("lon_bin", "lat_bin", "date")) |>
     dplyr::mutate(
       wind_speed_ms = sqrt(u_ms^2 + v_ms^2),
-      # https://disc.gsfc.nasa.gov/information/data-in-action?title=Derive%20Wind%20Speed%20and%20Direction%20With%20MERRA-2%20Wind%20Components#:~:text=The%20U%20wind%20component%20is,wind%20comes%20from%20the%20north.
-      wind_direction_degrees = atan(v_ms / u_ms)
+      # Also use average u and v to calculate wind direction in degrees, where 0 degrees means wind is coming from the north, 90 degrees means wind is coming from the east, etc.
+      # https://www.eol.ucar.edu/content/wind-direction-quick-reference
+      # https://stackoverflow.com/a/12632531
+      wind_direction_degrees = (270 - atan2(v_ms, u_ms) * 180 / pi + 180) %% 360
     ) |>
     dplyr::mutate(date = lubridate::ymd(date))
 }
@@ -334,11 +336,11 @@ process_wind_data <- function(wind_file, pixel_size) {
 # The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide,
 # covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
 # Downloaded from https://bunkerindex.com/prices/bix-world.php
+# These were downloaded by Renato on April 9, 2026
 process_fuel_data <- function(fuel_file) {
   # Load fuel price data
   fuel_price_data <- fuel_file |>
     readr::read_csv() |>
-    dplyr::select(date = Date, price_usd_mt = Price) |>
     dplyr::mutate(date = lubridate::mdy(date))
 
   # All dates
@@ -687,207 +689,6 @@ make_suez_canal_cape_good_hope_timeseries_figure <- function(
 
   return(combined_figure)
 }
-
-# # Here we download and process daily ERA 5 data:
-# # Here is the u-component of wind
-# process_wind_data_u_component <- function(wind_file, pixel_size) {
-#   # ERA5 post-processed daily statistics on single levels from 1940 to present
-#   # We get the u10 and v10 wind components, which come at daily 0.25x0.25 degree resolution
-#   # Data represent the daily mean value for each location, using the 6-hour frequency data as the basis
-#   # UTC+00:00 time zone
-#   # Uses reanalysis data
-#   # So these are '10m u-component of wind'; '10m v-component of wind'
-
-#   # Load and wrangle u component
-#   wind_u <- tidync::tidync(wind_file, force = TRUE) |>
-#     tidync::activate("u10") |>
-#     tidync::hyper_tibble() |>
-#     dplyr::rename(
-#       lon = longitude,
-#       lat = latitude,
-#       date = valid_time,
-#       u_ms = u10
-#     ) |>
-#     dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
-#     # Rotate from 0-360 to -180 to 180
-#     dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon)) |>
-#     # Aggregate to our pixel size
-#     dplyr::mutate(
-#       lat_bin = floor(lat / pixel_size) * pixel_size,
-#       lon_bin = floor(lon / pixel_size) * pixel_size
-#     ) |>
-#     # https://help.marine.copernicus.eu/en/articles/5487266-how-to-average-winds#
-#     # The vector mean wind speed is obtained by first averaging u and v over the period of interest and then calculating the wind_speed from the averaged u and v.
-#     # The vector average should be used when the wind direction matters as well. For example in the transport of particles by the wind, because winds in opposite directions cancel out in terms of transport:
-#     dplyr::group_by(date, lat_bin, lon_bin) |>
-#     dplyr::summarize(
-#       u_ms = mean(u_ms, na.rm = TRUE)
-#     ) |>
-#     dplyr::ungroup()
-# }
-
-# Here we download and process daily ERA 5 data:
-# Here is the u-component of wind
-process_wind_data_u_component <- function(wind_file, pixel_size) {
-  # ERA5 post-processed daily statistics on single levels from 1940 to present
-  # We get the u10 and v10 wind components, which come at daily 0.25x0.25 degree resolution
-  # Data represent the daily mean value for each location, using the 6-hour frequency data as the basis
-  # UTC+00:00 time zone
-  # Uses reanalysis data
-  # So these are '10m u-component of wind'; '10m v-component of wind'
-
-  # Load and wrangle u component
-  wind_u <- tidync::tidync(wind_file, force = TRUE) |>
-    tidync::activate("u10") |>
-    tidync::hyper_tibble() |>
-    dplyr::rename(
-      lon = longitude,
-      lat = latitude,
-      date = valid_time,
-      u_ms = u10
-    ) |>
-    dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
-    # Rotate from 0-360 to -180 to 180
-    dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon))
-}
-
-# # Here we download and process daily ERA 5 data:
-# # Here is the v-component of wind
-# process_wind_data_v_component <- function(wind_file, pixel_size) {
-#   # ERA5 post-processed daily statistics on single levels from 1940 to present
-#   # We get the u10 and v10 wind components, which come at daily 0.25x0.25 degree resolution
-#   # Data represent the daily mean value for each location, using the 6-hour frequency data as the basis
-#   # UTC+00:00 time zone
-#   # Uses reanalysis data
-#   # So these are '10m u-component of wind'; '10m v-component of wind'
-
-#   # Load and wrangle v component
-#   wind_v <- tidync::tidync(wind_file, force = TRUE) |>
-#     tidync::activate("v10") |>
-#     tidync::hyper_tibble() |>
-#     dplyr::rename(
-#       lon = longitude,
-#       lat = latitude,
-#       date = valid_time,
-#       v_ms = v10
-#     ) |>
-#     dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
-#     # Rotate from 0-360 to -180 to 180
-#     dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon)) |>
-#     # Aggregate to our pixel size
-#     dplyr::mutate(
-#       lat_bin = floor(lat / pixel_size) * pixel_size,
-#       lon_bin = floor(lon / pixel_size) * pixel_size
-#     ) |>
-#     # https://help.marine.copernicus.eu/en/articles/5487266-how-to-average-winds#
-#     # The vector mean wind speed is obtained by first averaging u and v over the period of interest and then calculating the wind_speed from the averaged u and v.
-#     # The vector average should be used when the wind direction matters as well. For example in the transport of particles by the wind, because winds in opposite directions cancel out in terms of transport:
-#     dplyr::group_by(date, lat_bin, lon_bin) |>
-#     dplyr::summarize(
-#       v_ms = mean(v_ms, na.rm = TRUE)
-#     ) |>
-#     dplyr::ungroup()
-# }
-# Here we download and process daily ERA 5 data:
-# Here is the v-component of wind
-process_wind_data_v_component <- function(wind_file, pixel_size) {
-  # ERA5 post-processed daily statistics on single levels from 1940 to present
-  # We get the u10 and v10 wind components, which come at daily 0.25x0.25 degree resolution
-  # Data represent the daily mean value for each location, using the 6-hour frequency data as the basis
-  # UTC+00:00 time zone
-  # Uses reanalysis data
-  # So these are '10m u-component of wind'; '10m v-component of wind'
-
-  # Load and wrangle v component
-  wind_v <- tidync::tidync(wind_file, force = TRUE) |>
-    tidync::activate("v10") |>
-    tidync::hyper_tibble() |>
-    dplyr::rename(
-      lon = longitude,
-      lat = latitude,
-      date = valid_time,
-      v_ms = v10
-    ) |>
-    dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
-    # Rotate from 0-360 to -180 to 180
-    dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon))
-}
-
-# Put all wind data together and calculate wind speed (both scalar and vector) and direction
-combine_wind_u_and_v_components <- function(wind_u, wind_v, pixel_size) {
-  # Put it all together into tidy tibble
-  wind_u |>
-    dplyr::inner_join(wind_v, by = c("lon", "lat", "date")) |>
-    # Aggregate to our pixel size
-    dplyr::mutate(
-      lat_bin = floor(lat / pixel_size) * pixel_size,
-      lon_bin = floor(lon / pixel_size) * pixel_size
-    ) |>
-    # First, calculate wind speed for each 0.25x0.25 degree pixel
-    dplyr::mutate(
-      wind_speed_scalar_ms = sqrt(u_ms^2 + v_ms^2)
-    ) |>
-    # Now, calculate average wind_speed_scalar_ms for each 5x5 degree pixel
-    # Simply as the average of the wind_speed_scalar_ms values for all 0.25x0.25 degree pixels that fall within each 5x5 degree pixel
-    dplyr::group_by(date, lat_bin, lon_bin) |>
-    dplyr::summarize(
-      wind_speed_scalar_ms = mean(wind_speed_scalar_ms, na.rm = TRUE),
-      # Then, calculate average u and v for each 5x5 degree pixel,
-      #  and use those to calculate vector-mean wind speed and direction for each 5x5 degree pixel
-      u_ms = mean(u_ms, na.rm = TRUE),
-      v_ms = mean(v_ms, na.rm = TRUE)
-    ) |>
-    dplyr::ungroup() |>
-    # https://disc.gsfc.nasa.gov/information/data-in-action?title=Derive%20Wind%20Speed%20and%20Direction%20With%20MERRA-2%20Wind%20Components#:~:text=The%20U%20wind%20component%20is,wind%20comes%20from%20the%20north.
-    dplyr::mutate(
-      wind_speed_vector_ms = sqrt(u_ms^2 + v_ms^2),
-      # Also use average u and v to calculate wind direction in degrees, where 0 degrees means wind is coming from the north, 90 degrees means wind is coming from the east, etc.
-      # https://www.eol.ucar.edu/content/wind-direction-quick-reference
-      # https://stackoverflow.com/a/12632531
-      wind_direction_degrees = (270 - atan2(v_ms, u_ms) * 180 / pi + 180) %% 360
-    ) |>
-    dplyr::mutate(date = lubridate::ymd(date))
-}
-
-process_and_combine_wind_data <- function(
-  wind_u_daily_files,
-  wind_v_daily_files,
-  pixel_size
-) {
-  # Ensure the u and v components have the same years represented
-  years_u <- stringr::str_extract(basename(wind_u_daily_files), "\\d{4}")
-
-  years_v <- stringr::str_extract(basename(wind_v_daily_files), "\\d{4}")
-
-  if (!all.equal(years_u, years_v)) {
-    stop(
-      "Year mismatch between u and v component files! u component years: ",
-      paste(years_u, collapse = ", "),
-      " vs v component years: ",
-      paste(years_v, collapse = ", ")
-    )
-  }
-
-  # Now, process one year at a time
-  purrr::map_df(years_u, function(year) {
-    wind_file_u <- wind_u_daily_files[which(stringr::str_detect(
-      wind_u_daily_files,
-      year
-    ))]
-    wind_file_v <- wind_v_daily_files[which(stringr::str_detect(
-      wind_v_daily_files,
-      year
-    ))]
-
-    # First, wrangle full-resolution u-component and v-component data separately, to get them into a format where we can easily combine them
-    wind_u <- process_wind_data_u_component(wind_file_u, pixel_size)
-    wind_v <- process_wind_data_v_component(wind_file_v, pixel_size)
-
-    # Now combine them, and calculate our scalar and vector wind speed and wind direction variables
-    combine_wind_u_and_v_components(wind_u, wind_v, pixel_size)
-  })
-}
-
 
 # Process wave height data
 process_wave_data <- function(wave_file, pixel_size) {
