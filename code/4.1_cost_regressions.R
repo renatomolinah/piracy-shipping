@@ -315,15 +315,24 @@ pred_global <- wdb %>%
   select(trip_id, attacks_7day_num, wind_speed, wind_vector, wave_height,
          country_pair, vessel_type, tonnage_decile, hotspot, top_route, month, year)
 
+# CPI-U annual averages (BLS, 1982-84 = 100), deflated to 2020 USD
+# Fuel cost is nominal (daily bunker prices) -> year-varying deflator
+# Labor cost uses fixed 2018 ITF wage rate -> constant rescale from 2018 to 2020
+cpi_deflator <- read_csv(here("data", "raw", "cpi_u_annual_avg.csv")) %>%
+  mutate(fuel_deflator = cpi_u[year == 2020] / cpi_u,
+         labor_deflator = cpi_u[year == 2020] / cpi_u[year == 2018])
+
 pred_global <- pred_global %>%
+  left_join(cpi_deflator, by = "year") %>%
   mutate(
-    p_fuel = predict(m1_fuel_pred, newdata = pred_global),
-    np_fuel = predict(m1_fuel_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0)),
-    p_labor = predict(m1_labor_pred, newdata = pred_global),
-    np_labor = predict(m1_labor_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0)),
-    p_total = predict(m1_total_pred, newdata = pred_global),
-    np_total = predict(m1_total_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0))
-  )
+    p_fuel = predict(m1_fuel_pred, newdata = pred_global) * fuel_deflator,
+    np_fuel = predict(m1_fuel_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0)) * fuel_deflator,
+    p_labor = predict(m1_labor_pred, newdata = pred_global) * labor_deflator,
+    np_labor = predict(m1_labor_pred, newdata = pred_global %>% mutate(attacks_7day_num = 0)) * labor_deflator,
+    p_total = p_fuel + p_labor,
+    np_total = np_fuel + np_labor
+  ) %>%
+  select(-cpi_u, -fuel_deflator, -labor_deflator)
 
 write_rds(pred_global, here("data", "processed", "cost_pred_global.rds"))
 

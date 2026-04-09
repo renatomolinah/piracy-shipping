@@ -106,7 +106,7 @@ add_adjust_box(here("results", "figures_and_tables", "counterfactual_costs.tex")
 
 add_threeparttable_note(
   here("results", "figures_and_tables", "counterfactual_costs.tex"),
-  "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. Values are aggregated annually by hotspot region."
+  "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. All costs are deflated to constant 2020 USD using the CPI-U annual average. Values are aggregated annually by hotspot region."
 )
 
 # X ----------------------------------------------------------------------------
