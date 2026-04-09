@@ -6,7 +6,7 @@ OUTPUT    = data/output/
 STAMPS    = .stamps/
 
 # --- Pipelines ---
-.PHONY: all gridcell_pipeline trip_pipeline cost_pipeline clean
+.PHONY: all gridcell_pipeline trip_pipeline cost_pipeline clean log
 
 all: gridcell_pipeline trip_pipeline cost_pipeline
 
@@ -163,6 +163,10 @@ $(STAMPS)4.6_counterfactual_tables: code/4.6_counterfactual_tables.R $(STAMPS)4.
 
 $(CONTENT)counterfactual_costs.tex: $(STAMPS)4.6_counterfactual_tables ;
 $(CONTENT)counterfactual_emissions.tex: $(STAMPS)4.6_counterfactual_tables ;
+
+# --- Log ---
+log:
+	$(MAKE) all 2>&1 | tee make.log
 
 # --- Clean ---
 clean:
