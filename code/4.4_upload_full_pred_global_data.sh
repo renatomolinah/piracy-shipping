@@ -9,7 +9,7 @@ gsutil cp "$PROJECT_PATH"data/processed/full_pred_global.csv gs://piracy-emlab-g
 bq mk --table \
 --schema trip_id:STRING,attacks_7day_num:INTEGER,wind_speed:FLOAT,wind_vector:FLOAT,wave_height:FLOAT,country_pair:STRING,vessel_type:STRING,tonnage_decile:INTEGER,hotspot:STRING,top_route:INTEGER,month:INTEGER,year:INTEGER,p_fuel:FLOAT,np_fuel:FLOAT,p_labor:FLOAT,np_labor:FLOAT,p_total:FLOAT,np_total:FLOAT,p_co2:FLOAT,np_co2:FLOAT,p_nox:FLOAT,np_nox:FLOAT,p_sox:FLOAT,np_sox:FLOAT \
 --description "Model prediction of costs with and without pirate encounters" \
-emlab-gcp:piracy.full_pred_global_v_20260407
+emlab-gcp:piracy.full_pred_global_v_20260410
 
 # If I need to delete it, this is the command:
 #bq rm -f -t emlab-gcp:piracy.full_pred_global_v_20260407
@@ -22,5 +22,5 @@ bq load \
 --skip_leading_rows=1 \
 --null_marker "NA" \
 --replace \
-emlab-gcp:piracy.full_pred_global_v_20260407 \
+emlab-gcp:piracy.full_pred_global_v_20260410 \
 gs://piracy-emlab-gcp/full_pred_global.csv

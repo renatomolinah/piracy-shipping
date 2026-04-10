@@ -73,7 +73,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20260224") %>%
          lat_bin = lat_bin + 0.25)
 
 # Counterfactual predictions: piracy effect = predicted with pirates minus predicted without
-pred_info <- tbl(piracy, "full_pred_global_v_20260407") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20260410") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,

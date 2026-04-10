@@ -26,7 +26,7 @@ piracy <- dbConnect(
 
 # --- Load data ---
 
-pred_info <- tbl(piracy, "full_pred_global_v_20260407") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20260410") %>%
   mutate(
     fuel = p_fuel - np_fuel,
     labor = p_labor - np_labor,
