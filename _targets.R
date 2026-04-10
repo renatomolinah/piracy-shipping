@@ -103,13 +103,20 @@ list(
     name = hotspots_sql,
     generate_hotspot_sql(hotspots)
   ),
+  # Weather aggregation pixel size
+  # All weather will be aggregated to this pixel size,
+  # to match the level that gridded voyage data is aggregated to
+  tar_target(
+    name = weather_pixel_size,
+    5
+  ),
   # Process wind data to 5x5 degree grids
   tar_file_read(
     name = wind_data,
     command = here::here(
       "data/raw/era5_wind/era5_monthly_average_wind_08052025.nc"
     ),
-    read = process_wind_data(!!.x, pixel_size = 5)
+    read = process_wind_data(!!.x, pixel_size = weather_pixel_size)
   ),
   # Upload monthly wind data to BQ
   tar_target(
@@ -118,7 +125,12 @@ list(
       df_to_upload = wind_data,
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
-      bq_table_name = paste0("wind_data_5_v_", model_version)
+      bq_table_name = paste0(
+        "wind_data_",
+        weather_pixel_size,
+        "_v_",
+        model_version
+      )
     )
   ),
   # Process monthly wave data to 5x5 degree grids
@@ -127,7 +139,7 @@ list(
     command = here::here(
       "data/raw/era5_surface_wave_height/era5_monthly_average_wave_08052025.nc"
     ),
-    read = process_wave_data(!!.x, pixel_size = 5)
+    read = process_wave_data(!!.x, pixel_size = weather_pixel_size)
   ),
   # Upload wind data to BQ
   tar_target(
@@ -136,7 +148,12 @@ list(
       df_to_upload = wave_data,
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
-      bq_table_name = paste0("wave_data_5_v_", model_version)
+      bq_table_name = paste0(
+        "wave_data_",
+        weather_pixel_size,
+        "_v_",
+        model_version
+      )
     )
   ),
   # Process fuel data, downloaded from Bunker Index
@@ -222,6 +239,27 @@ list(
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
       bq_table_name = paste0("keep_these_trips_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  # Now make trip-level weather data, which will be merged with the voyage-level data
+  # This aggregate
+  # weather data to the trip level, by averaging weather conditions over the route pixels and time of each trip
+  tar_file_read(
+    name = trip_level_weather_bq,
+    command = here::here("sql/trip_level_weather_data.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = weather_pixel_size,
+          wind_table = wind_data_bq$tableReference$tableId,
+          wave_table = wave_data_bq$tableReference$tableId,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("trip_level_weather_v_", model_version),
       bq_billing_project = bq_billing_project
     ),
   ),
@@ -615,8 +653,7 @@ list(
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           voyage_info_table = voyage_info_bq$tableReference$tableId,
           fuel_price_table = fuel_data_bq$tableReference$tableId,
-          wind_table = wind_data_bq$tableReference$tableId,
-          wave_table = wave_data_bq$tableReference$tableId,
+          trip_level_weather_table = trip_level_weather_bq$tableReference$tableId,
           gridded_data_5_table = gridded_data_5_bq$tableReference$tableId,
           gridded_data_3_table = gridded_data_3_bq$tableReference$tableId,
           gridded_data_7_table = gridded_data_7_bq$tableReference$tableId,
