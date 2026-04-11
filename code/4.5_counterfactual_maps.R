@@ -287,7 +287,7 @@ ggsave(plot = total_map,
        units = "cm")
 
 # Annual aggregate with social costs for back-of-envelope totals
-tbl(piracy, "full_pred_global_v_20260407") %>%
+tbl(piracy, "full_pred_global_v_20260410") %>%
   select(year, matches("total|co2|sox|nox")) %>%
   group_by(year) %>%
   summarize_all(sum) %>%
