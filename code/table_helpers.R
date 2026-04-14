@@ -1,14 +1,29 @@
 # Shared LaTeX table post-processing helpers for modelsummary output
 
-# Wrap threeparttable inside adjustbox for width control
+# Wrap threeparttable (or talltblr) inside adjustbox for width control
 add_adjust_box <- function(file,
                            line_before = "\\begin{adjustbox}{width = .9\\textwidth}",
                            line_after = "\\end{adjustbox}",
                            before = "\\begin{threeparttable}",
                            after = "\\end{threeparttable}") {
   lines <- readLines(file)
-  after_line <- grep(after, lines, fixed = TRUE)
   before_line <- grep(before, lines, fixed = TRUE)
+  after_line <- grep(after, lines, fixed = TRUE)
+
+  # Fall back to talltblr if threeparttable not found (modelsummary v2+)
+  if (length(before_line) == 0 || length(after_line) == 0) {
+    before_line <- grep("\\begin{talltblr}", lines, fixed = TRUE)
+    after_line  <- grep("\\end{talltblr}", lines, fixed = TRUE)
+  }
+
+  if (length(before_line) == 0 || length(after_line) == 0) {
+    warning(paste("add_adjust_box: no wrappable block found in", file, "— skipping."))
+    return(invisible(NULL))
+  }
+
+  before_line <- before_line[1]
+  after_line  <- after_line[length(after_line)]
+
   lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
   writeLines(lines, file)
 }

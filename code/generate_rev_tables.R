@@ -29,7 +29,8 @@ make_rev("spec_sox.tex",      "spec_sox_rev.tex",      "tab:spec-sox-table",    
 
 make_rev("attack_persistence.tex",                  "attack_persistence_rev.tex",                  "tab:attack-persistence",    "tab:attack-persistence-rev")
 make_rev("trip_count.tex",                          "trip_count_rev1.tex",                          "tab:trip-count",            "tab:trip-count-rev1")
+make_rev("trip_count.tex",                          "trip_count_rev2.tex",                          "tab:trip-count",            "tab:trip-count-rev2")
 make_rev("suez_cape_route_choice_trip_level.tex",   "suez_cape_route_choice_trip_level_rev1.tex",   "tab:suez-cape-trip-level",  "tab:suez-cape-trip-level-rev1")
 make_rev("suez_cape_route_choice_trip_level.tex",   "suez_cape_route_choice_trip_level_rev2.tex",   "tab:suez-cape-trip-level",  "tab:suez-cape-trip-level-rev2")
 
-cat("Done. Generated", 13, "revision tables.\n")
+cat("Done. Generated", 14, "revision tables.\n")
