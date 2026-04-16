@@ -4,6 +4,7 @@
 library(here)
 library(conleyreg)
 library(tidyverse)
+library(furrr)
 library(modelsummary)
 library(kableExtra)
 library(scales)
@@ -86,15 +87,28 @@ kbl(x = by_cluster,
 processKBLoutput(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 adjust_notes_font_size(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
+
+################################################################################
 # --- Pre/post regression analysis ---
+# Set up a function to standardize estimation
 run_estimation <- function(outcome_var,
                            spec = "~ post | id + year^month + day_of_week",
                            hotspot = "Global",
                            res = "0_5") {
   if(hotspot != "Global") {
-    data <- panel(res) |> filter(attack_cluster == hotspot)
+    data <- panel(res) |> filter(attack_cluster == hotspot) |>
+      # Remove singleton observations
+      drop_na(str_remove_all(outcome_var, "asinh\\(|\\)")) |> 
+      add_count(id, year, month, day_of_week, name = "n") |>
+      filter(n > 1) |>
+      select(-n)
   } else {
-    data <- panel(res)
+    data <- panel(res) |> 
+      # Remove singleton observations
+      drop_na(str_remove_all(outcome_var, "asinh\\(|\\)")) |> 
+      add_count(id, year, month, day_of_week, name = "n") |>
+      filter(n > 1) |>
+      select(-n)
   }
 
   fml <- as.formula(paste(outcome_var, spec))
@@ -114,6 +128,7 @@ run_estimation <- function(outcome_var,
   return(results)
 }
 
+# Define all our outcome variables
 outcome_vars <- c("asinh(time_hours)",
                   "asinh(distance_km)",
                   "asinh(n_vessels)",
@@ -121,33 +136,48 @@ outcome_vars <- c("asinh(time_hours)",
                   "asinh(time_vessels)",
                   "asinh(dist_vessels)")
 
-all_specs <- c("~ post",
-               "~ post | id ",
-               "~ post | id + year^month")
-
+# Define our hotspots over which to iterate
 hotspots <- c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia")
 
+# Different resolutions
 res <- c("0_1", "0_5", "1")
 
+# Main text estimation for different resolutions.
+plan(multisession, workers = 18)
 models <- expand_grid(outcome_var = outcome_vars,
                       hotspot = hotspots,
                       spec = "~ post | id + year^month + day_of_week",
                       res = res) |>
-  mutate(model = pmap(.l = list(outcome_var = outcome_var, spec = spec, hotspot = hotspot, res = res), run_estimation),
+  mutate(model = future_pmap(.l = list(outcome_var = outcome_var, spec = spec, hotspot = hotspot, res = res),
+                      run_estimation),
          coefficients = map(model, coefficients),
          n = map_dbl(model, nobs))
+plan(sequential)
 
 names(models$coefficients) <- models$hotspot
 
+################################################################################
+# Supplementary models
+# Part 1 - specifications building up with FEs
+
+# Define the build-up of specifications. The main-text specification is not included here
+all_specs <- c("~ post",
+               "~ post | id ",
+               "~ post | id + year^month")
+
+# Estimation for specification table, only done for 0.5°
+plan(multisession, workers = 18)
 spec_tables <- expand_grid(outcome_var = outcome_vars,
                            spec = all_specs) |>
-  mutate(model = pmap(.l = list(outcome_var = outcome_var, spec = spec),
+  mutate(model = future_pmap(.l = list(outcome_var = outcome_var, spec = spec),
                       run_estimation,
                       hotspot = "Global",
                       res = "0_5"),
          coefficients = map(model, coefficients),
          n = map_dbl(model, nobs))
+plan(sequential)
 
+# Part 2 - AIS disabling events 
 # SE Asia excluded from AIS disabling because outcome is constant at 0
 AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
                                 spec = "~ post | id + year^month + day_of_week",
