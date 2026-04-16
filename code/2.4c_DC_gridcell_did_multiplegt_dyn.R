@@ -282,7 +282,7 @@ datasummary_df(
   dc_summary_display,
   output = dc_summary_file,
   fmt = 3,
-  title = "Effect of Pirate Attacks on Grid Cell Shipping Activity. \\label{tab:grid-level-did-multiplegt-dyn-summary}",
+  title = "Effect of Pirate Encounters on Grid Cell Shipping Activity. \\label{tab:grid-level-did-multiplegt-dyn-summary}",
   escape = FALSE
 )
 
