@@ -70,12 +70,9 @@ create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate
     lon = "lon_bin",
     data = panel(res) |>
       drop_na(outcome_var) |>
-      add_count(date, name = "n_int") |>
-      filter(n_int > 1) |>
-      select(-n_int) |>
-      add_count(id, month, name = "n_int2") |>
-      filter(n_int2 > 1) |>
-      select(-n_int2),
+      add_count(id, year, month, day_of_week, name = "n") |>
+      filter(n > 1) |>
+      select(-n),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -207,12 +204,9 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
     lon = "lon_bin",
     data = panel("0_1") |>
       drop_na(outcome_var) |>
-      add_count(date, name = "n_int") |>
-      filter(n_int > 1) |>
-      select(-n_int) |>
-      add_count(id, month, name = "n_int2") |>
-      filter(n_int2 > 1) |>
-      select(-n_int2),
+      add_count(id, year, month, day_of_week, name = "n") |>
+      filter(n > 1) |>
+      select(-n),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -225,12 +219,9 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
     lon = "lon_bin",
     data = panel("0_5") |>
       drop_na(outcome_var) |>
-      add_count(date, name = "n_int") |>
-      filter(n_int > 1) |>
-      select(-n_int) |>
-      add_count(id, month, name = "n_int2") |>
-      filter(n_int2 > 1) |>
-      select(-n_int2),
+      add_count(id, year, month, day_of_week, name = "n") |>
+      filter(n > 1) |>
+      select(-n),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
@@ -243,12 +234,9 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
     lon = "lon_bin",
     data = panel("1") |>
       drop_na(outcome_var) |>
-      add_count(date, name = "n_int") |>
-      filter(n_int > 1) |>
-      select(-n_int) |>
-      add_count(id, month, name = "n_int2") |>
-      filter(n_int2 > 1) |>
-      select(-n_int2),
+      add_count(id, year, month, day_of_week, name = "n") |>
+      filter(n > 1) |>
+      select(-n),
     dist_cutoff = 50,
     lag_cutoff = Inf
   )
