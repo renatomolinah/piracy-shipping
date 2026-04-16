@@ -28,7 +28,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
   with_clusters <- tbl(con,
                        DBI::Id(project = "emlab-gcp",
                                dataset = "piracy",
-                               table = paste0("gridded_pirate_attacks_", tbl_sufix, "_v_20250521"))) %>%
+                               table = paste0("gridded_pirate_attacks_", tbl_sufix, "_v_20260224"))) %>%
     filter(date <= sql("DATE('2023-12-31')")) %>%
     mutate(grid_id = paste0(lat_bin, "_", lon_bin),
            attack_cluster = case_when(hotspot_gulf_of_guinea == 1 ~ "GoG",
@@ -55,7 +55,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
   track_info <- tbl(con,
                     DBI::Id(project = "emlab-gcp",
                     dataset = "piracy",
-                    table = paste0("gridded_data_", tbl_sufix, "_v_20250521"))) |>
+                    table = paste0("gridded_data_", tbl_sufix, "_v_20260224"))) |>
     group_by(date, lat_bin, lon_bin) %>%
     summarize(time_hours = sum(hours, na.rm = T),
               distance_km = sum(distance_km, na.rm = T),
@@ -65,7 +65,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
               .groups = "drop")
 
   # AIS disabling: join good segments, target vessels, and disabling events
-  vessels <- tbl(con, DBI::Id(project = "emlab-gcp", dataset = "piracy", table = "vessel_info_v_20250521"))
+  vessels <- tbl(con, DBI::Id(project = "emlab-gcp", dataset = "piracy", table = "vessel_info_v_20260224"))
   segs <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "segs_activity"))
   disab <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "product_events_ais_disabling"))
   gaps <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "product_events_ais_gaps"))
