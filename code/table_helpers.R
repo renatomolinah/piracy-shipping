@@ -60,42 +60,6 @@ strip_pkg_declarations <- function(file) {
   writeLines(lines, file)
 }
 
-# Insert observation-count rows after each sub-panel in grid-cell tables
-add_rows_with_observations <- function(file, observations_df) {
-  lines <- readLines(file)
-
-  panel_order <- c("Panel (A): Total Time (hours)" = "asinh(time_hours)",
-                   "Panel (B): Total Distance (km)" = "asinh(distance_km)",
-                   "Panel (C): Vessels (#)" = "asinh(n_vessels)",
-                   "Panel (D): Voyages (#)" = "asinh(n_trips)",
-                   "Panel (E): Time per Vessel (hours / vessel)" = "asinh(time_vessels)",
-                   "Panel (F): Distance per Vessel (km / vessel)" = "asinh(dist_vessels)")
-
-  panel_headers <- grep("Panel \\([A-F]\\):", lines)
-
-  for (i in seq_along(panel_headers)) {
-    outcome_var <- panel_order[i]
-
-    if (i < length(panel_headers)) {
-      panel_end <- panel_headers[i + 1] - 1
-    } else {
-      bottomrule_line <- grep("\\\\bottomrule", lines)[1]
-      panel_end <- bottomrule_line - 1
-    }
-
-    panel_obs <- observations_df[observations_df$outcome_var == outcome_var, ]
-    obs_values <- panel_obs[, -1]
-    obs_values_formatted <- sapply(obs_values, function(x) format(x, big.mark = ",", scientific = FALSE))
-    obs_row <- paste("\\hspace{1em}Observations", paste(obs_values_formatted, collapse = " & "), "\\\\", sep = " & ")
-
-    lines <- c(lines[1:panel_end], obs_row, lines[(panel_end + 1):length(lines)])
-    # Re-find headers since line indices shifted after insertion
-    panel_headers <- grep("Panel \\([A-F]\\):", lines)
-  }
-
-  writeLines(lines, file)
-}
-
 # Add threeparttable wrapper + note to a table that already has adjustbox
 add_threeparttable_note <- function(file, note_text) {
   lines <- readLines(file, warn = FALSE)
