@@ -1,8 +1,8 @@
-# Estimate gridcell event study and pre/post regressions with Conley standard errors
+# Estimate gridcell pre/post regressions with Conley standard errors via fixest.
 
 # --- Setup ---
 library(here)
-library(conleyreg)
+library(fixest)
 library(tidyverse)
 library(furrr)
 library(modelsummary)
@@ -35,6 +35,10 @@ processKBLoutput <- function(file_path) {
 }
 
 # --- Load panel data ---
+# Panels are loaded once at the top under stable names (panel_0_1, panel_0_5,
+# panel_1) so that fits produced by feols() reference them via `fit$call$data`
+# as bare symbols. This keeps the saved fits self-describing and allows
+# downstream scripts (2.4) to resolve the data by loading the same names.
 panel <- function(res) {
   readRDS(here("data", "processed", paste0("ev_panel_", res, ".rds"))) |>
     mutate(time_vessels = time_hours/n_vessels,
@@ -44,6 +48,10 @@ panel <- function(res) {
                                       attack_cluster == "SEA" ~ "S.E. Asia",
                                       T ~ attack_cluster))
 }
+
+panel_0_1 <- panel("0_1")
+panel_0_5 <- panel("0_5")
+panel_1   <- panel("1")
 
 # --- Summary statistics table ---
 P5 <- function(x) quantile(x, 0.05, na.rm = TRUE)
@@ -90,42 +98,57 @@ adjust_notes_font_size(here("results", "figures_and_tables", "grid_summary_stats
 
 ################################################################################
 # --- Pre/post regression analysis ---
-# Set up a function to standardize estimation
-run_estimation <- function(outcome_var,
-                           spec = "~ post | id + year^month + day_of_week",
-                           hotspot = "Global",
-                           res = "0_5") {
-  if(hotspot != "Global") {
-    data <- panel(res) |> filter(attack_cluster == hotspot) |>
-      # Remove singleton observations
-      drop_na(str_remove_all(outcome_var, "asinh\\(|\\)")) |> 
-      add_count(id, year, month, day_of_week, name = "n") |>
-      filter(n > 1) |>
-      select(-n)
-  } else {
-    data <- panel(res) |> 
-      # Remove singleton observations
-      drop_na(str_remove_all(outcome_var, "asinh\\(|\\)")) |> 
-      add_count(id, year, month, day_of_week, name = "n") |>
-      filter(n > 1) |>
-      select(-n)
-  }
-
+# Two estimation helpers:
+# * run_estimation_multi() fits the model on the full sample AND each hotspot
+#   in one feols() call via fsplit = ~ attack_cluster. Returns a fixest_multi.
+# * run_estimation() fits a single model on the full sample (for the spec
+#   build-up, which is Global-only). Returns a fixest.
+# Both bake Conley spatial SEs (50 km cutoff) in at fit time. fixest drops NAs
+# and singletons internally, so no manual handling is needed.
+run_estimation_multi <- function(outcome_var,
+                                 spec = "~ post | id^month + date",
+                                 res = "0_5") {
+  
   fml <- as.formula(paste(outcome_var, spec))
+  
+  cat("Estimating (multi) for", outcome_var, "at a resolution of", res, "\n")
+  
+  switch(res,
+         "0_1" = feols(fml, data = panel_0_1, fsplit = ~ attack_cluster, vcov = conley(cutoff = 50)),
+         "0_5" = feols(fml, data = panel_0_5, fsplit = ~ attack_cluster, vcov = conley(cutoff = 50)),
+         "1"   = feols(fml, data = panel_1,   fsplit = ~ attack_cluster, vcov = conley(cutoff = 50))
+  )
+}
 
-  cat("Estimating for", outcome_var, "in", hotspot, "at a resolution of", res)
+run_estimation <- function(outcome_var,
+                           spec = "~ post | id^month + date",
+                           res = "0_5") {
+  
+  fml <- as.formula(paste(outcome_var, spec))
+  
+  cat("Estimating for", outcome_var, "at a resolution of", res, "\n")
+  
+  switch(res,
+         "0_1" = feols(fml, data = panel_0_1, vcov = conley(cutoff = 50)),
+         "0_5" = feols(fml, data = panel_0_5, vcov = conley(cutoff = 50)),
+         "1"   = feols(fml, data = panel_1,   vcov = conley(cutoff = 50))
+  )
+}
 
-  results <- conleyreg(formula = fml,
-                       unit = "id",
-                       time = "date",
-                       lat = "lat_bin",
-                       lon = "lon_bin",
-                       data = data,
-                       dist_cutoff = 50,
-                       lag_cutoff = Inf,
-                       gof = TRUE)
-
-  return(results)
+# Unpack a fixest_multi into a tibble with one row per hotspot (Global + three
+# attack clusters). Drops the "None" (rest-of-world) split since we never
+# report it. hotspot_multi is the fixest_multi; hotspot labels match what the
+# downstream tables expect.
+unpack_hotspots <- function(multi) {
+  tibble(
+    hotspot = c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"),
+    model   = list(
+      multi[sample = "Full sample",  drop = TRUE],
+      multi[sample = "G. of Aden",   drop = TRUE],
+      multi[sample = "G. of Guinea", drop = TRUE],
+      multi[sample = "S.E. Asia",    drop = TRUE]
+    )
+  )
 }
 
 # Define all our outcome variables
@@ -136,61 +159,67 @@ outcome_vars <- c("asinh(time_hours)",
                   "asinh(time_vessels)",
                   "asinh(dist_vessels)")
 
-# Define our hotspots over which to iterate
-hotspots <- c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia")
-
 # Different resolutions
 res <- c("0_1", "0_5", "1")
 
-# Main text estimation for different resolutions.
+# Main text estimation. Each (outcome, res) pair runs ONE feols() call with
+# fsplit = ~ attack_cluster, which fits the full sample AND each hotspot
+# simultaneously. We then unpack the fixest_multi into four rows per pair.
+# This replaces the previous 6 outcomes x 4 hotspots x 3 res = 72 calls with
+# 6 x 3 = 18 calls -- and eliminates the hotspot subsetting logic entirely.
+# The main-text FE spec absorbs grid-cell-by-month (local seasonality) and a
+# full set of time FEs.
 plan(multisession, workers = 18)
 models <- expand_grid(outcome_var = outcome_vars,
-                      hotspot = hotspots,
-                      spec = "~ post | id + year^month + day_of_week",
+                      spec = "~ post | id^month + date",
                       res = res) |>
-  mutate(model = future_pmap(.l = list(outcome_var = outcome_var, spec = spec, hotspot = hotspot, res = res),
-                      run_estimation),
-         coefficients = map(model, coefficients),
-         n = map_dbl(model, nobs))
+  mutate(multi = future_pmap(.l = list(outcome_var = outcome_var, spec = spec, res = res),
+                             run_estimation_multi,
+                             .options = furrr_options(seed = NULL))) |>
+  mutate(unpacked = map(multi, unpack_hotspots)) |>
+  select(-multi) |>
+  unnest(unpacked) |>
+  mutate(n = map_dbl(model, nobs))
 plan(sequential)
 
-names(models$coefficients) <- models$hotspot
+# Name the model list by hotspot so modelsummary uses them as column headers.
+names(models$model) <- models$hotspot
 
 ################################################################################
 # Supplementary models
-# Part 1 - specifications building up with FEs
+# Part 1 - specifications building up with FEs. The main-text spec
+# `~ post | id^month + date` is the final "column" but is already computed in
+# the `models` tibble above, so it is NOT re-added here.
+all_specs <- c("~ post | id",
+               "~ post | id + date")
 
-# Define the build-up of specifications. The main-text specification is not included here
-all_specs <- c("~ post",
-               "~ post | id ",
-               "~ post | id + year^month")
-
-# Estimation for specification table, only done for 0.5°
+# Estimation for specification table, only done for 0.5° on the full sample.
 plan(multisession, workers = 18)
 spec_tables <- expand_grid(outcome_var = outcome_vars,
                            spec = all_specs) |>
   mutate(model = future_pmap(.l = list(outcome_var = outcome_var, spec = spec),
                       run_estimation,
-                      hotspot = "Global",
-                      res = "0_5"),
-         coefficients = map(model, coefficients),
+                      res = "0_5",
+                      .options = furrr_options(seed = NULL)),
          n = map_dbl(model, nobs))
 plan(sequential)
 
-# Part 2 - AIS disabling events 
-# SE Asia excluded from AIS disabling because outcome is constant at 0
-AIS_disab_models <- expand_grid(outcome_var = "asinh(n_ais_disabling)",
-                                spec = "~ post | id + year^month + day_of_week",
-                                hotspot = c("Global", "G. of Aden", "G. of Guinea"),
-                                res = "0_5") |>
-  mutate(model = pmap(.l = list(outcome_var = outcome_var,
-                                spec = spec,
-                                hotspot = hotspot,
-                                res = res), run_estimation),
-         coefficients = map(model, coefficients),
-         n = map_dbl(model, nobs))
+# Part 2 - AIS disabling events
+# SE Asia excluded from AIS disabling because outcome is constant at 0.
+# One fsplit feols() call fits Global + each hotspot simultaneously; we then
+# drop the S.E. Asia row.
+AIS_disab_models <- tibble(outcome_var = "asinh(n_ais_disabling)",
+                           spec = "~ post | id^month + date",
+                           res = "0_5") |>
+  mutate(multi = pmap(.l = list(outcome_var = outcome_var, spec = spec, res = res),
+                      run_estimation_multi)) |>
+  mutate(unpacked = map(multi, unpack_hotspots)) |>
+  select(-multi) |>
+  unnest(unpacked) |>
+  filter(hotspot != "S.E. Asia") |>
+  mutate(n = map_dbl(model, nobs))
 
-names(AIS_disab_models$coefficients) <- AIS_disab_models$hotspot
+names(AIS_disab_models$model) <- AIS_disab_models$hotspot
 
 # --- Export all models ---
 save(models,
