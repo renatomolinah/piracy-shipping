@@ -156,6 +156,10 @@ create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate
                        ymax = estimate + std.error),
                    linewidth = 1.5, color = "cadetblue") +
     geom_point(size = 3, color = "cadetblue") +
+    annotate("text",
+             x = -Inf, y = -Inf, label = n_label,
+             hjust = -0.1, vjust = -0.7,
+             size = 2.8, color = "gray30") +
     labs(
       title = title,
       x = "Days Relative to Attack",
@@ -299,6 +303,11 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
                    linewidth = 1,
                    position = position_dodge(width = 1)) +
     geom_point(size = 2, position = position_dodge(width = 1)) +
+    annotate("text",
+             x = -Inf, y = -Inf, label = n_label,
+             hjust = -0.1, vjust = -0.15,
+             size = 2.5, color = "gray30",
+             lineheight = 0.9) +
     scale_color_manual(values = c("steelblue","cadetblue", "lightblue")) +
     labs(
       title = title,
