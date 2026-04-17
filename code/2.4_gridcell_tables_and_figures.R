@@ -2,7 +2,6 @@
 
 # --- Setup ---
 library(here)
-library(conleyreg)
 library(tidyverse)
 library(patchwork)
 library(fixest)
@@ -10,9 +9,11 @@ library(modelsummary)
 
 output_dir <- here("results", "figures_and_tables")
 reg_table_name <- here(output_dir, "cell_post_regression.tex")
+spec_buildup_table_name <- here(output_dir, "cell_post_regression_spec_buildup.tex")
 AIS_disab_table_name <- here(output_dir, "AIS_disabling_cell_post_regression.tex")
 event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3.png")
 supplementary_event_study_figure_name <- here(output_dir, "cell_level_event_study_2x3_by_resolution.png")
+resolution_figure_name <- here(output_dir, "cell_post_regression_by_resolution.png")
 
 load(file = here("data", "output", "gridcell_models.RData"))
 load(file = here("data", "output", "gridcell_spec_models.RData"))
@@ -24,21 +25,33 @@ panel <- function(res) {
            dist_vessels = distance_km/n_vessels)
 }
 
+# Panels must be in scope because the event-study plot functions below fit
+# fresh feols models, and because some post-load fixest helpers occasionally
+# reach for the original data frame even when the vcov is pre-baked.
+panel_0_1 <- panel("0_1")
+panel_0_5 <- panel("0_5")
+panel_1   <- panel("1")
+
 # --- Helper functions ---
 source(here("code", "table_helpers.R"))
 
-# --- Build LaTeX table ---
-time <- models |> filter(outcome_var == "asinh(time_hours)", res == "0_5") |> pull(coefficients)
-distance <- models |> filter(outcome_var == "asinh(distance_km)", res == "0_5") |> pull(coefficients)
-n_vessels <- models |> filter(outcome_var == "asinh(n_vessels)", res == "0_5") |> pull(coefficients)
-n_trips <- models |> filter(outcome_var == "asinh(n_trips)", res == "0_5") |> pull(coefficients)
-time_per_vessel <- models |> filter(outcome_var == "asinh(time_vessels)", res == "0_5") |> pull(coefficients)
-distance_per_vessel <- models |> filter(outcome_var == "asinh(dist_vessels)", res == "0_5") |> pull(coefficients)
+# gof_map recipe reused by every modelsummary call below: include the N row,
+# rename it to "Observations", and format values with thousand separators.
+obs_gof_map <- list(list(raw = "nobs",
+                         clean = "Observations",
+                         fmt = function(x) format(x, big.mark = ",", scientific = FALSE)))
 
-observations_df <- models |>
-  filter(res == "0_5") |>
-  select(outcome_var, hotspot, n) |>
-  pivot_wider(names_from = hotspot, values_from = n)
+# --- Build LaTeX table ---
+# msummary consumes fitted feols objects directly. Each `pull(model)` returns a
+# named list (named by hotspot courtesy of names(models$model) <- models$hotspot
+# in 2.3) so the resulting panels have one column per geographic region with
+# proper headers. Conley SEs are baked into each fit and surface as "(0.019)".
+time <- models |> filter(outcome_var == "asinh(time_hours)", res == "0_5") |> pull(model)
+distance <- models |> filter(outcome_var == "asinh(distance_km)", res == "0_5") |> pull(model)
+n_vessels <- models |> filter(outcome_var == "asinh(n_vessels)", res == "0_5") |> pull(model)
+n_trips <- models |> filter(outcome_var == "asinh(n_trips)", res == "0_5") |> pull(model)
+time_per_vessel <- models |> filter(outcome_var == "asinh(time_vessels)", res == "0_5") |> pull(model)
+distance_per_vessel <- models |> filter(outcome_var == "asinh(dist_vessels)", res == "0_5") |> pull(model)
 
 msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
                        "Panel (B): Distance Traveled (km)" = distance,
@@ -48,34 +61,67 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
                        "Panel (F): Distance Traveled per Vessel (km / vessel)" = distance_per_vessel),
          shape = "rbind",
          coef_rename = c("Post-Attack"),
-         gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         gof_map = obs_gof_map,
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
          title = "Effect of Pirate Encounters on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
+         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)
 
 adjust_notes_font_size(reg_table_name)
-add_rows_with_observations(reg_table_name, observations_df)
+
+# --- Build specification build-up table ---
+# Shows how the Post-Attack coefficient evolves as we add more FEs. Column (1)
+# uses cell FEs only; column (2) adds date FEs (full set of time FEs); column
+# (3) is the main-text spec (cell-by-month + date FEs), pulled from `models`.
+# Only the Global, 0.5 deg specification is shown.
+build_panel <- function(outcome) {
+  list(
+    "(1)" = spec_tables |>
+      filter(outcome_var == outcome, spec == "~ post | id") |>
+      pull(model) |> pluck(1),
+    "(2)" = spec_tables |>
+      filter(outcome_var == outcome, spec == "~ post | id + date") |>
+      pull(model) |> pluck(1),
+    "(3)" = models |>
+      filter(outcome_var == outcome, hotspot == "Global", res == "0_5") |>
+      pull(model) |> pluck(1)
+  )
+}
+
+msummary(models = list("Panel (A): Occupancy Time (hours)"                   = build_panel("asinh(time_hours)"),
+                       "Panel (B): Distance Traveled (km)"                   = build_panel("asinh(distance_km)"),
+                       "Panel (C): Transit (# Vessels)"                      = build_panel("asinh(n_vessels)"),
+                       "Panel (D): Transit (# Voyages)"                      = build_panel("asinh(n_trips)"),
+                       "Panel (E): Occupancy per Vessel (hours / vessel)"    = build_panel("asinh(time_vessels)"),
+                       "Panel (F): Distance Traveled per Vessel (km / vessel)" = build_panel("asinh(dist_vessels)")),
+         shape = "rbind",
+         coef_rename = c("Post-Attack"),
+         gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+         gof_map = obs_gof_map,
+         stars = c('*' = .1, '**' = .05, '***' = .01),
+         fmt = "%.3f",
+         title = "Specification build-up: effect of pirate encounters on grid cell shipping activity at 0.5 deg, Global sample. \\label{tab:cell-post-regression-spec-buildup}",
+         notes = list("The unit of observation is a grid cell-day at 0.5 deg resolution over 2012--2023 in the Global sample. Each panel examines a different shipping activity outcome. Column (1) includes grid-cell fixed effects; column (2) adds date fixed effects (a full set of time fixed effects); column (3) is the main-text specification with grid-cell-by-month and date fixed effects. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
+         threeparttable = TRUE,
+         escape = FALSE,
+         output = spec_buildup_table_name)
+
+adjust_notes_font_size(spec_buildup_table_name)
 
 # --- Build event study plots ---
 create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate ± (std.error & 95% CI)") {
-  model <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
-    unit = "id",
-    time = "date",
-    lat = "lat_bin",
-    lon = "lon_bin",
-    data = panel(res) |>
-      drop_na(outcome_var) |>
-      add_count(id, year, month, day_of_week, name = "n") |>
-      filter(n > 1) |>
-      select(-n),
-    dist_cutoff = 50,
-    lag_cutoff = Inf
+  data <- switch(res, "0_1" = panel_0_1, "0_5" = panel_0_5, "1" = panel_1)
+  model <- feols(
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id^month + date")),
+    data = data,
+    vcov = conley(cutoff = 50)
   )
+
+  n_label <- paste0("N = ", format(nobs(model), big.mark = ",", scientific = FALSE))
 
   coeff_data <- broom::tidy(model) %>%
     filter(str_detect(term, "relative_time::")) %>%
@@ -151,10 +197,14 @@ ggsave(
 )
 
 # --- Event study plots by resolution (supplementary) ---
+# Tidy each fit on the fly and keep just the `post` coefficient row. Because
+# each fit carries a pre-baked Conley vcov, broom::tidy surfaces the correct SE.
 res_plot <- models |>
-  select(1:4, coefficients) |>
-  mutate(coefficients = map(coefficients, broom::tidy, conf.int = T)) |>
-  unnest(coefficients) |>
+  select(outcome_var, hotspot, spec, res, model) |>
+  mutate(tidied = map(model, broom::tidy, conf.int = TRUE)) |>
+  select(-model) |>
+  unnest(tidied) |>
+  filter(term == "post") |>
   mutate(outcome_var = case_when(outcome_var == "asinh(time_hours)" ~ "Occupancy Time (hours)",
                                  outcome_var == "asinh(distance_km)" ~ "Distance Traveled (km)",
                                  outcome_var == "asinh(n_vessels)" ~ "Transit (# vessels)",
@@ -189,61 +239,29 @@ res_plot <- models |>
   theme_minimal(base_size = 10) +
   labs(x = "Resolution",
        y = "Estimate ± (std. error & 95% CI)")
+
 ggsave(plot = res_plot,
-       filename = here("results/figures_and_tables/cell_post_regression_by_resolution.png"),
+       filename = resolution_figure_name,
        width = 11,
        height = 10)
 
 # --- Event study plots across resolutions (supplementary) ---
 create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimate ± (std.error & 95% CI)") {
-  model_0_1 <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
-    unit = "id",
-    time = "date",
-    lat = "lat_bin",
-    lon = "lon_bin",
-    data = panel("0_1") |>
-      drop_na(outcome_var) |>
-      add_count(id, year, month, day_of_week, name = "n") |>
-      filter(n > 1) |>
-      select(-n),
-    dist_cutoff = 50,
-    lag_cutoff = Inf
-  )
-
-  model_0_5 <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
-    unit = "id",
-    time = "date",
-    lat = "lat_bin",
-    lon = "lon_bin",
-    data = panel("0_5") |>
-      drop_na(outcome_var) |>
-      add_count(id, year, month, day_of_week, name = "n") |>
-      filter(n > 1) |>
-      select(-n),
-    dist_cutoff = 50,
-    lag_cutoff = Inf
-  )
-
-  model_1 <- conleyreg(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id + year^month + day_of_week")),
-    unit = "id",
-    time = "date",
-    lat = "lat_bin",
-    lon = "lon_bin",
-    data = panel("1") |>
-      drop_na(outcome_var) |>
-      add_count(id, year, month, day_of_week, name = "n") |>
-      filter(n > 1) |>
-      select(-n),
-    dist_cutoff = 50,
-    lag_cutoff = Inf
-  )
+  fml <- as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id^month + date"))
+  model_0_1 <- feols(fml, data = panel_0_1, vcov = conley(cutoff = 50))
+  model_0_5 <- feols(fml, data = panel_0_5, vcov = conley(cutoff = 50))
+  model_1   <- feols(fml, data = panel_1,   vcov = conley(cutoff = 50))
 
   models <- list("0.1°" = model_0_1,
                  "0.5°" = model_0_5,
                  "1°" = model_1)
+
+  n_label <- paste(
+    sprintf("%s: N = %s",
+            names(models),
+            format(vapply(models, nobs, numeric(1)), big.mark = ",", scientific = FALSE)),
+    collapse = "\n"
+  )
 
   coeff_data <- map_dfr(models, broom::tidy, .id = "res") |>
     filter(str_detect(term, "relative_time::")) %>%
@@ -321,21 +339,16 @@ ggsave(
 AIS_disab <- create_event_study_plot("n_ais_disabling",
                                      res = "0_5",
                                      title = "# AIS disabling events")
-AIS_observations_df <- AIS_disab_models |>
-  filter(res == "0_5") |>
-  select(outcome_var, hotspot, n) |>
-  pivot_wider(names_from = hotspot, values_from = n)
-
-modelsummary(AIS_disab_models$coefficients,
+modelsummary(AIS_disab_models$model,
              coef_rename = c("Post-Attack"),
-             gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+             gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
+             gof_map = obs_gof_map,
              stars = c('*' = .1, '**' = .05, '***' = .01),
              fmt = "%.3f",
              title = "Effect of Pirate Encounters on AIS Disabling Events. \\label{tab:ais-disabling}",
-             notes = list("This table tests whether vessels disable their AIS transponders following a piracy report. The unit of observation is a grid cell-day. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid cell, year-by-month, and day-of-week fixed effects. Standard errors are Conley standard errors (50km cutoff) and reported in parentheses."),
+             notes = list("This table tests whether vessels disable their AIS transponders following a piracy report. The unit of observation is a grid cell-day. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
              threeparttable = TRUE,
              escape = FALSE,
              output = AIS_disab_table_name)
 
 adjust_notes_font_size(AIS_disab_table_name)
-add_rows_with_observations(AIS_disab_table_name, AIS_observations_df)
