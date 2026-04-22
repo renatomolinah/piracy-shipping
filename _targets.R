@@ -32,7 +32,7 @@ list(
   # Set version of model run
   tar_target(
     name = model_version,
-    "20260224"
+    "20260420"
   ),
   # Set study period range
   # We will only pull GFW data for this time range
@@ -227,14 +227,34 @@ list(
   # Apply some rules-of-thumb filters to remove potentially erroneous trips
   # i.e., trips > 60 days, distance greater than earth's circumfrence, from port = to port,
   # distance greater than4x average trip distance
+  # remove trips with measured AIS ping distance less than haversine distance (want to make sure we have enough pings to capture voyage trajectory, for determining pirate attacks)
+  # remove trips that have less than 1 ping per ~555km (the distance of a 5x5 degree pixel at the equator) (want to make sure we have enough pings to capture voyage trajectory, for determining pirate attacks)
+  # First, let's just make trip-level summary stats
+  tar_file_read(
+    name = trip_summary_stats_for_filtering_bq,
+    command = here::here("sql/trip_summary_stats_for_filtering.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "trip_summary_stats_for_filtering_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
   tar_file_read(
     name = keep_these_trips_bq,
     command = here::here("sql/keep_these_trips.sql"),
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
-          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
-          voyage_info_table = voyage_info_bq$tableReference$tableId
+          trip_summary_stats_for_filtering_table = trip_summary_stats_for_filtering_bq$tableReference$tableId
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
@@ -891,7 +911,8 @@ list(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
           ungridded_data_table = ungridded_data_bq$tableReference$tableId,
-          voyage_info_table = voyage_info_bq$tableReference$tableId
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,

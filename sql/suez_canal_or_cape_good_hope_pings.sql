@@ -24,6 +24,8 @@ WITH
           ELSE NULL
         END location
     FROM `emlab-gcp.piracy.{ungridded_data_table}`
+    -- Only keep data from list of filtered trips
+  JOIN(SELECT trip_id FROM `emlab-gcp.piracy.{keep_these_trips_table}`) USING(trip_id)
   ),
   -- Now, subset to only trips that went through the suez canal or around the cape of good hope
   trips_through_suez_canal_or_cape_good_hope AS(
