@@ -9,7 +9,7 @@ library(here)
 library(arrow)
 
 # --- Load voyage data ---
-voyage_data_dir <- here("data", "processed", "voyage_data_5_v_20260224")
+voyage_data_dir <- here("data", "processed", "voyage_data_5_v_20260420")
 
 if (!dir.exists(voyage_data_dir)) {
   stop("Voyage data directory not found: ", voyage_data_dir)
