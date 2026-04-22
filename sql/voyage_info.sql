@@ -17,7 +17,7 @@ WITH
     iso3 from_country,
     ST_GEOGPOINT(lon, lat) from_anchorage_position
   FROM
-    `world-fishing-827.gfw_research.named_anchorages`),
+    `global-fishing-watch.anchorages.named_anchorages`),
   # Get anchorage, port, and country info for ending anchorage of voyage
   to_anchorage_info AS(
   SELECT
@@ -26,7 +26,7 @@ WITH
     iso3 to_country,
     ST_GEOGPOINT(lon, lat) to_anchorage_position
   FROM
-    `world-fishing-827.gfw_research.named_anchorages`),
+    `global-fishing-watch.anchorages.named_anchorages`),
   # Get all voyage data
   # Use highest confidence voyages - see https://github.com/GlobalFishingWatch/bigquery-documentation-wf827/wiki/Anchorages-and-voyages
   voyages_base AS (
@@ -38,7 +38,7 @@ WITH
     trip_end_anchorage_id to_anchorage_id,
     trip_id
   FROM
-    `world-fishing-827.pipe_ais_v3_published.voyages_c4`
+    `global-fishing-watch.pipe_ais_v3_published.voyages_c4`
   WHERE
     trip_start_confidence = 4
     AND trip_end_confidence = 4

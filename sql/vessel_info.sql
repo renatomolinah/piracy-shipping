@@ -47,7 +47,7 @@ IF
     # https://www.bren.ucsb.edu/research/documents/whales_report.pdf
     3.39*POW(10,-4)*best.best_engine_power_kw+2.151*POW(10,-5)*best.best_tonnage_gt-2.742*POW(10,-9)*best.best_engine_power_kw*best.best_tonnage_gt+12.93 design_speed
   FROM
-    `world-fishing-827.pipe_ais_v3_published.vi_ssvid_v20250401`
+    `global-fishing-watch.pipe_ais_v3_published.vi_ssvid_v20250401`
     # Ensure it's a reliable vessel that is not offetting or broadcasting multiple overlapping names
   WHERE
     NOT activity.offsetting
