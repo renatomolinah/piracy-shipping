@@ -73,7 +73,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20260224") %>%
          lat_bin = lat_bin + 0.25)
 
 # Counterfactual predictions: piracy effect = predicted with pirates minus predicted without
-pred_info <- tbl(piracy, "full_pred_global_v_20260407") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20260410") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
@@ -118,8 +118,8 @@ total_grided <- local_grided %>%
          public = (co2 * sc_co2 / 1e6) + (nox * sc_nox / 1e6) + (sox * sc_sox / 1e6),
          total = private + public)
 
-saveRDS(object = total_grided,
-        file = here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
+# saveRDS(object = total_grided,
+#         file = here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
 
 # --- Zonal summaries ---
 
@@ -287,7 +287,7 @@ ggsave(plot = total_map,
        units = "cm")
 
 # Annual aggregate with social costs for back-of-envelope totals
-tbl(piracy, "full_pred_global_v_20260407") %>%
+tbl(piracy, "full_pred_global_v_20260410") %>%
   select(year, matches("total|co2|sox|nox")) %>%
   group_by(year) %>%
   summarize_all(sum) %>%

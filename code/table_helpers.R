@@ -1,14 +1,29 @@
 # Shared LaTeX table post-processing helpers for modelsummary output
 
-# Wrap threeparttable inside adjustbox for width control
+# Wrap threeparttable (or talltblr) inside adjustbox for width control
 add_adjust_box <- function(file,
                            line_before = "\\begin{adjustbox}{width = .9\\textwidth}",
                            line_after = "\\end{adjustbox}",
                            before = "\\begin{threeparttable}",
                            after = "\\end{threeparttable}") {
   lines <- readLines(file)
-  after_line <- grep(after, lines, fixed = TRUE)
   before_line <- grep(before, lines, fixed = TRUE)
+  after_line <- grep(after, lines, fixed = TRUE)
+
+  # Fall back to talltblr if threeparttable not found (modelsummary v2+)
+  if (length(before_line) == 0 || length(after_line) == 0) {
+    before_line <- grep("\\begin{talltblr}", lines, fixed = TRUE)
+    after_line  <- grep("\\end{talltblr}", lines, fixed = TRUE)
+  }
+
+  if (length(before_line) == 0 || length(after_line) == 0) {
+    warning(paste("add_adjust_box: no wrappable block found in", file, "— skipping."))
+    return(invisible(NULL))
+  }
+
+  before_line <- before_line[1]
+  after_line  <- after_line[length(after_line)]
+
   lines <- c(lines[1:(before_line-1)], line_before, lines[(before_line):(after_line)], line_after, lines[(after_line+1):length(lines)])
   writeLines(lines, file)
 }
@@ -42,42 +57,6 @@ replace_table_headers <- function(file, new_headers) {
 strip_pkg_declarations <- function(file) {
   lines <- readLines(file)
   lines <- lines[!grepl("^\\\\usepackage|^\\\\newcolumntype", lines)]
-  writeLines(lines, file)
-}
-
-# Insert observation-count rows after each sub-panel in grid-cell tables
-add_rows_with_observations <- function(file, observations_df) {
-  lines <- readLines(file)
-
-  panel_order <- c("Panel (A): Total Time (hours)" = "asinh(time_hours)",
-                   "Panel (B): Total Distance (km)" = "asinh(distance_km)",
-                   "Panel (C): Vessels (#)" = "asinh(n_vessels)",
-                   "Panel (D): Voyages (#)" = "asinh(n_trips)",
-                   "Panel (E): Time per Vessel (hours / vessel)" = "asinh(time_vessels)",
-                   "Panel (F): Distance per Vessel (km / vessel)" = "asinh(dist_vessels)")
-
-  panel_headers <- grep("Panel \\([A-F]\\):", lines)
-
-  for (i in seq_along(panel_headers)) {
-    outcome_var <- panel_order[i]
-
-    if (i < length(panel_headers)) {
-      panel_end <- panel_headers[i + 1] - 1
-    } else {
-      bottomrule_line <- grep("\\\\bottomrule", lines)[1]
-      panel_end <- bottomrule_line - 1
-    }
-
-    panel_obs <- observations_df[observations_df$outcome_var == outcome_var, ]
-    obs_values <- panel_obs[, -1]
-    obs_values_formatted <- sapply(obs_values, function(x) format(x, big.mark = ",", scientific = FALSE))
-    obs_row <- paste("\\hspace{1em}Observations", paste(obs_values_formatted, collapse = " & "), "\\\\", sep = " & ")
-
-    lines <- c(lines[1:panel_end], obs_row, lines[(panel_end + 1):length(lines)])
-    # Re-find headers since line indices shifted after insertion
-    panel_headers <- grep("Panel \\([A-F]\\):", lines)
-  }
-
   writeLines(lines, file)
 }
 
