@@ -1,18 +1,6 @@
-################################################################################
-# title
-################################################################################
-#
-# Juan Carlos Villaseñor-Derbez
-# juancvd@stanford.edu
-# date
-#
-# Download the gridcell level information from BigQuery
-#
-################################################################################
+# Download gridcell-level attack and activity data from BigQuery
 
-## SET UP ######################################################################
-
-# Load packages ----------------------------------------------------------------
+# --- Setup ---
 pacman::p_load(
   here,
   DBI,
@@ -23,7 +11,6 @@ pacman::p_load(
   tidyverse
 )
 
-# Authenticate using local token -----------------------------------------------
 bq_auth("juancarlos@ucsb.edu")
 
 # Establish a connection to BigQuery -------------------------------------------
@@ -34,7 +21,7 @@ con <- dbConnect(
   use_legacy_sql = FALSE
 )
 
-## PROCESSING ##################################################################
+# --- Processing ---
 get_gridded_data <- function(tbl_sufix = "0_5") {
 
   res <- as.numeric(str_replace(tbl_sufix, "_", "."))
@@ -82,6 +69,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
               .groups = "drop")
 
   # Get AIS disabling information ----------------------------------------------
+  # AIS disabling: join good segments, target vessels, and disabling events
   vessels <- tbl(con, DBI::Id(project = "emlab-gcp", dataset = "piracy", table = "vessel_info_v_20260420"))
   segs <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "segs_activity"))
   disab <- tbl(con, DBI::Id(project = "global-fishing-watch", dataset = "pipe_ais_v3_published", table = "product_events_ais_disabling"))
@@ -91,6 +79,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
   target_vessels <- vessels |>
     select(mmsi) |>
     distinct()
+
 
   # Identify good segments
   good_segs <- segs |>
@@ -103,6 +92,7 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
   disab_ids <- disab |>
     mutate(date = sql("EXTRACT(DATE FROM event_start)")) |>
     select(event_id, date)
+
 
   # Filter all gaps to retain only info from:
   # - good segments
@@ -120,7 +110,6 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
     summarize(n_ais_disabling = n_distinct(gap_id),
               .groups = "drop")
 
-  # Combine all into the final panel --------------------------------------------
   gridded_panel <- with_clusters %>%
     inner_join(grids_attacked_2012_2023,
                by = "grid_id") %>%
@@ -173,9 +162,7 @@ gridded_1 |>
   select(time_hours:n_ais_disabling) |>
   lapply(function(x){sum(is.na(x))})
 
-## EXPORT ######################################################################
-
-# X ----------------------------------------------------------------------------
+# --- Export ---
 saveRDS(object = gridded_0_1,
         file = here("data",
                     "processed",
@@ -188,33 +175,3 @@ saveRDS(object = gridded_1,
         file = here("data",
                     "processed",
                     "attacks_and_activity_by_grid_1.rds"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

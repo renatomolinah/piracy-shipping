@@ -1,6 +1,4 @@
 #standardSQL
-CREATE TEMP FUNCTION
-  RADIANS(x FLOAT64) AS ( ACOS(-1) * x / 180 );
 WITH
 vessel_info AS(
   SELECT
@@ -17,6 +15,8 @@ vessel_info AS(
     total_haversine_distance_km
   FROM
     `emlab-gcp.piracy.{voyage_info_table}` ),
+  -- Next add gridded 5x5 degree data, the primary grid size from which our
+  -- voyage level data are constructed
   gridded_data AS(
   SELECT
     *
@@ -29,6 +29,15 @@ vessel_info AS(
     date departure_date
   FROM
     `emlab-gcp.piracy.{fuel_price_table}`),
+  -- Gather pre-calculated trip-level wind and wave data
+  trip_level_weather AS(
+    SELECT
+    *
+    FROM
+    `emlab-gcp.piracy.{trip_level_weather_table}`
+  ),
+  -- Aggregate 5x5 degree gridded data to the voyage level, 
+  -- by summing hours, distance, etc across grids for each trip
   aggregated AS(
   SELECT
     mmsi,
@@ -37,9 +46,6 @@ vessel_info AS(
     SUM(hours) hours,
     SUM(distance_km) distance_km,
     SUM(ais_messages) ais_messages,
-    AVG(wind_vector) wind_vector,
-    AVG(wind_speed_ms) wind_speed_ms,
-    AVG(surface_wave_height_m) surface_wave_height_m,
     SUM(grid_area_km2) voyage_grid_area_km2,
     SUM(main_fuel_consumption_mt_inst) main_fuel_consumption_mt_inst,
     SUM(aux_fuel_consumption_mt_inst) aux_fuel_consumption_mt_inst,
@@ -50,6 +56,12 @@ vessel_info AS(
     SUM(number_previous_attacks_grid_3_months) number_previous_attacks_3_months_5_degrees,
     SUM(number_previous_attacks_grid_6_months) number_previous_attacks_6_months_5_degrees,
     SUM(number_previous_attacks_grid_12_months) number_previous_attacks_12_months_5_degrees,
+    SUM(number_future_attacks_grid_7_days) number_future_attacks_7_days_5_degrees,
+    SUM(number_future_attacks_grid_15_days) number_future_attacks_15_days_5_degrees,
+    SUM(number_future_attacks_grid_1_month) number_future_attacks_1_month_5_degrees,
+    SUM(number_future_attacks_grid_3_months) number_future_attacks_3_months_5_degrees,
+    SUM(number_future_attacks_grid_6_months) number_future_attacks_6_months_5_degrees,
+    SUM(number_future_attacks_grid_12_months) number_future_attacks_12_months_5_degrees,
     MIN(days_since_attack) days_since_attack,
     SUM(hotspot_southeast_asia) hotspot_southeast_asia,
     SUM(hotspot_gulf_of_aden) hotspot_gulf_of_aden,
@@ -219,5 +231,10 @@ USING
 # Add voyage info
     LEFT JOIN
   voyage_info
+USING
+  (trip_id)
+# Add trip-level weather data
+LEFT JOIN
+  trip_level_weather
 USING
   (trip_id)

@@ -1,0 +1,46 @@
+\begin{table}
+\centering
+\caption{Specification build-up: effect of pirate encounters on grid cell shipping activity at 0.5 deg, Global sample. \label{tab:cell-post-regression-spec-buildup}}
+\centering
+\begin{threeparttable}
+\begin{tabular}[t]{lccc}
+\toprule
+  & (1) & (2) & (3)\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{4}{l}{\textit{Panel (A): Occupancy Time (hours)}}\\
+\midrule \hspace{1em}Post-Attack & -0.024* & -0.020 & -0.013\\
+\hspace{1em} & (0.014) & (0.016) & (0.019)\\
+\hspace{1em}Observations & 32,129 & 32,011 & \vphantom{3} 31,944\\
+\addlinespace[0.5em]
+\multicolumn{4}{l}{\textit{Panel (B): Distance Traveled (km)}}\\
+\midrule \hspace{1em}Post-Attack & -0.007 & -0.005 & 0.003\\
+\hspace{1em} & (0.018) & (0.018) & (0.022)\\
+\hspace{1em}Observations & 32,129 & 32,011 & \vphantom{2} 31,944\\
+\addlinespace[0.5em]
+\multicolumn{4}{l}{\textit{Panel (C): Transit (\# Vessels)}}\\
+\midrule \hspace{1em}Post-Attack & -0.011 & -0.010 & -0.007\\
+\hspace{1em} & (0.009) & (0.009) & \vphantom{1} (0.010)\\
+\hspace{1em}Observations & 32,129 & 32,011 & \vphantom{1} 31,944\\
+\addlinespace[0.5em]
+\multicolumn{4}{l}{\textit{Panel (D): Transit (\# Voyages)}}\\
+\midrule \hspace{1em}Post-Attack & -0.011 & -0.011 & -0.006\\
+\hspace{1em} & (0.009) & (0.009) & (0.010)\\
+\hspace{1em}Observations & 32,129 & 32,011 & 31,944\\
+\addlinespace[0.5em]
+\multicolumn{4}{l}{\textit{Panel (E): Occupancy per Vessel (hours / vessel)}}\\
+\midrule \hspace{1em}Post-Attack & -0.020** & -0.018* & -0.016\\
+\hspace{1em} & (0.009) & (0.010) & (0.011)\\
+\hspace{1em}Observations & 27,959 & 27,805 & \vphantom{1} 27,734\\
+\addlinespace[0.5em]
+\multicolumn{4}{l}{\textit{Panel (F): Distance Traveled per Vessel (km / vessel)}}\\
+\midrule \hspace{1em}Post-Attack & -0.002 & 0.002 & 0.003\\
+\hspace{1em} & (0.011) & (0.011) & (0.013)\\
+\hspace{1em}Observations & 27,959 & 27,805 & 27,734\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a grid cell-day at 0.5 deg resolution over 2012--2023 in the Global sample. Each panel examines a different shipping activity outcome. Column (1) includes grid-cell fixed effects; column (2) adds date fixed effects (a full set of time fixed effects); column (3) is the main-text specification with grid-cell-by-month and date fixed effects. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

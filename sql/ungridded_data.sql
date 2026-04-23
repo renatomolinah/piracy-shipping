@@ -30,7 +30,7 @@ WITH
     heading,
     meters_to_prev/1000 distance_km
   FROM
-    `world-fishing-827.pipe_ais_v3_published.messages`
+    `global-fishing-watch.pipe_ais_v3_published.messages`
   WHERE
     DATE(timestamp) BETWEEN '{study_period_starting_date}'
     AND '{study_period_ending_date}'

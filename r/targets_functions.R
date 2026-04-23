@@ -265,18 +265,20 @@ process_wind_data <- function(wind_file, pixel_size) {
   # We get the u10 and v10 wind components, which come at monthly 0.25x0.25 degree resolution
   # We use the monthly reanalysis data
   # https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels-monthly-means?tab=download
-  
+
   # Load u component
-  wind_u <- tidync::tidync(wind_file) |> 
+  wind_u <- tidync::tidync(wind_file) |>
     tidync::activate("u10") |>
     tidync::hyper_tibble() |>
-    dplyr::rename(lon = longitude,
-                  lat = latitude,
-                  date = valid_time,
-                  u_ms = u10) |>
-    dplyr::mutate(across(c("lon","lat"),~as.numeric(.)))|>
-    # Roate from 0-360 to -180 to 180
-    dplyr::mutate(lon = ifelse(lon>180,lon - 360,lon)) |>
+    dplyr::rename(
+      lon = longitude,
+      lat = latitude,
+      date = valid_time,
+      u_ms = u10
+    ) |>
+    dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
+    # Rotate from 0-360 to -180 to 180
+    dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon)) |>
     # Aggregate to our pixel size
     dplyr::mutate(
       lat_bin = floor(lat / pixel_size) * pixel_size,
@@ -289,19 +291,21 @@ process_wind_data <- function(wind_file, pixel_size) {
     dplyr::summarize(
       u_ms = mean(u_ms, na.rm = TRUE)
     ) |>
-    dplyr::ungroup() 
-  
+    dplyr::ungroup()
+
   # Load v component
-  wind_v <- tidync::tidync(wind_file) |> 
+  wind_v <- tidync::tidync(wind_file) |>
     tidync::activate("v10") |>
     tidync::hyper_tibble() |>
-    dplyr::rename(lon = longitude,
-                  lat = latitude,
-                  date = valid_time,
-                  v_ms = v10) |>
-    dplyr::mutate(across(c("lon","lat"),~as.numeric(.)))  |>
-    # Roate from 0-360 to -180 to 180
-    dplyr::mutate(lon = ifelse(lon>180,lon - 360,lon)) |>
+    dplyr::rename(
+      lon = longitude,
+      lat = latitude,
+      date = valid_time,
+      v_ms = v10
+    ) |>
+    dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
+    # Rotate from 0-360 to -180 to 180
+    dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon)) |>
     # Aggregate to our pixel size
     dplyr::mutate(
       lat_bin = floor(lat / pixel_size) * pixel_size,
@@ -314,59 +318,29 @@ process_wind_data <- function(wind_file, pixel_size) {
     dplyr::summarize(
       v_ms = mean(v_ms, na.rm = TRUE)
     ) |>
-    dplyr::ungroup() 
-  
+    dplyr::ungroup()
+
   # Put it all together into tidy tibble
-   wind_u |>
-    dplyr::inner_join(wind_v, by = c("lon_bin","lat_bin","date")) |>
+  wind_u |>
+    dplyr::inner_join(wind_v, by = c("lon_bin", "lat_bin", "date")) |>
     dplyr::mutate(
       wind_speed_ms = sqrt(u_ms^2 + v_ms^2),
-      # https://disc.gsfc.nasa.gov/information/data-in-action?title=Derive%20Wind%20Speed%20and%20Direction%20With%20MERRA-2%20Wind%20Components#:~:text=The%20U%20wind%20component%20is,wind%20comes%20from%20the%20north.
-      wind_direction_degrees = atan(v_ms / u_ms)
-    )|>
-     dplyr::mutate(date = lubridate::ymd(date))
-}
-
-# Process wave height data
-process_wave_data <- function(wave_file, pixel_size) {
-  # ERA5 monthly averaged data downloaded from Copernicus, 2012-2024
-  # We get swh, surface wave height ("Significant height of combined wind waves and swell")
-  # We use the monthly reanalysis data
-  # f
-  
-  # Load u component
-  tidync::tidync(wave_file) |> 
-    tidync::activate("swh") |>
-    tidync::hyper_tibble() |>
-    dplyr::rename(lon = longitude,
-                  lat = latitude,
-                  date = valid_time,
-                  surface_wave_height_m = swh) |>
-    dplyr::mutate(across(c("lon","lat"),~as.numeric(.)))|>
-    # Roate from 0-360 to -180 to 180
-    dplyr::mutate(lon = ifelse(lon>180,lon - 360,lon)) |>
-    # Aggregate to our pixel size
-    dplyr::mutate(
-      lat_bin = floor(lat / pixel_size) * pixel_size,
-      lon_bin = floor(lon / pixel_size) * pixel_size
+      # Also use average u and v to calculate wind direction in degrees, where 0 degrees means wind is coming from the north, 90 degrees means wind is coming from the east, etc.
+      # https://www.eol.ucar.edu/content/wind-direction-quick-reference
+      # https://stackoverflow.com/a/12632531
+      wind_direction_degrees = (270 - atan2(v_ms, u_ms) * 180 / pi + 180) %% 360
     ) |>
-    dplyr::group_by(date, lat_bin, lon_bin) |>
-    dplyr::summarize(
-      surface_wave_height_m = mean(surface_wave_height_m, na.rm = TRUE)
-    ) |>
-    dplyr::ungroup() |>
     dplyr::mutate(date = lubridate::ymd(date))
-  
 }
 
 # The BIX World IFO 380 is the calculated daily average for IFO 380 worldwide,
 # covering all ports with IFO 380 prices listed in the Bunker Index prices section. Prices are in US$ per metric tonne.
 # Downloaded from https://bunkerindex.com/prices/bix-world.php
+# These were downloaded by Renato on April 9, 2026
 process_fuel_data <- function(fuel_file) {
   # Load fuel price data
   fuel_price_data <- fuel_file |>
     readr::read_csv() |>
-    dplyr::select(date = Date, price_usd_mt = Price) |>
     dplyr::mutate(date = lubridate::mdy(date))
 
   # All dates
@@ -554,4 +528,199 @@ save_as_csv <- function(df, location_to_save) {
     readr::write_csv(file = location_to_save)
 
   return(location_to_save)
+}
+
+# Make Figure that has three panels to help visualize our
+# analysis looking at how attacks in the Gulf of Aden relate to
+# # shipping activity through the Suez Canal and around the Cape of Good Hope
+# A: Monthly attacks in Gulf of Aden
+# B: Monthly standard-normalized trips through Suez Canal and around Cape of Good Hope
+# C: Monthly percent of trips around Cape of Good Hope
+make_suez_canal_cape_good_hope_timeseries_figure <- function(
+  asam_with_hotspots,
+  asam_data,
+  suez_canal_or_cape_good_hope_daily_trips
+) {
+  # Summarize monthly attacks in Gulf of Aden
+  attack_timeseries_gulf_aden_monthly <- asam_with_hotspots |>
+    dplyr::filter(cluster == "hotspot_gulf_of_aden") |>
+    dplyr::select(reference) |>
+    sf::st_drop_geometry() |>
+    # Need to get attack date
+    dplyr::inner_join(asam_data, by = "reference") |>
+    dplyr::select(reference, dateofocc) |>
+    dplyr::mutate(
+      attack_date = as.Date(dateofocc),
+      # Get attack month, by flooring to month and then converting back to date (to get first day of month)
+      attack_month = lubridate::floor_date(attack_date, unit = "month") |>
+        lubridate::ymd()
+    ) |>
+    # Now summarize attacks by month
+    dplyr::group_by(attack_month) |>
+    dplyr::summarize(number_attacks = dplyr::n_distinct(reference)) |>
+    dplyr::ungroup()
+
+  # Panel A: Make a barplot of monthly attacks in Gulf of Aden
+  attack_trip_timeseries <- attack_timeseries_gulf_aden_monthly |>
+    ggplot(aes(
+      x = attack_month,
+      y = number_attacks
+    )) +
+    geom_bar(stat = "identity") +
+    scale_x_date(
+      breaks = scales::breaks_width("1 year"),
+      date_labels = "%Y"
+    ) +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank()) +
+    guides(color = guide_legend(reverse = TRUE)) +
+    labs(x = "Attack month", y = "Monthly attacks\nin Gulf of Aden", color = "")
+
+  # Now, aggregate number of trips that go through each location by departure month
+  suez_canal_or_cape_good_hope_monthly_trips <- suez_canal_or_cape_good_hope_daily_trips |>
+    dplyr::mutate(
+      departure_month = lubridate::floor_date(departure_date, unit = "month") |>
+        lubridate::ymd()
+    ) |>
+    dplyr::filter(departure_month <= as.Date("2023-9-01")) |>
+    dplyr::group_by(departure_month, trip_location_flag) |>
+    dplyr::summarize(number_trips = sum(number_trips)) |>
+    dplyr::ungroup()
+
+  # Find the mean and sd of number of trips for each route, to use for standard normalization
+  trips_mean_and_sd <- suez_canal_or_cape_good_hope_monthly_trips |>
+    dplyr::group_by(trip_location_flag) |>
+    dplyr::summarize(
+      number_trips_mean = mean(number_trips),
+      number_trips_sd = sd(number_trips)
+    ) |>
+    dplyr::ungroup()
+
+  # Now, add means and sds to main df and calculate standard-normalized number of trips for each route
+  suez_canal_or_cape_good_hope_monthly_trips_with_normalization <- suez_canal_or_cape_good_hope_monthly_trips |>
+    dplyr::left_join(trips_mean_and_sd, by = "trip_location_flag") |>
+    dplyr::mutate(
+      number_trips_demeaned = number_trips - number_trips_mean,
+      number_trips_normalized = number_trips_demeaned / number_trips_sd
+    )
+
+  # Panel B: Make a line plot of monthly standard-normalized trips through Suez Canal and around Cape of Good Hope
+  trip_timeseries <- suez_canal_or_cape_good_hope_monthly_trips_with_normalization |>
+    dplyr::mutate(
+      trip_location_flag = ifelse(
+        trip_location_flag == "suez_canal",
+        "Suez Canal",
+        "Cape of Good Hope"
+      )
+    ) |>
+    ggplot(aes(
+      x = departure_month,
+      y = number_trips_normalized,
+      color = trip_location_flag
+    )) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray60") +
+    geom_line() +
+    scale_y_continuous(labels = scales::comma) +
+    scale_x_date(
+      breaks = scales::breaks_width("1 year"),
+      date_labels = "%Y"
+    ) +
+    theme_minimal() +
+    theme(
+      legend.position = c(0.02, 1.15),
+      legend.justification = c(0, 1),
+      panel.grid.minor = element_blank(),
+      legend.box.background = element_rect(fill = 'white', color = 'white'),
+      legend.margin = margin(2, 4, 2, 4)
+    ) +
+    scale_color_brewer(palette = "Set1") +
+    guides(color = guide_legend(reverse = TRUE)) +
+    labs(
+      x = "",
+      y = "Standard-normalized\nnumber of trips\nthrough each area",
+      color = NULL
+    )
+
+  # Panel C: Make a line plot of monthly percent of trips around Cape of Good Hope
+
+  fraction_plot <- suez_canal_or_cape_good_hope_monthly_trips |>
+    dplyr::select(departure_month, trip_location_flag, number_trips) |>
+    tidyr::pivot_wider(
+      names_from = trip_location_flag,
+      values_from = number_trips
+    ) |>
+    dplyr::mutate(
+      fraction_trips_around_cape = cape_good_hope /
+        (suez_canal + cape_good_hope)
+    ) |>
+    ggplot(aes(x = departure_month, y = fraction_trips_around_cape)) +
+    geom_line() +
+    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    scale_x_date(
+      breaks = scales::breaks_width("1 year"),
+      date_labels = "%Y"
+    ) +
+    theme_minimal() +
+    labs(
+      x = "Trip departure month",
+      y = "Percent of trips\naround Cape of Good Hope"
+    )
+
+  # Now put it all together
+  combined_figure <- cowplot::plot_grid(
+    attack_trip_timeseries,
+    trip_timeseries,
+    fraction_plot,
+    ncol = 1,
+    align = "v",
+    axis = "lr",
+    labels = c("A", "B", "C")
+  )
+
+  ggplot2::ggsave(
+    filename = here::here(
+      "figures/suez_canal_cape_good_hope_timeseries_figure.png"
+    ),
+    combined_figure,
+    height = 7,
+    width = 6,
+    dpi = 300
+  )
+
+  return(combined_figure)
+}
+
+# Process wave height data
+process_wave_data <- function(wave_file, pixel_size) {
+  # ERA5 post-processed daily statistics on single levels from 1940 to present
+  # We get the surface wave height ("Significant height of combined wind waves and swell")
+  # Data represent the daily mean value for each location, using the 6-hour frequency data as the basis
+  # UTC+00:00 time zone
+  # From reanalysis product
+  # So these are 'surface wave height' values
+
+  # Load u component
+  tidync::tidync(wave_file) |>
+    tidync::activate("swh") |>
+    tidync::hyper_tibble() |>
+    dplyr::rename(
+      lon = longitude,
+      lat = latitude,
+      date = valid_time,
+      surface_wave_height_m = swh
+    ) |>
+    dplyr::mutate(across(c("lon", "lat"), ~ as.numeric(.))) |>
+    # Rotate from 0-360 to -180 to 180
+    dplyr::mutate(lon = ifelse(lon > 180, lon - 360, lon)) |>
+    # Aggregate to our pixel size
+    dplyr::mutate(
+      lat_bin = floor(lat / pixel_size) * pixel_size,
+      lon_bin = floor(lon / pixel_size) * pixel_size
+    ) |>
+    dplyr::group_by(date, lat_bin, lon_bin) |>
+    dplyr::summarize(
+      surface_wave_height_m = mean(surface_wave_height_m, na.rm = TRUE)
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(date = lubridate::ymd(date))
 }

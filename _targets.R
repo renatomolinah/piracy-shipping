@@ -32,7 +32,7 @@ list(
   # Set version of model run
   tar_target(
     name = model_version,
-    "20250521"
+    "20260420"
   ),
   # Set study period range
   # We will only pull GFW data for this time range
@@ -103,31 +103,43 @@ list(
     name = hotspots_sql,
     generate_hotspot_sql(hotspots)
   ),
+  # Weather aggregation pixel size
+  # All weather will be aggregated to this pixel size,
+  # to match the level that gridded voyage data is aggregated to
+  tar_target(
+    name = weather_pixel_size,
+    5
+  ),
   # Process wind data to 5x5 degree grids
   tar_file_read(
     name = wind_data,
     command = here::here(
       "data/raw/era5_wind/era5_monthly_average_wind_08052025.nc"
     ),
-    read = process_wind_data(!!.x, pixel_size = 5)
+    read = process_wind_data(!!.x, pixel_size = weather_pixel_size)
   ),
-  # Upload wind data to BQ
+  # Upload monthly wind data to BQ
   tar_target(
     name = wind_data_bq,
     upload_df_to_bq(
       df_to_upload = wind_data,
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
-      bq_table_name = paste0("wind_data_5_v_", model_version)
+      bq_table_name = paste0(
+        "wind_data_",
+        weather_pixel_size,
+        "_v_",
+        model_version
+      )
     )
   ),
-  # Process wave data to 5x5 degree grids
+  # Process monthly wave data to 5x5 degree grids
   tar_file_read(
     name = wave_data,
     command = here::here(
-      "data/raw/era5_wind/era5_monthly_average_wave_08052025.nc"
+      "data/raw/era5_surface_wave_height/era5_monthly_average_wave_08052025.nc"
     ),
-    read = process_wave_data(!!.x, pixel_size = 5)
+    read = process_wave_data(!!.x, pixel_size = weather_pixel_size)
   ),
   # Upload wind data to BQ
   tar_target(
@@ -136,14 +148,21 @@ list(
       df_to_upload = wave_data,
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
-      bq_table_name = paste0("wave_data_5_v_", model_version)
+      bq_table_name = paste0(
+        "wave_data_",
+        weather_pixel_size,
+        "_v_",
+        model_version
+      )
     )
   ),
   # Process fuel data, downloaded from Bunker Index
   # This interpolates missing dates using price from previous date
   tar_file_read(
     name = fuel_data,
-    command = here::here("data/raw/bunker_index/bix_world_ifo_380_index.csv"),
+    command = here::here(
+      "data/raw/bunker_index/april_9_2026_download/bix_world_ifo_380_index.csv"
+    ),
     read = process_fuel_data(!!.x)
   ),
   # Upload fuel price data to BQ
@@ -208,9 +227,12 @@ list(
   # Apply some rules-of-thumb filters to remove potentially erroneous trips
   # i.e., trips > 60 days, distance greater than earth's circumfrence, from port = to port,
   # distance greater than4x average trip distance
+  # remove trips with measured AIS ping distance less than haversine distance (want to make sure we have enough pings to capture voyage trajectory, for determining pirate attacks)
+  # remove trips that have less than 1 ping per ~555km (the distance of a 5x5 degree pixel at the equator) (want to make sure we have enough pings to capture voyage trajectory, for determining pirate attacks)
+  # First, let's just make trip-level summary stats
   tar_file_read(
-    name = keep_these_trips_bq,
-    command = here::here("sql/keep_these_trips.sql"),
+    name = trip_summary_stats_for_filtering_bq,
+    command = here::here("sql/trip_summary_stats_for_filtering.sql"),
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
@@ -219,7 +241,45 @@ list(
         ),
       bq_data_project = bq_data_project,
       bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "trip_summary_stats_for_filtering_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  tar_file_read(
+    name = keep_these_trips_bq,
+    command = here::here("sql/keep_these_trips.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          trip_summary_stats_for_filtering_table = trip_summary_stats_for_filtering_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
       bq_table_name = paste0("keep_these_trips_v_", model_version),
+      bq_billing_project = bq_billing_project
+    ),
+  ),
+  # Now make trip-level weather data, which will be merged with the voyage-level data
+  # This aggregate
+  # weather data to the trip level, by averaging weather conditions over the route pixels and time of each trip
+  tar_file_read(
+    name = trip_level_weather_bq,
+    command = here::here("sql/trip_level_weather_data.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          pixel_size = weather_pixel_size,
+          wind_table = wind_data_bq$tableReference$tableId,
+          wave_table = wave_data_bq$tableReference$tableId,
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0("trip_level_weather_v_", model_version),
       bq_billing_project = bq_billing_project
     ),
   ),
@@ -237,8 +297,6 @@ list(
           keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
-          wind_table = wind_data_bq$tableReference$tableId,
-          wave_table = wave_data_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -261,8 +319,6 @@ list(
           keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
-          wind_table = wind_data_bq$tableReference$tableId,
-          wave_table = wave_data_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -285,8 +341,6 @@ list(
           keep_these_trips_table = keep_these_trips_bq$tableReference$tableId,
           asam_data_table = asam_data_bq$tableReference$tableId,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
-          wind_table = wind_data_bq$tableReference$tableId,
-          wave_table = wave_data_bq$tableReference$tableId,
           study_period_starting_date = study_period_starting_date,
           study_period_ending_date = study_period_ending_date
         ),
@@ -615,9 +669,11 @@ list(
     read = run_gfw_query(
       sql = readr::read_file(!!.x) |>
         stringr::str_glue(
+          pixel_size = 5,
           vessel_info_table = vessel_info_bq$tableReference$tableId,
           voyage_info_table = voyage_info_bq$tableReference$tableId,
           fuel_price_table = fuel_data_bq$tableReference$tableId,
+          trip_level_weather_table = trip_level_weather_bq$tableReference$tableId,
           gridded_data_5_table = gridded_data_5_bq$tableReference$tableId,
           gridded_data_3_table = gridded_data_3_bq$tableReference$tableId,
           gridded_data_7_table = gridded_data_7_bq$tableReference$tableId,
@@ -844,6 +900,157 @@ list(
         model_version
       ),
       bq_billing_project = bq_billing_project
+    )
+  ),
+  # Gather all individual AIS pings that were on trips that went through
+  # either the Suez Canal, or around the Cape of Good Hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_pings_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_pings.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          ungridded_data_table = ungridded_data_bq$tableReference$tableId,
+          voyage_info_table = voyage_info_bq$tableReference$tableId,
+          keep_these_trips_table = keep_these_trips_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_pings_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull trip-level summary data for those that pass through suez canal or around cape of good hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_trip_level_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_trip_level.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          suez_canal_or_cape_good_hope_pings_table = suez_canal_or_cape_good_hope_pings_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_trip_level_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_trip_level,
+    pull_gfw_data_locally(
+      bq_table_name = suez_canal_or_cape_good_hope_trip_level_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_trip_level_file,
+    suez_canal_or_cape_good_hope_trip_level |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/suez_canal_or_cape_good_hope_trip_level_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
+  ),
+  # summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_daily_trips_bq,
+    command = here::here("sql/suez_canal_or_cape_good_hope_daily_trips.sql"),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          suez_canal_or_cape_good_hope_pings_table = suez_canal_or_cape_good_hope_pings_bq$tableReference$tableId
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_daily_trips_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_daily_trips,
+    pull_gfw_data_locally(
+      bq_table_name = suez_canal_or_cape_good_hope_daily_trips_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # Pull summary of trips, by departure date, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_daily_trips_file,
+    suez_canal_or_cape_good_hope_daily_trips |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/suez_canal_or_cape_good_hope_daily_trips_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
+  ),
+  # summary of annual spatial activity in 2012 and 2023, that go through either
+  # suez canal or around cape of good hope
+  tar_file_read(
+    name = suez_canal_or_cape_good_hope_spatial_activity_bq,
+    command = here::here(
+      "sql/suez_canal_or_cape_good_hope_spatial_activity.sql"
+    ),
+    read = run_gfw_query(
+      sql = readr::read_file(!!.x) |>
+        stringr::str_glue(
+          suez_canal_or_cape_good_hope_pings_table = suez_canal_or_cape_good_hope_pings_bq$tableReference$tableId,
+          pixel_size = 0.5
+        ),
+      bq_data_project = bq_data_project,
+      bq_dataset = bq_dataset,
+      bq_table_name = paste0(
+        "suez_canal_or_cape_good_hope_spatial_activity_v_",
+        model_version
+      ),
+      bq_billing_project = bq_billing_project
+    )
+  ),
+  # pull summary of annual spatial activity in 2012 and 2023, that go through either
+  # suez canal or around cape of good hope
+  tar_target(
+    name = suez_canal_or_cape_good_hope_spatial_activity_file,
+    pull_gfw_data_locally(
+      bq_table_name = suez_canal_or_cape_good_hope_spatial_activity_bq$tableReference$tableId,
+      bq_billing_project = bq_billing_project
+    ) |>
+      save_as_csv(here::here(
+        paste0(
+          "data/processed/suez_canal_or_cape_good_hope_spatial_activity_",
+          model_version,
+          ".csv"
+        )
+      )),
+    format = "file"
+  ),
+  tar_target(
+    suez_canal_cape_good_hope_timeseries_figure,
+    make_suez_canal_cape_good_hope_timeseries_figure(
+      asam_with_hotspots,
+      asam_data,
+      suez_canal_or_cape_good_hope_daily_trips
     )
   )
 )

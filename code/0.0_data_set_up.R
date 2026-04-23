@@ -1,10 +1,6 @@
-# =============================================================================
-# PIRACY SHIPPING DATA SETUP SCRIPT
-# =============================================================================
-# This script processes voyage data from Parquet files and prepares it for analysis
-# of piracy impacts on shipping routes.
-# =============================================================================
+# Process voyage data from Parquet files and prepare for analysis
 
+# --- Setup ---
 rm(list = ls(all.names = TRUE))
 
 library(tidyverse)
@@ -12,11 +8,8 @@ library(lubridate)
 library(here)
 library(arrow)
 
-# =============================================================================
-# 1. LOAD VOYAGE DATA FROM PARQUET FILES
-# =============================================================================
-
-voyage_data_dir <- here("data", "processed", "voyage_data_5_v_20250521")
+# --- Load voyage data ---
+voyage_data_dir <- here("data", "processed", "voyage_data_5_v_20260420")
 
 if (!dir.exists(voyage_data_dir)) {
   stop("Voyage data directory not found: ", voyage_data_dir)
@@ -39,10 +32,7 @@ voyage_data <- lapply(parquet_files, read_parquet) %>%
 
 cat("Loaded", nrow(voyage_data), "voyage records\n")
 
-# =============================================================================
-# 2. INITIAL DATA CLEANING AND FILTERING
-# =============================================================================
-
+# --- Filter and clean ---
 voyage_data <- voyage_data %>%
   filter(
     from_country != "",
@@ -50,16 +40,13 @@ voyage_data <- voyage_data %>%
     design_speed >= 10
   ) %>%
   mutate(
-    implied_speed_knots = distance_km / 1.852 / hours,  # Convert km/h to knots
-    speed_consistency_ratio = implied_speed_knots / design_speed  # Check if speeds are reasonable
+    implied_speed_knots = distance_km / 1.852 / hours,
+    speed_consistency_ratio = implied_speed_knots / design_speed
   )
 
 cat("After filtering missing countries:", nrow(voyage_data), "records remaining\n")
 
-# =============================================================================
-# 3. CREATE ADDITIONAL VARIABLES
-# =============================================================================
-
+# --- Create variables ---
 voyage_data <- voyage_data %>%
   mutate(
     month = month(departure_date),
@@ -67,13 +54,10 @@ voyage_data <- voyage_data %>%
     route_port_pair = paste(pmin(from_port, to_port), pmax(from_port, to_port)),
     route_country_pair = paste(pmin(from_country, to_country), pmax(from_country, to_country)),
     speed = distance_km / hours,
-    tonnage_decile = ntile(tonnage, 10)  # Create 10 equal-sized groups by tonnage
+    tonnage_decile = ntile(tonnage, 10)
   )
 
-# =============================================================================
-# 4. IDENTIFY MOST COMMON ROUTES BETWEEN COUNTRIES
-# =============================================================================
-
+# --- Identify most common port pair per country pair ---
 most_common_routes <- voyage_data %>%
   group_by(route_country_pair) %>%
   count(route_port_pair, sort = TRUE) %>%
@@ -87,10 +71,7 @@ voyage_data <- voyage_data %>%
     top_route = if_else(route_port_pair == most_common_port_pair, 1, 0)
   )
 
-# =============================================================================
-# 5. RENAME VARIABLES FOR ANALYSIS
-# =============================================================================
-
+# --- Rename for analysis ---
 voyage_data <- voyage_data %>%
   rename(
     time = hours,
@@ -105,19 +86,12 @@ voyage_data <- voyage_data %>%
     wave_height = surface_wave_height_m
   )
 
-# =============================================================================
-# 6. SAVE PROCESSED DATA
-# =============================================================================
-
+# --- Export ---
 output_file <- here("data", "processed", "voyages.rds")
 write_rds(voyage_data, file = output_file)
 
 cat("Processed voyage data saved to:", output_file, "\n")
 cat("Final dataset contains", nrow(voyage_data), "records and", ncol(voyage_data), "variables\n")
-
-# =============================================================================
-# 7. SUMMARY STATISTICS
-# =============================================================================
 
 cat("\n=== DATASET SUMMARY ===\n")
 cat("Date range:", min(voyage_data$departure_date), "to", max(voyage_data$departure_date), "\n")
@@ -125,4 +99,3 @@ cat("Number of unique country pairs:", n_distinct(voyage_data$country_pair), "\n
 cat("Number of unique vessel types:", n_distinct(voyage_data$vessel_type), "\n")
 cat("Average voyage distance:", round(mean(voyage_data$distance, na.rm = TRUE)), "km\n")
 cat("Average voyage duration:", round(mean(voyage_data$time, na.rm = TRUE)), "hours\n")
-
