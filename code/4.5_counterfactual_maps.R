@@ -63,7 +63,7 @@ territorial_seas <- st_read(dsn = "data/raw/World_12NM_v4_20231025_gpkg/eez_12nm
 # --- Load BigQuery data ---
 
 # 0.5-degree gridded track data used to spatially apportion trip-level predictions
-track_info <- tbl(piracy, "gridded_data_0_5_v_20260224") %>%
+track_info <- tbl(piracy, "gridded_data_0_5_v_20260420") %>%
   mutate(year = sql("EXTRACT(YEAR FROM date)")) %>%
   select(year, lon_bin, lat_bin, trip_id) %>%
   group_by(trip_id) %>%
@@ -73,7 +73,7 @@ track_info <- tbl(piracy, "gridded_data_0_5_v_20260224") %>%
          lat_bin = lat_bin + 0.25)
 
 # Counterfactual predictions: piracy effect = predicted with pirates minus predicted without
-pred_info <- tbl(piracy, "full_pred_global_v_20260410") %>%
+pred_info <- tbl(piracy, "full_pred_global_v_20260423") %>%
   mutate(cost = p_total - np_total,
          co2 = p_co2 - np_co2,
          nox = p_nox - np_nox,
@@ -287,7 +287,7 @@ ggsave(plot = total_map,
        units = "cm")
 
 # Annual aggregate with social costs for back-of-envelope totals
-tbl(piracy, "full_pred_global_v_20260410") %>%
+tbl(piracy, "full_pred_global_v_20260423") %>%
   select(year, matches("total|co2|sox|nox")) %>%
   group_by(year) %>%
   summarize_all(sum) %>%
