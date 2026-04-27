@@ -71,8 +71,8 @@ outcomes <- c(
 outcome_labels <- c(
   time_hours = "Occupancy Time (hours)",
   distance_km = "Distance Traveled (km)",
-  n_vessels = "Transit (# Vessels)",
-  n_trips = "Transit (# Trips)",
+  n_vessels = "Transit (\\# Vessels)",
+  n_trips = "Transit (\\# Trips)",
   time_per_vessel = "Occupancy per Vessel (hours / vessel)",
   dist_per_vessel = "Distance Traveled per Vessel (km / vessel)"
 )
