@@ -71,7 +71,7 @@ get_grid_activity <- function(pars){
   focus_lon <- pars$focus_lon
   focus_date <- lubridate::ymd(pars$focus_date)
 
-  g_tracks <- tbl(piracy, "gridded_data_0_5_v_20240307") %>%
+  g_tracks <- tbl(piracy, "gridded_data_0_5_v_20260420") %>%
     filter(lat_bin == focus_lat,
            lon_bin == focus_lon) %>%
     mutate(post = date > sql(paste0("date('", focus_date, "')"))) %>%
@@ -101,7 +101,7 @@ get_tracks <- function(pars) {
   focus_lat <- pars$focus_lat
   focus_lon <- pars$focus_lon
 
-  tracks <- tbl(piracy, "ungridded_data_v_20250521") %>%
+  tracks <- tbl(piracy, "ungridded_data_v_20260420") %>%
     mutate(date = sql("EXTRACT(DATE from timestamp)")) %>%
     filter(between(lat, focus_lat - 3, focus_lat + 3),
            between(lon, focus_lon - 3, focus_lon + 3),
