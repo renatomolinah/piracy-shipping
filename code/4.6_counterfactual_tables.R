@@ -113,7 +113,7 @@ kbl(x = counterfactual_emissions,
     align = c("l", rep("r", 13)),
     format = "latex") %>%
   kable_styling() %>%
-  pack_rows("CO_2 (Thousand metric tons)", 1, 4) %>%
+  pack_rows("CO$_2$ (Thousand metric tons)", 1, 4) %>%
   pack_rows("NOx (Metric tons)", 5, 8) %>%
   pack_rows("SOx (Metric tons)", 9, 12) %>%
   cat(file = here("results", "figures_and_tables", "counterfactual_emissions.tex"))
