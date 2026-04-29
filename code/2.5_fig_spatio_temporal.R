@@ -193,7 +193,6 @@ sea_plot <- case_plot(attack_id = "-1.5_117 2013-06-19")
 
 goa_plot <- case_plot(attack_id = "22.5_69.5 2015-10-29")
 gog_plot <- case_plot(attack_id = "6_3 2017-09-20")
-oth_plot <- case_plot(attack_id = "38.5_119 2019-01-30")
 
 ggsave(plot = sea_plot,
        filename = here("results", "figures_and_tables", "spatio_temporal_figure_sea.png"),
