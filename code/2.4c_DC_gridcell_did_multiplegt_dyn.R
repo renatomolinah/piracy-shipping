@@ -223,7 +223,7 @@ build_dc_event_study_plot <- function(coef_table) {
     geom_point(size = 3, color = "steelblue") +
     facet_wrap(~ title, scales = "free_y", ncol = 2) +
     labs(
-      x = "Event time (days relative to first attack switch)",
+      x = "Event time (days relative to first switch)",
       y = "Estimate ± (std. error & 95% CI)"
     ) +
     theme_minimal(base_size = 12) +

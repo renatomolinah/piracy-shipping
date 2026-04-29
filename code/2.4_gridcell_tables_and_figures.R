@@ -162,7 +162,7 @@ create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate
              size = 2.8, color = "gray30") +
     labs(
       title = title,
-      x = "Days Relative to Attack",
+      x = "Days Relative to Pirate Event",
       y = y_label
     ) +
     theme_minimal(base_size = 10) +
@@ -311,7 +311,7 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
     scale_color_manual(values = c("steelblue","cadetblue", "lightblue")) +
     labs(
       title = title,
-      x = "Days Relative to Attack",
+      x = "Days Relative to Pirat Event",
       y = y_label,
       color = "Resolution"
     ) +
@@ -349,13 +349,13 @@ AIS_disab <- create_event_study_plot("n_ais_disabling",
                                      res = "0_5",
                                      title = "# AIS disabling events")
 modelsummary(AIS_disab_models$model,
-             coef_rename = c("Post-Attack"),
+             coef_rename = c("Post"),
              gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
              gof_map = obs_gof_map,
              stars = c('*' = .1, '**' = .05, '***' = .01),
              fmt = "%.3f",
              title = "Effect of Pirate Encounters on AIS Disabling Events. \\label{tab:ais-disabling}",
-             notes = list("This table tests whether vessels disable their AIS transponders following a piracy report. The unit of observation is a grid cell-day. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within attacked pixels. Post-Attack is a binary indicator equal to 1 for days on or after a pirate attack in the grid cell. The analysis uses a 7-day window around attacks to identify pre- and post-attack periods. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
+             notes = list("This table tests whether vessels disable their AIS transponders following a piracy report. The unit of observation is a grid cell-day. Each column represents a different geographic region. The Southeast Asia hotspot is excluded because there were no disabling events detected within pixels with pirate activity. Post is a binary indicator equal to 1 for days on or after a pirate event in the grid cell. The analysis uses a 7-day window around events to identify pre- and post-encounter periods. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
              threeparttable = TRUE,
              escape = FALSE,
              output = AIS_disab_table_name)

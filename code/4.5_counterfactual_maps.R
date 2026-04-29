@@ -116,6 +116,7 @@ total_grided <- local_grided %>%
   summarize_all(mean, na.rm = T, .groups = "drop") %>%
   mutate(private = cost,
          public = (co2 * sc_co2 / 1e6) + (nox * sc_nox / 1e6) + (sox * sc_sox / 1e6),
+         local = (nox * sc_nox / 1e6) + (sox * sc_sox / 1e6),
          total = private + public)
 
 # saveRDS(object = total_grided,
@@ -163,8 +164,13 @@ total_by_sea <- total_grided_by_sea %>%
   select(-iso_sov) %>%
   summarize_all(sum, na.rm = T)
 
+# Public pollutants restricted to EEZ and 12 NM
 (total_by_eez$public / total$public) * 100
 (total_by_sea$public / total$public) * 100
+
+# Local public pollutants (NOx and SOx only) restricted to EEZ and 12 NM
+(total_by_eez$local / total$local) * 100
+(total_by_sea$local / total$local) * 100
 
 # --- Map function and figures ---
 
@@ -208,11 +214,6 @@ make_map <- function(data,
                                  barheight = unit(0.5, "cm")),
            color = "none")
 }
-
-total_map <- make_map(data = total_grided,
-                      var = total / 1e3,
-                      option = "G",
-                      legend = "Total Cost (Billion USD)")
 
 cost_map <- make_map(data = total_grided,
                      var = cost,
@@ -280,11 +281,6 @@ ggsave(plot = p,
        height = 18.4,
        units = "cm")
 
-ggsave(plot = total_map,
-       filename = here("results", "figures_and_tables", "total_map.png"),
-       width = 15,
-       height = 8,
-       units = "cm")
 
 # Annual aggregate with social costs for back-of-envelope totals
 tbl(piracy, "full_pred_global_v_20260423") %>%
