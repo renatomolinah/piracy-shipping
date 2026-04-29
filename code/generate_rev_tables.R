@@ -32,5 +32,6 @@ make_rev("trip_count.tex",                          "trip_count_rev1.tex",      
 make_rev("trip_count.tex",                          "trip_count_rev2.tex",                          "tab:trip-count",            "tab:trip-count-rev2")
 make_rev("suez_cape_route_choice_trip_level.tex",   "suez_cape_route_choice_trip_level_rev1.tex",   "tab:suez-cape-trip-level",  "tab:suez-cape-trip-level-rev1")
 make_rev("suez_cape_route_choice_trip_level.tex",   "suez_cape_route_choice_trip_level_rev2.tex",   "tab:suez-cape-trip-level",  "tab:suez-cape-trip-level-rev2")
+make_rev("grid_level_did_multiplegt_dyn_summary.tex", "grid_level_did_multiplegt_dyn_summary_rev.tex", "tab:grid-level-did-multiplegt-dyn-summary", "tab:grid-level-did-multiplegt-dyn-summary-rev")
 
 cat("Done. Generated", 14, "revision tables.\n")
