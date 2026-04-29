@@ -139,6 +139,15 @@ asam <- asam_sf %>%
     lag_days >= 0
   )
 
+# Persistence is about the temporal recurrence of attacks, so keep all
+# in-range attacks regardless of whether the reporting lag is negative.
+asam_persistence_base <- asam_sf %>%
+  sf::st_drop_geometry() %>%
+  filter(
+    date >= lubridate::ymd("2012-01-01"),
+    date <= lubridate::ymd("2023-12-31")
+  )
+
 # DBSCAN-derived bounding boxes (eps=10, MinPts=150), snapped to nearest 5 degrees
 hotspot_boxes <- tibble(
   cluster = c("Gulf of Aden", "Gulf of Guinea", "Southeast Asia"),
@@ -240,7 +249,7 @@ writeLines(lag_tex_lines, here(output_dir, "asam_reporting_lags.tex"))
 
 # --- Attack persistence ---
 # P(another attack in same 0.5x0.5 degree cell within k days)
-asam_persistence <- asam %>%
+asam_persistence <- asam_persistence_base %>%
   mutate(
     cell_lon = floor(lon * 2) / 2,
     cell_lat = floor(lat * 2) / 2
@@ -253,12 +262,15 @@ compute_persistence <- function(data, k_values = c(1, 7, 15, 30), sample_label =
       group_by(cell_lon, cell_lat) %>%
       arrange(date) %>%
       mutate(
-        days_to_next = as.numeric(lead(date) - date)
+        days_to_next = as.numeric(lead(date) - date),
+        # The final attack in a cell is a valid non-reattack observation,
+        # not missing data, for the persistence probability.
+        reattack = if_else(is.na(days_to_next), FALSE, days_to_next <= k)
       ) %>%
       ungroup() %>%
       summarise(
         n = n(),
-        p_reattack = mean(days_to_next <= k, na.rm = TRUE)
+        p_reattack = mean(reattack)
       )
 
     results <- bind_rows(results, tibble(
@@ -278,8 +290,6 @@ persistence_summary <- bind_rows(
   compute_persistence(asam_persistence %>% filter(hotspot_asam == "Other"), sample_label = "Other"),
   compute_persistence(asam_persistence %>% filter(hotspot_asam == "Southeast Asia (box)"), sample_label = "Southeast Asia")
 )
-
-write_csv(persistence_summary, here(output_dir, "attack_persistence_summary.csv"))
 
 persistence_wide <- persistence_summary %>%
   select(sample, k_days, p_reattack) %>%
@@ -322,7 +332,7 @@ persist_tex_lines <- c(persist_tex_lines,
   "\\bottomrule",
   "\\end{tabular}",
   "\\begin{tablenotes}",
-  "\\item \\scriptsize Each cell reports the probability that, conditional on an attack occurring in a $0.5^\\circ \\times 0.5^\\circ$ grid cell, at least one additional attack occurs in the same cell within the specified time window. Sample: 2,611 encounters from 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
+  sprintf("\\item \\\\scriptsize Each cell reports the probability that, conditional on an attack occurring in a $0.5^\\\\circ \\\\times 0.5^\\\\circ$ grid cell, at least one additional attack occurs in the same cell within the specified time window. Sample: %s encounters from 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.", scales::comma(nrow(asam_persistence))),
   "\\end{tablenotes}",
   "\\end{threeparttable}",
   "\\end{table}"
