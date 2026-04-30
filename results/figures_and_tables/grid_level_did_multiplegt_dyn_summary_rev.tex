@@ -1,0 +1,24 @@
+\begin{table}
+\centering
+\caption{Effect of Pirate Encounters on Grid Cell Shipping Activity. \label{tab:grid-level-did-multiplegt-dyn-summary-rev}}
+\centering
+\begin{adjustbox}{width = .9\textwidth}
+\begin{threeparttable}
+\begin{tabular}[t]{lllll}
+\toprule
+Outcome & ATE & SE & p (effects) & p (placebos)\\
+\midrule
+Distance Traveled (km) & -1.867 & 0.705 & 0.002 & 0.203\\
+Distance Traveled per Vessel (km / vessel) & -1.752 & 0.659 & 0.001 & 0.116\\
+Occupancy Time (hours) & -0.971 & 0.364 & 0.001 & 0.165\\
+Occupancy per Vessel (hours / vessel) & -0.837 & 0.312 & 0.001 & 0.054\\
+Transit (\# Trips) & -0.433 & 0.193 & 0.020 & 0.717\\
+Transit (\# Vessels) & -0.402 & 0.191 & 0.034 & 0.742\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize Each row corresponds to one transformed shipping-activity outcome estimated from the daily grid-cell panel. ATE is the average cumulative effect from DIDmultiplegtDYN and p-values correspond to the joint null tests for post-treatment effects and placebo leads. All regressions use N = 302,106 of which N = 2,534 come from switchers.
+\end{tablenotes}
+\end{threeparttable}
+\end{adjustbox}
+\end{table}
