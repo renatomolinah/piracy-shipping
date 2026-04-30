@@ -5,6 +5,9 @@ library(tidyverse)
 library(fixest)
 library(modelsummary)
 
+# Force kableExtra backend so modelsummary v2+ outputs threeparttable (not tabularray)
+options(modelsummary_factory_latex = "kableExtra")
+
 output_dir <- here("results", "figures_and_tables")
 
 # --- Load and prepare data ---

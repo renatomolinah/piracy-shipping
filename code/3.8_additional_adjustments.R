@@ -11,6 +11,9 @@ source(here("code", "table_helpers.R"))
 
 options("modelsummary_format_numeric_latex" = "plain")
 
+# Force kableExtra backend so modelsummary v2+ outputs threeparttable (not tabularray)
+options(modelsummary_factory_latex = "kableExtra")
+
 output_dir <- here("results", "figures_and_tables")
 
 roll_sum <- function(x, k) as.numeric(stats::filter(x, rep(1, k), sides = 1))
@@ -304,7 +307,7 @@ msummary(
   stars          = c('*' = .1, '**' = .05, '***' = .01),
   fmt            = "%.3f",
   add_rows       = rows_suez,
-  title          = "Route Choice Between the Suez Canal and the Cape of Good Hope: Trip-Level Evidence \\label{tab:suez-cape-trip-level}",
+  title          = "Corridor Choice Between the Suez Canal and the Cape of Good Hope: Trip-Level Evidence \\label{tab:suez-cape-trip-level}",
   notes          = list(notes_suez),
   threeparttable = TRUE,
   escape         = FALSE,

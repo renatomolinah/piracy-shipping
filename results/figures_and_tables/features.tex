@@ -1,34 +1,34 @@
 \begin{table}
 \centering
+\caption{Effect of Past Pirate Encounters on Shipping Voyages. \label{tab:feature-table}}
+\centering
 \begin{adjustbox}{width = .9\textwidth}
-\begin{talltblr}[         %% tabularray outer open
-caption={Effect of Past Pirate Encounters on Shipping Voyages. \label{tab:feature-table}},
-note{}={* p \num{< 0.1}, ** p \num{< 0.05}, *** p \num{< 0.01}},
-note{ }={The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year.},
-]                     %% tabularray outer close
-{                     %% tabularray inner open
-colspec={Q[]Q[]Q[]Q[]Q[]},
-hline{2}={1-5}{solid, black, 0.05em},
-hline{1}={1-5}{solid, black, 0.08em},
-hline{15}={1-5}{solid, black, 0.08em},
-column{2-5}={}{halign=c},
-cell{1,3-4,6-7,9-14}{1}={}{halign=l},
-cell{2,5,8}{1}={c=5}{halign=l},
-}                     %% tabularray inner close
-& Global & G. of Aden & G. of Guinea & S.E. Asia \\
-Panel (A): Total Distance (km) & Panel (A): Total Distance (km) & Panel (A): Total Distance (km) & Panel (A): Total Distance (km) & Panel (A): Total Distance (km) \\
-Encounters (7 day) & 54.28*** & 245.69*** & 46.32*** & 37.29*** \\
-& (4.45) & (31.35) & (3.83) & (4.01) \\
-Panel (B): Total Time (hr) & Panel (B): Total Time (hr) & Panel (B): Total Time (hr) & Panel (B): Total Time (hr) & Panel (B): Total Time (hr) \\
-Encounters (7 day) & 2.82*** & 9.78*** & 3.07*** & 2.00*** \\
-& (0.24) & (1.28) & (0.30) & (0.24) \\
-Panel (C): Average Speed (km/hr) & Panel (C): Average Speed (km/hr) & Panel (C): Average Speed (km/hr) & Panel (C): Average Speed (km/hr) & Panel (C): Average Speed (km/hr) \\
-Encounters (7 day) & 0.04*** & 0.32*** & 0.06** & 0.03*** \\
-& (0.01) & (0.05) & (0.03) & (0.01) \\
-&  &  &  &  \\
-Observations & 22,896,864 & 888,075 & 316,716 & 4,560,514 \\
-&  &  &  &  \\
-Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$ \\
-\end{talltblr}
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+  & Global & G. of Aden & G. of Guinea & S.E. Asia\\
+\midrule
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (A): Total Distance (km)}}\\
+\midrule \hspace{1em}Encounters (7 day) & 54.28*** & 245.69*** & 46.32*** & 37.29***\\
+\hspace{1em} & (4.45) & (31.35) & (3.83) & (4.01)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (B): Total Time (hr)}}\\
+\midrule \hspace{1em}Encounters (7 day) & 2.82*** & 9.78*** & 3.07*** & 2.00***\\
+\hspace{1em} & (0.24) & (1.28) & (0.30) & (0.24)\\
+\addlinespace[0.5em]
+\multicolumn{5}{l}{\textit{Panel (C): Average Speed (km/hr)}}\\
+\midrule \hspace{1em}Encounters (7 day) & 0.04*** & 0.32*** & 0.06** & 0.03***\\
+\hspace{1em} & (0.01) & (0.05) & (0.03) & (0.01)\\
+ &  &  &  \vphantom{1} & \\
+Observations & 22,896,864 & 888,075 & 316,716 & 4,560,514\\
+ &  &  &  & \\
+Hotspot FE & X & $\bullet$ & $\bullet$ & $\bullet$\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \scriptsize * p $<$ 0.1, ** p $<$ 0.05, *** p $<$ 0.01 The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year.
+\end{tablenotes}
+\end{threeparttable}
 \end{adjustbox}
 \end{table}

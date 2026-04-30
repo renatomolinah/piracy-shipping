@@ -38,6 +38,20 @@ adjust_notes_font_size <- function(file, font_size_command = "\\scriptsize") {
   writeLines(lines, file)
 }
 
+# Remove the visual break that modelsummary inserts before goodness-of-fit rows
+# in compact tables.
+remove_midrule_before_observations <- function(file) {
+  lines <- readLines(file)
+  obs_line_index <- grep("^Observations\\s*&", lines)
+  if (length(obs_line_index) > 0) {
+    midrule_index <- obs_line_index[1] - 1
+    if (midrule_index > 0 && identical(lines[midrule_index], "\\midrule")) {
+      lines <- lines[-midrule_index]
+    }
+  }
+  writeLines(lines, file)
+}
+
 # Replace numbered column headers (1), (2), ... with custom names
 replace_table_headers <- function(file, new_headers) {
   lines <- readLines(file)

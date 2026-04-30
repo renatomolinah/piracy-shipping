@@ -361,3 +361,4 @@ modelsummary(AIS_disab_models$model,
              output = AIS_disab_table_name)
 
 adjust_notes_font_size(AIS_disab_table_name)
+remove_midrule_before_observations(AIS_disab_table_name)
