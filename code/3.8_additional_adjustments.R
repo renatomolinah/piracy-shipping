@@ -115,7 +115,7 @@ msummary(
        "G. of Aden"   = m_nb_aden,
        "G. of Guinea" = m_nb_guinea,
        "S.E. Asia"    = m_nb_asia),
-  coef_omit      = "wind|wave",
+  coef_omit      = "wind|wave|theta",
   coef_rename    = c("lag_1week" = "Avg. Encounters (7-day lag)"),
   gof_omit       = ".*",
   stars          = c('*' = .1, '**' = .05, '***' = .01),
