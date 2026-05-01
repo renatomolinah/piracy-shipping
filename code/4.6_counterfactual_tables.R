@@ -82,9 +82,9 @@ kbl(x = counterfactual_costs,
     align = c("l", rep("r", 13)),
     format = "latex") %>%
   kable_styling() %>%
-  pack_rows("Fuel (Million USD)", 1, 4) %>%
-  pack_rows("Labor (Million USD)", 5, 8) %>%
-  pack_rows("Total (Million USD)", 9, 12) %>%
+  pack_rows("Fuel (millions of US\\$)", 1, 4) %>%
+  pack_rows("Labor (millions of US\\$)", 5, 8) %>%
+  pack_rows("Total (millions of US\\$)", 9, 12) %>%
   cat(file = here("results", "figures_and_tables", "counterfactual_costs.tex"))
 
 add_adjust_box(here("results", "figures_and_tables", "counterfactual_costs.tex"),
@@ -93,7 +93,7 @@ add_adjust_box(here("results", "figures_and_tables", "counterfactual_costs.tex")
 
 add_threeparttable_note(
   here("results", "figures_and_tables", "counterfactual_costs.tex"),
-  "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. All costs are deflated to constant 2020 USD using the CPI-U annual average. Values are aggregated annually by hotspot region."
+  "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. All values in 2020 US\\\\$. Values are aggregated annually by hotspot region."
 )
 
 # --- Emissions table ---
@@ -108,7 +108,7 @@ kbl(x = counterfactual_emissions,
     booktabs = TRUE,
     label = "counterfactual_emissions",
     col.names = c("", 2012:2023),
-    caption = "Total Emission of Air Pollutants due to Piracy",
+    caption = "Total Emission of Air Pollutants due to Piracy.",
     linesep = "",
     align = c("l", rep("r", 13)),
     format = "latex") %>%

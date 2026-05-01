@@ -177,7 +177,7 @@ total_by_sea <- total_grided_by_sea %>%
 make_map <- function(data,
                      var,
                      option = "G",
-                     legend = "Cost (Million USD)\nlog10-transformed") {
+                     legend = "Cost (millions of US$)\nlog10-transformed") {
   ggplot() +
     geom_sf(data = coastline,
             color = "white") +
@@ -218,7 +218,7 @@ make_map <- function(data,
 cost_map <- make_map(data = total_grided,
                      var = cost,
                      option = "B",
-                     legend = "Cost (Million USD)")
+                     legend = "Cost (millions of US$)")
 
 co2_map <- make_map(total_grided,
                     var = co2,
@@ -257,7 +257,7 @@ zonal_stats <- total_by_asam %>%
   theme(legend.position = c(1, 1),
         legend.justification = c(1, 1)) +
   labs(x = "ASAM Region",
-       y = "Total costs (Million USD)",
+       y = "Total costs (millions of US$)",
        fill = "Sector")
 
 

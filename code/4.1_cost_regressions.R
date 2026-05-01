@@ -33,9 +33,9 @@ wdb <- readRDS(here("data", "processed", "voyages.rds")) %>%
 setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 
 setFixest_dict(c(
-  fuel_cost = "Fuel Cost (TUSD)",
-  labor_cost = "Labor Cost (TUSD)",
-  total_cost = "Total Cost (TUSD)",
+  fuel_cost = "Fuel Cost (thousands of US\\$)",
+  labor_cost = "Labor Cost (thousands of US\\$)",
+  total_cost = "Total Cost (thousands of US\\$)",
   attacks_7day_num = "Encounters (7 day)",
   hotspot = "Hotspot",
   vessel_type = "Vessel type",
@@ -143,9 +143,9 @@ rows <- tribble(
   "Hotspot FE",  "X", "$\\bullet$", "$\\bullet$", "$\\bullet$"
 )
 
-msummary(list("Panel (A): Fuel Cost (TUSD)" = regs_fuel,
-              "Panel (B): Labor Cost (TUSD)" = regs_labor,
-              "Panel (C): Total Cost (TUSD)" = regs_total),
+msummary(list("Panel (A): Fuel Cost (thousands of US\\$)" = regs_fuel,
+              "Panel (B): Labor Cost (thousands of US\\$)" = regs_labor,
+              "Panel (C): Total Cost (thousands of US\\$)" = regs_total),
          coef_omit = c(-1),
          coef_rename = c("Encounters (7 day)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
