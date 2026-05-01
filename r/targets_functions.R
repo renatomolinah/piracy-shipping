@@ -574,7 +574,7 @@ make_suez_canal_cape_good_hope_timeseries_figure <- function(
     theme_minimal() +
     theme(panel.grid.minor = element_blank()) +
     guides(color = guide_legend(reverse = TRUE)) +
-    labs(x = "Attack month", y = "Monthly attacks\nin Gulf of Aden", color = "")
+    labs(x = "Encounter month", y = "Monthly encounters\nin Gulf of Aden", color = "")
 
   # Now, aggregate number of trips that go through each location by departure month
   suez_canal_or_cape_good_hope_monthly_trips <- suez_canal_or_cape_good_hope_daily_trips |>
