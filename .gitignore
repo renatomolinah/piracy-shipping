@@ -64,6 +64,8 @@ data/
 data
 # JC's personal scratch folder
 scratch/*
+# Server-side prototyping artifacts
+server_testing/
 # Local archive of prior submission packages
 recovered/
 # Local manuscript and response-to-reviewers materials
