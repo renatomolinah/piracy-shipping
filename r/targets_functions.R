@@ -246,7 +246,7 @@ make_map_with_attack_timeseries_figure <- function(
     ncol = 1,
     rel_heights = c(0.67, 0.33),
     #label_y = 1.1,
-    labels = c("A", "B")
+    labels = c("a", "b")
   )
 
   ggplot2::ggsave(
