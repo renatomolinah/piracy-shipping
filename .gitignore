@@ -64,6 +64,8 @@ data/
 data
 # JC's personal scratch folder
 scratch/*
+# Local archive of prior submission packages
+recovered/
 # Analysis-New directory (seems to be a separate analysis)
 Analysis-New/
 piracy-data

@@ -23,22 +23,30 @@ In order to see what the targets pipeline looks like, you can run `targets::tar_
 3. Performs analyses on those data.  
 4. Generates final figures and tables.  
 
-When you run `targets::tar_visnetwork`, it should look something like this:
-
-![](target_network.png)
-
 ## Makefile
+
+The Make-based pipeline mirrors the structure of the analysis scripts. The DAG below summarizes the dependencies between data, code, and outputs:
 
 ![](workflow.png)
 
 # Repository Structure 
 
-The repository uses the following basic structure:  
 ```
 piracy-shipping
-  |__ figures
-  |__ r
-  |__ renv
-  |__ sql
-  |__ tables
+  |__ code           # Numbered analysis scripts (0.x → 4.x); run in order
+  |__ r              # Helper functions and data-processing utilities
+  |__ sql            # BigQuery SQL for voyage and grid-cell datasets
+  |__ _workflow      # Make DAG generation helpers
+  |__ figures        # Static figures used in the manuscript
+  |__ results        # Generated figures and tables
+  |__ renv           # renv package management
+  |__ data           # Local data store (gitignored; symlinked to Box)
 ```
+
+The `code/` directory uses a numbered naming convention indicating execution order:
+
+- `0.x` — data setup
+- `1.x` — summary statistics
+- `2.x` — grid-cell analysis (event study, did_multiplegt_dyn)
+- `3.x` — voyage-level main estimation and robustness
+- `4.x` — cost and emissions regressions, counterfactual maps and tables
