@@ -66,6 +66,8 @@ data
 scratch/*
 # Local archive of prior submission packages
 recovered/
+# Local manuscript and response-to-reviewers materials
+Piracy/
 # Analysis-New directory (seems to be a separate analysis)
 Analysis-New/
 piracy-data
