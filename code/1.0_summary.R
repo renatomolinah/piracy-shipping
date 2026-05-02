@@ -197,55 +197,7 @@ lag_summary <- bind_rows(
     )
 )
 
-write_csv(lag_summary, here(output_dir, "asam_reporting_lags_summary.csv"))
 print(lag_summary %>% select(sample, n, median_lag, share_le_7, share_le_14, share_le_30))
-
-lag_for_tex <- lag_summary %>%
-  filter(sample != "Other") %>%
-  mutate(
-    sample = case_when(
-      sample == "Gulf of Aden (box)" ~ "Gulf of Aden",
-      sample == "Gulf of Guinea (box)" ~ "Gulf of Guinea",
-      sample == "Southeast Asia (box)" ~ "Southeast Asia",
-      TRUE ~ sample
-    )
-  ) %>%
-  arrange(factor(sample, levels = c("Global", "Gulf of Aden", "Gulf of Guinea", "Southeast Asia")))
-
-lag_tex_lines <- c(
-  "\\begin{table}[htbp]",
-  "\\centering",
-  "\\begin{threeparttable}",
-  "\\caption{ASAM Reporting Lags: Days Between Occurrence and Database Entry (2012--2023).}",
-  "\\label{tab:asam-reporting-lags}",
-  "\\begin{tabular}{lrrrrrr}",
-  "\\toprule",
-  " & & \\multicolumn{2}{c}{Lag (days)} & \\multicolumn{3}{c}{Share entered within} \\\\",
-  "\\cmidrule(lr){3-4} \\cmidrule(lr){5-7}",
-  "Sample & N & Mean & Median & 7 days & 14 days & 30 days \\\\",
-  "\\midrule"
-)
-
-for (i in seq_len(nrow(lag_for_tex))) {
-  r <- lag_for_tex[i, ]
-  lag_tex_lines <- c(lag_tex_lines, sprintf(
-    "%s & %s & %.1f & %d & %.1f\\%% & %.1f\\%% & %.1f\\%% \\\\",
-    r$sample, format(r$n, big.mark = ","), r$mean_lag, as.integer(r$median_lag),
-    r$share_le_7 * 100, r$share_le_14 * 100, r$share_le_30 * 100
-  ))
-}
-
-lag_tex_lines <- c(lag_tex_lines,
-  "\\bottomrule",
-  "\\end{tabular}",
-  "\\begin{tablenotes}",
-  "\\item \\scriptsize Each row reports the distribution of reporting lags (in days) between the recorded date of occurrence and the ASAM database entry date. The share columns indicate the fraction of encounters publicly available within the given window. Sample restricted to 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
-  "\\end{tablenotes}",
-  "\\end{threeparttable}",
-  "\\end{table}"
-)
-
-writeLines(lag_tex_lines, here(output_dir, "asam_reporting_lags.tex"))
 
 # --- Attack persistence ---
 # P(another attack in same 0.5x0.5 degree cell within k days)
