@@ -171,22 +171,22 @@ create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate
 
 p1 <- create_event_study_plot("time_hours",
                               res = "0_5",
-                              title = "A) Occupancy Time (hours)")
+                              title = "a Occupancy Time (hours)")
 p2 <- create_event_study_plot("distance_km",
                               res = "0_5",
-                              title = "B) Distance Traveled (km)")
+                              title = "b Distance Traveled (km)")
 p3 <- create_event_study_plot("n_vessels",
                               res = "0_5",
-                              title = "C) Transit (# Vessels)")
+                              title = "c Transit (# Vessels)")
 p4 <- create_event_study_plot("n_trips",
                               res = "0_5",
-                              title = "D) Transit (# Trips)")
+                              title = "d Transit (# Trips)")
 p5 <- create_event_study_plot("time_vessels",
                               res = "0_5",
-                              title = "E) Occupancy per Vessel (hours / vessel)")
+                              title = "e Occupancy per Vessel (hours / vessel)")
 p6 <- create_event_study_plot("dist_vessels",
                               res = "0_5",
-                              title = "F) Distance Traveled per Vessel (km / vessel)")
+                              title = "f Distance Traveled per Vessel (km / vessel)")
 
 combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
   plot_layout(guides = "collect") &
