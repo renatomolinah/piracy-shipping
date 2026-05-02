@@ -119,9 +119,6 @@ total_grided <- local_grided %>%
          local = (nox * sc_nox / 1e6) + (sox * sc_sox / 1e6),
          total = private + public)
 
-# saveRDS(object = total_grided,
-#         file = here("output_data", "gridded_public_and_private_counterfactual_predictions.rds"))
-
 # --- Zonal summaries ---
 
 total_by_asam <- total_grided %>%
