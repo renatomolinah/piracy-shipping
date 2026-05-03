@@ -674,7 +674,7 @@ make_suez_canal_cape_good_hope_timeseries_figure <- function(
     ncol = 1,
     align = "v",
     axis = "lr",
-    labels = c("A", "B", "C")
+    labels = c("a", "b", "c")
   )
 
   ggplot2::ggsave(
