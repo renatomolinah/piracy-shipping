@@ -320,17 +320,17 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
 }
 
 sp1 <- create_multi_event_study_plot("time_hours",
-                              title = "A) Occupancy Time (hours)")
+                              title = "a Occupancy Time (hours)")
 sp2 <- create_multi_event_study_plot("distance_km",
-                              title = "B) Distance Traveled (km)")
+                              title = "b Distance Traveled (km)")
 sp3 <- create_multi_event_study_plot("n_vessels",
-                              title = "C) Transit (# Vessels)")
+                              title = "c Transit (# Vessels)")
 sp4 <- create_multi_event_study_plot("n_trips",
-                              title = "D) Transit (# Trips)")
+                              title = "d Transit (# Trips)")
 sp5 <- create_multi_event_study_plot("time_vessels",
-                              title = "E) Occupancy per Vessel (hours / vessel)")
+                              title = "e Occupancy per Vessel (hours / vessel)")
 sp6 <- create_multi_event_study_plot("dist_vessels",
-                              title = "F) Distance Traveled per Vessel (km / vessel)")
+                              title = "f Distance Traveled per Vessel (km / vessel)")
 
 s_combined_plot <- (sp1 + sp2) / (sp3 + sp4) / (sp5 + sp6) +
   plot_layout(guides = "collect") &
