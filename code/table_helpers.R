@@ -85,7 +85,9 @@ unstyle_panel_headers <- function(file) {
   writeLines(lines, file)
 }
 
-# Append the fixed-effect legend to the table's \item \scriptsize notes line.
+# Insert the fixed-effect legend into the table's \item \scriptsize notes line.
+# The legend is placed immediately BEFORE the "Standard errors are clustered..."
+# sentence, so it sits next to the FE description rather than at the end.
 # has_bullet = TRUE adds the bullet clause; FALSE adds only the X clause.
 append_fe_legend <- function(file, has_bullet = TRUE) {
   lines <- readLines(file)
@@ -98,7 +100,10 @@ append_fe_legend <- function(file, has_bullet = TRUE) {
   if (length(item_idx) == 0) return(invisible(NULL))
   for (i in item_idx) {
     if (!grepl("X indicates the fixed effect is included", lines[i], fixed = TRUE)) {
-      lines[i] <- paste0(lines[i], " ", legend)
+      # Insert legend right before "Standard errors..." sentence
+      lines[i] <- sub("(Standard errors are clustered)",
+                      paste0(legend, " \\1"),
+                      lines[i])
     }
   }
   writeLines(lines, file)
