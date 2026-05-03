@@ -57,8 +57,8 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
                        "Panel (B): Distance Traveled (km)" = distance,
                        "Panel (C): Transit (# Vessels)" = n_vessels,
                        "Panel (D): Transit (# Voyages)" = n_trips,
-                       "Panel (E): Occupancy per Vessel (hours / vessel)" = time_per_vessel,
-                       "Panel (F): Distance Traveled per Vessel (km / vessel)" = distance_per_vessel),
+                       "Panel (E): Occupancy per Vessel (hours per vessel)" = time_per_vessel,
+                       "Panel (F): Distance Traveled per Vessel (km per vessel)" = distance_per_vessel),
          shape = "rbind",
          coef_rename = c("Post-Attack"),
          gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -96,8 +96,8 @@ msummary(models = list("Panel (A): Occupancy Time (hours)"                   = b
                        "Panel (B): Distance Traveled (km)"                   = build_panel("asinh(distance_km)"),
                        "Panel (C): Transit (# Vessels)"                      = build_panel("asinh(n_vessels)"),
                        "Panel (D): Transit (# Voyages)"                      = build_panel("asinh(n_trips)"),
-                       "Panel (E): Occupancy per Vessel (hours / vessel)"    = build_panel("asinh(time_vessels)"),
-                       "Panel (F): Distance Traveled per Vessel (km / vessel)" = build_panel("asinh(dist_vessels)")),
+                       "Panel (E): Occupancy per Vessel (hours per vessel)"    = build_panel("asinh(time_vessels)"),
+                       "Panel (F): Distance Traveled per Vessel (km per vessel)" = build_panel("asinh(dist_vessels)")),
          shape = "rbind",
          coef_rename = c("Post-Attack"),
          gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -183,10 +183,10 @@ p4 <- create_event_study_plot("n_trips",
                               title = "d Transit (# Trips)")
 p5 <- create_event_study_plot("time_vessels",
                               res = "0_5",
-                              title = "e Occupancy per Vessel (hours / vessel)")
+                              title = "e Occupancy per Vessel (hours per vessel)")
 p6 <- create_event_study_plot("dist_vessels",
                               res = "0_5",
-                              title = "f Distance Traveled per Vessel (km / vessel)")
+                              title = "f Distance Traveled per Vessel (km per vessel)")
 
 combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
   plot_layout(guides = "collect") &
@@ -213,15 +213,15 @@ res_plot <- models |>
                                  outcome_var == "asinh(distance_km)" ~ "Distance Traveled (km)",
                                  outcome_var == "asinh(n_vessels)" ~ "Transit (# vessels)",
                                  outcome_var == "asinh(n_trips)" ~ "Transit (# trips)",
-                                 outcome_var == "asinh(time_vessels)" ~ "Occupancy per Vessel (hours / vessel)",
-                                 outcome_var == "asinh(dist_vessels)" ~ "Distance Traveled per Vessel (km / vessel)"),
+                                 outcome_var == "asinh(time_vessels)" ~ "Occupancy per Vessel (hours per vessel)",
+                                 outcome_var == "asinh(dist_vessels)" ~ "Distance Traveled per Vessel (km per vessel)"),
          outcome_var = fct_relevel(outcome_var,
                                    "Occupancy Time (hours)",
                                    "Distance Traveled (km)",
                                    "Transit (# vessels)",
                                    "Transit (# trips)",
-                                   "Occupancy per Vessel (hours / vessel)",
-                                   "Distance Traveled per Vessel (km / vessel)"),
+                                   "Occupancy per Vessel (hours per vessel)",
+                                   "Distance Traveled per Vessel (km per vessel)"),
          hotspot = ifelse(hotspot == "S.E. Asia", "Southeast Asia", hotspot),
          hotspot = fct_relevel(hotspot,
                                "Global",
@@ -328,9 +328,9 @@ sp3 <- create_multi_event_study_plot("n_vessels",
 sp4 <- create_multi_event_study_plot("n_trips",
                               title = "d Transit (# Trips)")
 sp5 <- create_multi_event_study_plot("time_vessels",
-                              title = "e Occupancy per Vessel (hours / vessel)")
+                              title = "e Occupancy per Vessel (hours per vessel)")
 sp6 <- create_multi_event_study_plot("dist_vessels",
-                              title = "f Distance Traveled per Vessel (km / vessel)")
+                              title = "f Distance Traveled per Vessel (km per vessel)")
 
 s_combined_plot <- (sp1 + sp2) / (sp3 + sp4) / (sp5 + sp6) +
   plot_layout(guides = "collect") &

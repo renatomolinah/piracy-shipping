@@ -73,8 +73,8 @@ outcome_labels <- c(
   distance_km = "Distance Traveled (km)",
   n_vessels = "Transit (\\# Vessels)",
   n_trips = "Transit (\\# Trips)",
-  time_per_vessel = "Occupancy per Vessel (hours / vessel)",
-  dist_per_vessel = "Distance Traveled per Vessel (km / vessel)"
+  time_per_vessel = "Occupancy per Vessel (hours per vessel)",
+  dist_per_vessel = "Distance Traveled per Vessel (km per vessel)"
 )
 
 outcome_titles <- c(
@@ -82,8 +82,8 @@ outcome_titles <- c(
   distance_km = "b Distance Traveled (km)",
   n_vessels = "c Transit (# Vessels)",
   n_trips = "d Transit (# Trips)",
-  time_per_vessel = "e Occupancy per Vessel (hours / vessel)",
-  dist_per_vessel = "f Distance Traveled per Vessel (km / vessel)"
+  time_per_vessel = "e Occupancy per Vessel (hours per vessel)",
+  dist_per_vessel = "f Distance Traveled per Vessel (km per vessel)"
 )
 
 # --- Estimation wrapper ---
