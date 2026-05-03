@@ -130,6 +130,7 @@ msummary(
 
 add_adjust_box(here(output_dir, "trip_count.tex"))
 adjust_notes_font_size(here(output_dir, "trip_count.tex"))
+append_fe_legend(here(output_dir, "trip_count.tex"), has_bullet = TRUE)
 strip_pkg_declarations(here(output_dir, "trip_count.tex"))
 
 cat("Table written to: trip_count.tex\n\n")
@@ -316,6 +317,8 @@ msummary(
 
 add_adjust_box(here(output_dir, "suez_cape_route_choice_trip_level.tex"))
 adjust_notes_font_size(here(output_dir, "suez_cape_route_choice_trip_level.tex"))
+unstyle_panel_headers(here(output_dir, "suez_cape_route_choice_trip_level.tex"))
+append_fe_legend(here(output_dir, "suez_cape_route_choice_trip_level.tex"), has_bullet = FALSE)
 strip_pkg_declarations(here(output_dir, "suez_cape_route_choice_trip_level.tex"))
 
 cat("Table written to: suez_cape_route_choice_trip_level.tex\n")

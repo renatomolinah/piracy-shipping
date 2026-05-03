@@ -66,12 +66,13 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
          title = "Effect of Pirate Encounters on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
+         notes = list("The unit of observation is a grid cell-day. Estimates are from Equation (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)
 
 adjust_notes_font_size(reg_table_name)
+unstyle_panel_headers(reg_table_name)
 
 # --- Build specification build-up table ---
 # Shows how the Post-Attack coefficient evolves as we add more FEs. Column (1)
@@ -111,6 +112,7 @@ msummary(models = list("Panel (A): Occupancy Time (hours)"                   = b
          output = spec_buildup_table_name)
 
 adjust_notes_font_size(spec_buildup_table_name)
+unstyle_panel_headers(spec_buildup_table_name)
 
 # --- Build event study plots ---
 create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate ± (std.error & 95% CI)") {

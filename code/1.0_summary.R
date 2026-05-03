@@ -65,7 +65,7 @@ latex_table <- kbl(
   booktabs = TRUE,
   label = "summary",
   caption = "Summary Statistics for Individual Voyage Features.",
-  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km/hr)", "7 days", "15 days", "30 days"),
+  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km h$\^{-1}$)", "7 days", "15 days", "30 days"),
   align = c("l", "l", "r", "r", "r", "r", "r", "r"),
   format = "latex"
 ) %>%
@@ -75,7 +75,7 @@ latex_table <- kbl(
   pack_rows("Gulf of Guinea", 5, 8) %>%
   pack_rows("Southeast Asia", 9, 12) %>%
   pack_rows("Rest of the World", 13, 16) %>%
-  footnote(general = "The unit of observation is a voyage. The sample includes all cargo vessel voyages from 2012 to 2023 that pass through at most one piracy hotspot. Voyage features report total distance (km), total time (hr), and average speed (km/hr). Encounters report the count of pirate encounters recorded in the projected path of the vessel using a 5-degree spatial footprint over the preceding 7, 15, and 30 days, respectively. P5 and P95 denote the 5th and 95th percentiles, respectively.",
+  footnote(general = "The unit of observation is a voyage. The sample includes all cargo vessel voyages from 2012 to 2023 that pass through at most one piracy hotspot. Voyage features report total distance (km), total time (hr), and average speed (km h$\^{-1}$). Encounters report the count of pirate encounters recorded in the projected path of the vessel using a 5-degree spatial footprint over the preceding 7, 15, and 30 days, respectively. P5 and P95 denote the 5th and 95th percentiles, respectively.",
            general_title = "",
            escape = FALSE,
            threeparttable = TRUE)
@@ -83,6 +83,7 @@ latex_table <- kbl(
 output_file <- here("results", "figures_and_tables", "summary.tex")
 cat(latex_table, file = output_file)
 adjust_notes_font_size(output_file)
+unstyle_panel_headers(output_file)
 add_adjust_box(output_file)
 
 cat("LaTeX table saved to:", output_file, "\n")

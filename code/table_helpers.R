@@ -74,6 +74,36 @@ strip_pkg_declarations <- function(file) {
   writeLines(lines, file)
 }
 
+# Strip \textit{} and \textbf{} wrappers from \multicolumn panel headers
+# (Nature Comms forbids bold/italic data formatting unless declared in notes)
+unstyle_panel_headers <- function(file) {
+  lines <- readLines(file)
+  lines <- gsub("\\\\multicolumn(\\{[0-9]+\\})\\{([lcr])\\}\\{\\\\textit\\{(.*?)\\}\\}",
+                "\\\\multicolumn\\1{\\2}{\\3}", lines)
+  lines <- gsub("\\\\multicolumn(\\{[0-9]+\\})\\{([lcr])\\}\\{\\\\textbf\\{(.*?)\\}\\}",
+                "\\\\multicolumn\\1{\\2}{\\3}", lines)
+  writeLines(lines, file)
+}
+
+# Append the fixed-effect legend to the table's \item \scriptsize notes line.
+# has_bullet = TRUE adds the bullet clause; FALSE adds only the X clause.
+append_fe_legend <- function(file, has_bullet = TRUE) {
+  lines <- readLines(file)
+  legend <- if (has_bullet) {
+    "X indicates the fixed effect is included; $\\bullet$ indicates the fixed effect is absorbed by the sample restriction."
+  } else {
+    "X indicates the fixed effect is included."
+  }
+  item_idx <- grep("^\\\\item.*\\\\scriptsize", lines)
+  if (length(item_idx) == 0) return(invisible(NULL))
+  for (i in item_idx) {
+    if (!grepl("X indicates the fixed effect is included", lines[i], fixed = TRUE)) {
+      lines[i] <- paste0(lines[i], " ", legend)
+    }
+  }
+  writeLines(lines, file)
+}
+
 # Add threeparttable wrapper + note to a table that already has adjustbox
 add_threeparttable_note <- function(file, note_text) {
   lines <- readLines(file, warn = FALSE)

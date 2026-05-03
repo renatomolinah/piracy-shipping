@@ -32,7 +32,7 @@ setFixest_fml(..wctrl = ~ wind_speed + wind_vector + wave_height)
 setFixest_dict(c(
   time = "Total Time (hrs)",
   distance = "Total Distance (km)",
-  speed = "Average Speed (km/hr)",
+  speed = "Average Speed (km h$\^{-1}$)",
   attacks_7day_num = "Encounters (7 day)",
   hotspot = "Hotspot",
   vessel_type = "Vessel type",
@@ -138,7 +138,7 @@ rows <- tribble(
 
 msummary(list("Panel (A): Total Distance (km)" = regs_dist,
               "Panel (B): Total Time (hr)" = regs_time,
-              "Panel (C): Average Speed (km/hr)" = regs_speed),
+              "Panel (C): Average Speed (km h$\^{-1}$)" = regs_speed),
          coef_omit = c(-1),
          coef_rename = c("Encounters (7 day)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -146,7 +146,7 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Voyages. \\label{tab:feature-routefe-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. This table replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Other fixed effects include vessel type, vessel size, hotspot, and month-by-year. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km h$\^{-1}$). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. This table replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Other fixed effects include vessel type, vessel size, hotspot, and month-by-year. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -155,6 +155,8 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
 add_adjust_box(here(output_dir, "features_routefe.tex"))
 replace_table_headers(here(output_dir, "features_routefe.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "features_routefe.tex"))
+unstyle_panel_headers(here(output_dir, "features_routefe.tex"))
+append_fe_legend(here(output_dir, "features_routefe.tex"), has_bullet = TRUE)
 
 # --- Country-pair-only clustering ---
 
@@ -247,7 +249,7 @@ rows <- tribble(
 
 msummary(list("Panel (A): Total Distance (km)" = regs_dist,
               "Panel (B): Total Time (hr)" = regs_time,
-              "Panel (C): Average Speed (km/hr)" = regs_speed),
+              "Panel (C): Average Speed (km h$\^{-1}$)" = regs_speed),
          coef_omit = c(-1),
          coef_rename = c("Encounters (7 day)"),
          gof_omit = "N|R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -255,7 +257,7 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
          fmt = "%.2f",
          add_rows = rows,
          title = "Voyage-Level Effects of Past Pirate Encounters with Country-Pair Clustered Standard Errors. \\label{tab:feature-country-cluster}",
-         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km/hr). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route."),
+         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each panel examines an observed feature in terms of total distance in kilometers (km), total time of the voyage in hours (hr), and the average speed of the voyage (km h$\^{-1}$). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -264,3 +266,5 @@ msummary(list("Panel (A): Total Distance (km)" = regs_dist,
 add_adjust_box(here(output_dir, "features_country_cluster.tex"))
 replace_table_headers(here(output_dir, "features_country_cluster.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "features_country_cluster.tex"))
+unstyle_panel_headers(here(output_dir, "features_country_cluster.tex"))
+append_fe_legend(here(output_dir, "features_country_cluster.tex"), has_bullet = TRUE)
