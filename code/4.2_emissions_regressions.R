@@ -152,7 +152,7 @@ msummary(list("Panel (A): CO2 (tons)" = regs_co2,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Emissions. \\label{tab:emission-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each panel examines a calculated emission in terms of CO2 (tons), NOx (kg), and SOx (kg). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines a calculated emission in terms of CO2 (tons), NOx (kg), and SOx (kg). Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -161,8 +161,6 @@ msummary(list("Panel (A): CO2 (tons)" = regs_co2,
 add_adjust_box(here(output_dir, "emissions.tex"))
 replace_table_headers(here(output_dir, "emissions.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "emissions.tex"))
-unstyle_panel_headers(here(output_dir, "emissions.tex"))
-append_fe_legend(here(output_dir, "emissions.tex"), has_bullet = TRUE)
 
 # --- Specification analysis: CO2 ---
 
@@ -203,14 +201,13 @@ msummary(spec_co2,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on CO2 Emissions. \\label{tab:spec-co2-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_co2.tex"))
 
 add_adjust_box(here(output_dir, "spec_co2.tex"))
 adjust_notes_font_size(here(output_dir, "spec_co2.tex"))
-append_fe_legend(here(output_dir, "spec_co2.tex"), has_bullet = FALSE)
 
 # --- Specification analysis: NOx ---
 
@@ -231,14 +228,13 @@ msummary(spec_nox,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on NOx Emissions. \\label{tab:spec-nox-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_nox.tex"))
 
 add_adjust_box(here(output_dir, "spec_nox.tex"))
 adjust_notes_font_size(here(output_dir, "spec_nox.tex"))
-append_fe_legend(here(output_dir, "spec_nox.tex"), has_bullet = FALSE)
 
 # --- Specification analysis: SOx ---
 
@@ -259,14 +255,13 @@ msummary(spec_sox,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on SOx Emissions. \\label{tab:spec-sox-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_sox.tex"))
 
 add_adjust_box(here(output_dir, "spec_sox.tex"))
 adjust_notes_font_size(here(output_dir, "spec_sox.tex"))
-append_fe_legend(here(output_dir, "spec_sox.tex"), has_bullet = FALSE)
 
 # --- Back-of-envelope predictions ---
 

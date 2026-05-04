@@ -261,15 +261,14 @@ zonal_stats <- total_by_asam %>%
 counterfactual_maps <- cowplot::plot_grid(cost_map,
                                           co2_map,
                                           nox_map,
-                                          sox_map,
-                                          labels = "auto")
+                                          sox_map)
 
 p <- cowplot::plot_grid(counterfactual_maps,
                         hotspot_legend,
                         zonal_stats,
                         ncol = 1,
                         rel_heights = c(2.8, 0.2, 1),
-                        labels = c("", "e", ""))
+                        labels = c("A", "B", ""))
 
 # --- Export ---
 

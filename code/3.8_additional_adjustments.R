@@ -6,7 +6,6 @@ library(fixest)
 library(modelsummary)
 library(lubridate)
 
-source(here("r", "table_format_helpers.R"))
 source(here("code", "table_helpers.R"))
 
 options("modelsummary_format_numeric_latex" = "plain")

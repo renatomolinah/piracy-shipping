@@ -57,8 +57,8 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
                        "Panel (B): Distance Traveled (km)" = distance,
                        "Panel (C): Transit (# Vessels)" = n_vessels,
                        "Panel (D): Transit (# Voyages)" = n_trips,
-                       "Panel (E): Occupancy per Vessel (hours per vessel)" = time_per_vessel,
-                       "Panel (F): Distance Traveled per Vessel (km per vessel)" = distance_per_vessel),
+                       "Panel (E): Occupancy per Vessel (hours / vessel)" = time_per_vessel,
+                       "Panel (F): Distance Traveled per Vessel (km / vessel)" = distance_per_vessel),
          shape = "rbind",
          coef_rename = c("Post-Attack"),
          gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -66,13 +66,12 @@ msummary(models = list("Panel (A): Occupancy Time (hours)" = time,
          stars = c('*' = .1, '**' = .05, '***' = .01),
          fmt = "%.3f",
          title = "Effect of Pirate Encounters on Grid Cell Shipping Activity. \\label{tab:cell-post-regression}",
-         notes = list("The unit of observation is a grid cell-day. Estimates are from Equation (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
+         notes = list("The unit of observation is a grid cell-day. Estimates are from Eq. (1). Each panel examines a different shipping activity measure. Each column represents a different geographic region. Post-Attack is a binary indicator equal to 1 for days within the 7-day window following a pirate attack in the grid cell. The sample spans from 2012 to 2023. All regressions include grid-cell-by-month and date fixed effects. Standard errors are Conley standard errors (50 km cutoff) and reported in parentheses."),
          threeparttable = TRUE,
          escape = FALSE,
          output = reg_table_name)
 
 adjust_notes_font_size(reg_table_name)
-unstyle_panel_headers(reg_table_name)
 
 # --- Build specification build-up table ---
 # Shows how the Post-Attack coefficient evolves as we add more FEs. Column (1)
@@ -97,8 +96,8 @@ msummary(models = list("Panel (A): Occupancy Time (hours)"                   = b
                        "Panel (B): Distance Traveled (km)"                   = build_panel("asinh(distance_km)"),
                        "Panel (C): Transit (# Vessels)"                      = build_panel("asinh(n_vessels)"),
                        "Panel (D): Transit (# Voyages)"                      = build_panel("asinh(n_trips)"),
-                       "Panel (E): Occupancy per Vessel (hours per vessel)"    = build_panel("asinh(time_vessels)"),
-                       "Panel (F): Distance Traveled per Vessel (km per vessel)" = build_panel("asinh(dist_vessels)")),
+                       "Panel (E): Occupancy per Vessel (hours / vessel)"    = build_panel("asinh(time_vessels)"),
+                       "Panel (F): Distance Traveled per Vessel (km / vessel)" = build_panel("asinh(dist_vessels)")),
          shape = "rbind",
          coef_rename = c("Post-Attack"),
          gof_omit = "R2|AIC|BIC|Log.|RMSE|FE|Std.Errors",
@@ -112,7 +111,6 @@ msummary(models = list("Panel (A): Occupancy Time (hours)"                   = b
          output = spec_buildup_table_name)
 
 adjust_notes_font_size(spec_buildup_table_name)
-unstyle_panel_headers(spec_buildup_table_name)
 
 # --- Build event study plots ---
 create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate ± (std.error & 95% CI)") {
@@ -173,22 +171,22 @@ create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate
 
 p1 <- create_event_study_plot("time_hours",
                               res = "0_5",
-                              title = "a Occupancy Time (hours)")
+                              title = "A) Occupancy Time (hours)")
 p2 <- create_event_study_plot("distance_km",
                               res = "0_5",
-                              title = "b Distance Traveled (km)")
+                              title = "B) Distance Traveled (km)")
 p3 <- create_event_study_plot("n_vessels",
                               res = "0_5",
-                              title = "c Transit (# Vessels)")
+                              title = "C) Transit (# Vessels)")
 p4 <- create_event_study_plot("n_trips",
                               res = "0_5",
-                              title = "d Transit (# Trips)")
+                              title = "D) Transit (# Trips)")
 p5 <- create_event_study_plot("time_vessels",
                               res = "0_5",
-                              title = "e Occupancy per Vessel (hours per vessel)")
+                              title = "E) Occupancy per Vessel (hours / vessel)")
 p6 <- create_event_study_plot("dist_vessels",
                               res = "0_5",
-                              title = "f Distance Traveled per Vessel (km per vessel)")
+                              title = "F) Distance Traveled per Vessel (km / vessel)")
 
 combined_plot <- (p1 + p2) / (p3 + p4) / (p5 + p6) +
   plot_layout(guides = "collect") &
@@ -215,15 +213,15 @@ res_plot <- models |>
                                  outcome_var == "asinh(distance_km)" ~ "Distance Traveled (km)",
                                  outcome_var == "asinh(n_vessels)" ~ "Transit (# vessels)",
                                  outcome_var == "asinh(n_trips)" ~ "Transit (# trips)",
-                                 outcome_var == "asinh(time_vessels)" ~ "Occupancy per Vessel (hours per vessel)",
-                                 outcome_var == "asinh(dist_vessels)" ~ "Distance Traveled per Vessel (km per vessel)"),
+                                 outcome_var == "asinh(time_vessels)" ~ "Occupancy per Vessel (hours / vessel)",
+                                 outcome_var == "asinh(dist_vessels)" ~ "Distance Traveled per Vessel (km / vessel)"),
          outcome_var = fct_relevel(outcome_var,
                                    "Occupancy Time (hours)",
                                    "Distance Traveled (km)",
                                    "Transit (# vessels)",
                                    "Transit (# trips)",
-                                   "Occupancy per Vessel (hours per vessel)",
-                                   "Distance Traveled per Vessel (km per vessel)"),
+                                   "Occupancy per Vessel (hours / vessel)",
+                                   "Distance Traveled per Vessel (km / vessel)"),
          hotspot = ifelse(hotspot == "S.E. Asia", "Southeast Asia", hotspot),
          hotspot = fct_relevel(hotspot,
                                "Global",
@@ -322,17 +320,17 @@ create_multi_event_study_plot <- function(outcome_var, title, y_label = "Estimat
 }
 
 sp1 <- create_multi_event_study_plot("time_hours",
-                              title = "a Occupancy Time (hours)")
+                              title = "A) Occupancy Time (hours)")
 sp2 <- create_multi_event_study_plot("distance_km",
-                              title = "b Distance Traveled (km)")
+                              title = "B) Distance Traveled (km)")
 sp3 <- create_multi_event_study_plot("n_vessels",
-                              title = "c Transit (# Vessels)")
+                              title = "C) Transit (# Vessels)")
 sp4 <- create_multi_event_study_plot("n_trips",
-                              title = "d Transit (# Trips)")
+                              title = "D) Transit (# Trips)")
 sp5 <- create_multi_event_study_plot("time_vessels",
-                              title = "e Occupancy per Vessel (hours per vessel)")
+                              title = "E) Occupancy per Vessel (hours / vessel)")
 sp6 <- create_multi_event_study_plot("dist_vessels",
-                              title = "f Distance Traveled per Vessel (km per vessel)")
+                              title = "F) Distance Traveled per Vessel (km / vessel)")
 
 s_combined_plot <- (sp1 + sp2) / (sp3 + sp4) / (sp5 + sp6) +
   plot_layout(guides = "collect") &

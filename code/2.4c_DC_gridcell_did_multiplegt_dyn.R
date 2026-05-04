@@ -6,7 +6,6 @@ library(polars)
 library(tidyverse)
 library(here)
 library(modelsummary)
-source(here("r", "table_format_helpers.R"))
 source(here("code", "table_helpers.R"))
 
 theme_set(theme_minimal(base_size = 10))

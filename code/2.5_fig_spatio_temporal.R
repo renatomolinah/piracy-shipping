@@ -180,7 +180,7 @@ case_plot <- function(attack_id) {
 
   cowplot::plot_grid(spat, ts,
                      rel_heights = c(3, 1),
-                     labels = "auto",
+                     labels = "AUTO",
                      label_x = 0.9,
                      label_y = c(1, 1.2),
                      ncol = 1,

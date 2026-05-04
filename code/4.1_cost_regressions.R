@@ -153,7 +153,7 @@ msummary(list("Panel (A): Fuel Cost (thousands of US\\$)" = regs_fuel,
          fmt = "%.2f",
          add_rows = rows,
          title = "Effect of Past Pirate Encounters on Shipping Cost. \\label{tab:cost-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both. All coefficients are in thousands of US\\\\$. Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each panel examines a calculated cost in terms of fuel cost, labor cost, and total cost as the sum of both. All coefficients are in thousands of US\\\\$. Each column is a different sample: Global uses the full sample; G. of Aden, G. of Guinea, and S.E. Asia restrict to voyages passing through each hotspot, respectively. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Fixed effects include country-to-country combination, vessel type, vessel size, hotspot, top route, and month-by-year. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          shape = 'rbind',
          escape = FALSE,
@@ -162,8 +162,6 @@ msummary(list("Panel (A): Fuel Cost (thousands of US\\$)" = regs_fuel,
 add_adjust_box(here(output_dir, "cost.tex"))
 replace_table_headers(here(output_dir, "cost.tex"), c("Global", "G. of Aden", "G. of Guinea", "S.E. Asia"))
 adjust_notes_font_size(here(output_dir, "cost.tex"))
-unstyle_panel_headers(here(output_dir, "cost.tex"))
-append_fe_legend(here(output_dir, "cost.tex"), has_bullet = TRUE)
 
 # --- Specification analysis: fuel cost ---
 
@@ -204,14 +202,13 @@ msummary(spec_fuel,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Fuel Cost. \\label{tab:spec-fuel-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_fuel.tex"))
 
 add_adjust_box(here(output_dir, "spec_fuel.tex"))
 adjust_notes_font_size(here(output_dir, "spec_fuel.tex"))
-append_fe_legend(here(output_dir, "spec_fuel.tex"), has_bullet = FALSE)
 
 # --- Specification analysis: labor cost ---
 
@@ -232,14 +229,13 @@ msummary(spec_labor,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Labor Cost. \\label{tab:spec-labor-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_labor.tex"))
 
 add_adjust_box(here(output_dir, "spec_labor.tex"))
 adjust_notes_font_size(here(output_dir, "spec_labor.tex"))
-append_fe_legend(here(output_dir, "spec_labor.tex"), has_bullet = FALSE)
 
 # --- Specification analysis: total cost ---
 
@@ -260,14 +256,13 @@ msummary(spec_total,
          fmt = "%.2f",
          add_rows = rows_spec,
          title = "Effect of Past Pirate Encounters on Total Cost. \\label{tab:spec-total-table}",
-         notes = list("The unit of observation is a voyage. Estimates are from Equation (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
+         notes = list("The unit of observation is a voyage. Estimates are from Eq. (2). Each column is a different specification. Encounters (7 day) is the count of pirate encounters recorded in the projected path of the vessel in the preceding 7 days from the departure date using a 5-degree spatial footprint. The sample spans from 2012 to 2023. Controls include average wind speed, the wind-resistance index, and average wave height along the voyage. Column (7) replaces country-to-country and top route fixed effects with port-to-port pair fixed effects. Standard errors are clustered by country-to-country route by year."),
          threeparttable = TRUE,
          escape = FALSE,
          output = here(output_dir, "spec_total.tex"))
 
 add_adjust_box(here(output_dir, "spec_total.tex"))
 adjust_notes_font_size(here(output_dir, "spec_total.tex"))
-append_fe_legend(here(output_dir, "spec_total.tex"), has_bullet = FALSE)
 
 # --- Back-of-envelope predictions ---
 
