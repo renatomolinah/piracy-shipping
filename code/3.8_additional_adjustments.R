@@ -138,15 +138,6 @@ cat("Table written to: trip_count.tex\n\n")
 
 cat("--- Part 2: Suez/Cape route choice ---\n")
 
-find_latest_versioned_csv <- function(prefix) {
-  files <- list.files(
-    here("data", "processed"),
-    pattern = paste0("^", prefix, "_[0-9]{8}\\.csv$"),
-    full.names = TRUE
-  )
-  if (length(files) == 0) stop("No CSV found for prefix: ", prefix, call. = FALSE)
-  files[which.max(stringr::str_extract(basename(files), "[0-9]{8}"))]
-}
 
 fmt_num   <- function(x, digits = 3) ifelse(is.na(x), "", formatC(x, digits = digits, format = "f"))
 star_code <- function(p) ifelse(is.na(p), "", ifelse(p < 0.01, "***", ifelse(p < 0.05, "**", ifelse(p < 0.1, "*", ""))))
@@ -171,7 +162,7 @@ make_high_indicator <- function(x, q = 0.75) {
   }
 }
 
-trip_file <- find_latest_versioned_csv("suez_canal_or_cape_good_hope_trip_level")
+trip_file <- here("data", "processed", "suez_canal_or_cape_good_hope_trip_level_20260420.csv")
 cat("Using trip file:", basename(trip_file), "\n")
 
 trips <- read_csv(trip_file, show_col_types = FALSE) %>%
