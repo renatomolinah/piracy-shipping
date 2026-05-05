@@ -27,7 +27,7 @@ if (length(parquet_files) == 0) {
 
 cat("Found", length(parquet_files), "Parquet files to process\n")
 
-voyage_data <- lapply(parquet_files, read_parquet) %>%
+voyage_data <- lapply(parquet_files, function(f) read_parquet(f, mmap = FALSE)) %>%
   bind_rows()
 
 cat("Loaded", nrow(voyage_data), "voyage records\n")

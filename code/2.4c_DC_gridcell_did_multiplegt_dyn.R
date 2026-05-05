@@ -2,7 +2,6 @@
 
 # --- Setup ---
 library(DIDmultiplegtDYN)
-library(polars)
 library(tidyverse)
 library(here)
 library(modelsummary)
