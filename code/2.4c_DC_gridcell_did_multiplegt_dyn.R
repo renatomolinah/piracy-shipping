@@ -2,6 +2,7 @@
 
 # --- Setup ---
 library(DIDmultiplegtDYN)
+library(polars)  # required by did_multiplegt_dyn() at runtime in DIDmultiplegtDYN >=2.3.3
 library(tidyverse)
 library(here)
 library(modelsummary)

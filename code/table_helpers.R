@@ -74,6 +74,26 @@ strip_pkg_declarations <- function(file) {
   writeLines(lines, file)
 }
 
+# kableExtra's pack_rows() (used internally by modelsummary for grouped panels)
+# escapes special characters in panel labels even when escape = FALSE is passed
+# to the outer msummary() call — so "Panel (A): Fuel Cost (thousands of US\$)"
+# becomes "Panel (A): Fuel Cost (thousands of US\textbackslash{}\$)" in output.
+# Undo those over-escapes on \multicolumn rows so the labels render as intended.
+unescape_panel_labels <- function(file) {
+  lines <- readLines(file)
+  panel_idx <- grep("\\\\multicolumn", lines)
+  if (length(panel_idx) == 0) return(invisible(NULL))
+  for (i in panel_idx) {
+    # \textbackslash{}\$  →  \$  (literal dollar)
+    lines[i] <- gsub("\\textbackslash{}\\$", "\\$", lines[i], fixed = TRUE)
+    # \$\textasciicircum{}\{  →  $^{  (math-mode exponent open)
+    lines[i] <- gsub("\\$\\textasciicircum{}\\{", "$^{", lines[i], fixed = TRUE)
+    # \}\$  →  }$  (math-mode exponent close)
+    lines[i] <- gsub("\\}\\$", "}$", lines[i], fixed = TRUE)
+  }
+  writeLines(lines, file)
+}
+
 # Strip \textit{} and \textbf{} wrappers from \multicolumn panel headers
 # (Nature Comms forbids bold/italic data formatting unless declared in notes)
 unstyle_panel_headers <- function(file) {
@@ -98,12 +118,18 @@ append_fe_legend <- function(file, has_bullet = TRUE) {
   }
   item_idx <- grep("^\\\\item.*\\\\scriptsize", lines)
   if (length(item_idx) == 0) return(invisible(NULL))
+  marker <- "Standard errors are clustered"
   for (i in item_idx) {
     if (!grepl("X indicates the fixed effect is included", lines[i], fixed = TRUE)) {
-      # Insert legend right before "Standard errors..." sentence
-      lines[i] <- sub("(Standard errors are clustered)",
-                      paste0(legend, " \\1"),
-                      lines[i])
+      # Insert legend right before "Standard errors..." sentence. Done via
+      # strsplit instead of sub(): sub()'s replacement-string parser strips
+      # backslashes, mangling "$\\bullet$" into "$bullet$" in the output.
+      pos <- regexpr(marker, lines[i], fixed = TRUE)
+      if (pos > 0) {
+        before <- substr(lines[i], 1, pos - 1)
+        after  <- substr(lines[i], pos, nchar(lines[i]))
+        lines[i] <- paste0(before, legend, " ", after)
+      }
     }
   }
   writeLines(lines, file)

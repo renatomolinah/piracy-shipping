@@ -65,9 +65,10 @@ latex_table <- kbl(
   booktabs = TRUE,
   label = "summary",
   caption = "Summary Statistics for Individual Voyage Features.",
-  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km/hr)", "7 days", "15 days", "30 days"),
+  col.names = c("", "", "Distance (km)", "Time (hr)", "Speed (km h$^{-1}$)", "7 days", "15 days", "30 days"),
   align = c("l", "l", "r", "r", "r", "r", "r", "r"),
-  format = "latex"
+  format = "latex",
+  escape = FALSE
 ) %>%
   kable_styling() %>%
   add_header_above(c(" " = 2, "Voyage Features" = 3, "Encounters (\\\\#)" = 3), escape = FALSE) %>%
@@ -75,7 +76,7 @@ latex_table <- kbl(
   pack_rows("Gulf of Guinea", 5, 8) %>%
   pack_rows("Southeast Asia", 9, 12) %>%
   pack_rows("Rest of the World", 13, 16) %>%
-  footnote(general = "The unit of observation is a voyage. The sample includes all cargo vessel voyages from 2012 to 2023 that pass through at most one piracy hotspot. Voyage features report total distance (km), total time (hr), and average speed (km/hr). Encounters report the count of pirate encounters recorded in the projected path of the vessel using a 5-degree spatial footprint over the preceding 7, 15, and 30 days, respectively. P5 and P95 denote the 5th and 95th percentiles, respectively.",
+  footnote(general = "The unit of observation is a voyage. The sample includes all cargo vessel voyages from 2012 to 2023 that pass through at most one piracy hotspot. Voyage features report total distance (km), total time (hr), and average speed (km h$^{-1}$). Encounters report the count of pirate encounters recorded in the projected path of the vessel using a 5-degree spatial footprint over the preceding 7, 15, and 30 days, respectively. P5 and P95 denote the 5th and 95th percentiles, respectively.",
            general_title = "",
            escape = FALSE,
            threeparttable = TRUE)
@@ -83,6 +84,7 @@ latex_table <- kbl(
 output_file <- here("results", "figures_and_tables", "summary.tex")
 cat(latex_table, file = output_file)
 adjust_notes_font_size(output_file)
+unstyle_panel_headers(output_file)
 add_adjust_box(output_file)
 
 cat("LaTeX table saved to:", output_file, "\n")
@@ -197,62 +199,29 @@ lag_summary <- bind_rows(
     )
 )
 
-write_csv(lag_summary, here(output_dir, "asam_reporting_lags_summary.csv"))
 print(lag_summary %>% select(sample, n, median_lag, share_le_7, share_le_14, share_le_30))
-
-lag_for_tex <- lag_summary %>%
-  filter(sample != "Other") %>%
-  mutate(
-    sample = case_when(
-      sample == "Gulf of Aden (box)" ~ "Gulf of Aden",
-      sample == "Gulf of Guinea (box)" ~ "Gulf of Guinea",
-      sample == "Southeast Asia (box)" ~ "Southeast Asia",
-      TRUE ~ sample
-    )
-  ) %>%
-  arrange(factor(sample, levels = c("Global", "Gulf of Aden", "Gulf of Guinea", "Southeast Asia")))
-
-lag_tex_lines <- c(
-  "\\begin{table}[htbp]",
-  "\\centering",
-  "\\begin{threeparttable}",
-  "\\caption{ASAM Reporting Lags: Days Between Occurrence and Database Entry (2012--2023).}",
-  "\\label{tab:asam-reporting-lags}",
-  "\\begin{tabular}{lrrrrrr}",
-  "\\toprule",
-  " & & \\multicolumn{2}{c}{Lag (days)} & \\multicolumn{3}{c}{Share entered within} \\\\",
-  "\\cmidrule(lr){3-4} \\cmidrule(lr){5-7}",
-  "Sample & N & Mean & Median & 7 days & 14 days & 30 days \\\\",
-  "\\midrule"
-)
-
-for (i in seq_len(nrow(lag_for_tex))) {
-  r <- lag_for_tex[i, ]
-  lag_tex_lines <- c(lag_tex_lines, sprintf(
-    "%s & %s & %.1f & %d & %.1f\\%% & %.1f\\%% & %.1f\\%% \\\\",
-    r$sample, format(r$n, big.mark = ","), r$mean_lag, as.integer(r$median_lag),
-    r$share_le_7 * 100, r$share_le_14 * 100, r$share_le_30 * 100
-  ))
-}
-
-lag_tex_lines <- c(lag_tex_lines,
-  "\\bottomrule",
-  "\\end{tabular}",
-  "\\begin{tablenotes}",
-  "\\item \\scriptsize Each row reports the distribution of reporting lags (in days) between the recorded date of occurrence and the ASAM database entry date. The share columns indicate the fraction of encounters publicly available within the given window. Sample restricted to 2012--2023. Hotspot assignment uses the bounding boxes described in the main text.",
-  "\\end{tablenotes}",
-  "\\end{threeparttable}",
-  "\\end{table}"
-)
-
-writeLines(lag_tex_lines, here(output_dir, "asam_reporting_lags.tex"))
 
 # --- Attack persistence ---
 # P(another attack in same 0.5x0.5 degree cell within k days)
 asam_persistence <- asam_persistence_base %>%
   mutate(
     cell_lon = floor(lon * 2) / 2,
-    cell_lat = floor(lat * 2) / 2
+    cell_lat = floor(lat * 2) / 2,
+    hotspot_asam = case_when(
+      lat >= hotspot_boxes$lat_min[hotspot_boxes$cluster == "Gulf of Aden"] &
+        lat <= hotspot_boxes$lat_max[hotspot_boxes$cluster == "Gulf of Aden"] &
+        lon >= hotspot_boxes$lon_min[hotspot_boxes$cluster == "Gulf of Aden"] &
+        lon <= hotspot_boxes$lon_max[hotspot_boxes$cluster == "Gulf of Aden"] ~ "Gulf of Aden (box)",
+      lat >= hotspot_boxes$lat_min[hotspot_boxes$cluster == "Gulf of Guinea"] &
+        lat <= hotspot_boxes$lat_max[hotspot_boxes$cluster == "Gulf of Guinea"] &
+        lon >= hotspot_boxes$lon_min[hotspot_boxes$cluster == "Gulf of Guinea"] &
+        lon <= hotspot_boxes$lon_max[hotspot_boxes$cluster == "Gulf of Guinea"] ~ "Gulf of Guinea (box)",
+      lat >= hotspot_boxes$lat_min[hotspot_boxes$cluster == "Southeast Asia"] &
+        lat <= hotspot_boxes$lat_max[hotspot_boxes$cluster == "Southeast Asia"] &
+        lon >= hotspot_boxes$lon_min[hotspot_boxes$cluster == "Southeast Asia"] &
+        lon <= hotspot_boxes$lon_max[hotspot_boxes$cluster == "Southeast Asia"] ~ "Southeast Asia (box)",
+      TRUE ~ "Other"
+    )
   )
 
 compute_persistence <- function(data, k_values = c(1, 7, 15, 30), sample_label = "Global") {

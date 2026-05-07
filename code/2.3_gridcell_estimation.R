@@ -94,6 +94,7 @@ kbl(x = by_cluster,
 
 processKBLoutput(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 adjust_notes_font_size(here("results", "figures_and_tables", "grid_summary_stats.tex"))
+unstyle_panel_headers(here("results", "figures_and_tables", "grid_summary_stats.tex"))
 
 
 ################################################################################

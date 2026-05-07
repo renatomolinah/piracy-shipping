@@ -67,7 +67,7 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
     outcome = case_when(
       str_detect(outcome, "distance") ~ "Distance (km)",
       str_detect(outcome, "time") ~ "Time (hr)",
-      str_detect(outcome, "speed") ~ "Speed (km/hr)",
+      str_detect(outcome, "speed") ~ "Speed (km h$^{-1}$)",
       TRUE ~ "Other"
     )
   ) %>%
@@ -86,7 +86,7 @@ coef_data <- map_df(feature_coefficients, broom::tidy, .id = "model", conf.int =
     degrees = factor(degrees, levels = c("3 degrees", "5 degrees", "7 degrees")),
     term = factor(term, levels = c("attacks_7day", "attacks_15day", "attacks_30day")),
     sample = factor(sample, levels = c("Global", "G. of Aden", "G. of Guinea", "Southeast Asia")),
-    outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km/hr)"))
+    outcome = factor(outcome, levels = c("Distance (km)", "Time (hr)", "Speed (km h$^{-1}$)"))
   ) %>%
   filter(timing != "Other") %>%
   arrange(sample, timing, degrees, term)

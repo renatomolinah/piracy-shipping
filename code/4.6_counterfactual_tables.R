@@ -93,8 +93,9 @@ add_adjust_box(here("results", "figures_and_tables", "counterfactual_costs.tex")
 
 add_threeparttable_note(
   here("results", "figures_and_tables", "counterfactual_costs.tex"),
-  "Counterfactual costs are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. All values in 2020 US\\\\$. Values are aggregated annually by hotspot region."
+  "Counterfactual costs are derived from the fully specified global voyage-level model (Equation (2), 5-degree grid, 7-day window). For each voyage, we predict operational costs under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. Fuel costs are calculated using vessel-specific engine characteristics and daily bunker fuel prices. Labor costs are based on crew size (estimated from vessel type and tonnage) and standard seafarer wage rates. All values in 2020 US\\\\$. Values are aggregated annually by hotspot region."
 )
+unstyle_panel_headers(here("results", "figures_and_tables", "counterfactual_costs.tex"))
 
 # --- Emissions table ---
 
@@ -124,5 +125,6 @@ add_adjust_box(here("results", "figures_and_tables","counterfactual_emissions.te
 
 add_threeparttable_note(
   here("results", "figures_and_tables", "counterfactual_emissions.tex"),
-  "Counterfactual emissions are derived from the fully specified global voyage-level model (Eq. (2), 5-degree grid, 7-day window). For each voyage, we predict emissions under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. CO$_2$ emissions are calculated using a standard linear fuel-to-carbon conversion. NO$_\\text{x}$ and SO$_\\text{x}$ emissions are calculated using engine-type-specific emission factors. Values are aggregated annually by hotspot region."
+  "Counterfactual emissions are derived from the fully specified global voyage-level model (Equation (2), 5-degree grid, 7-day window). For each voyage, we predict emissions under the observed encounter intensity and under a counterfactual of zero encounters, then take the difference. CO$_2$ emissions are calculated using a standard linear fuel-to-carbon conversion. NO$_\\text{x}$ and SO$_\\text{x}$ emissions are calculated using engine-type-specific emission factors. Values are aggregated annually by hotspot region."
 )
+unstyle_panel_headers(here("results", "figures_and_tables", "counterfactual_emissions.tex"))
