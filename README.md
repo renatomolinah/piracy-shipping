@@ -50,9 +50,9 @@ In overview, the pipeline:
 
 ### Data availability
 
-Some of the input data are **proprietary** and cannot be redistributed in this repository. In particular, the vessel-tracking data are accessed under a data-use agreement and require separate credentials to query; the wind data are too large to host on GitHub. Scripts that depend on restricted inputs note this at the top of the file.
+Some of the input data are **proprietary** and cannot be redistributed in this repository. In particular, the vessel-tracking and fuel data are accessed under data-use agreements and require separate credentials; the wind data are too large to host on GitHub. Scripts that depend on restricted inputs note this at the top of the file.
 
-A self-contained replication package that bundles the processed, redistributable data is in preparation. We are currently securing a hosting service for it; this README will be updated with access instructions once that is finalized. In the meantime, researchers who need access to the restricted inputs for replication should contact the author (see below).
+A self-contained replication package that bundles the processed, redistributable data is in preparation. We are currently securing a hosting service for it; this README will be updated with access instructions once that is finalized. In the meantime, researchers who need access to the restricted inputs for replication should contact the corresponding author of the manuscript.
 
 ## Citation
 
@@ -63,7 +63,3 @@ If you use this code, please cite the manuscript:
 ## License
 
 The code in this repository is released under the MIT License. See [`LICENSE`](LICENSE). Note that the underlying data are subject to separate terms and are not covered by this license.
-
-## Contact
-
-Renato Molina — renato.molina.h@gmail.com
