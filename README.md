@@ -54,12 +54,6 @@ Some of the input data are **proprietary** and cannot be redistributed in this r
 
 A self-contained replication package that bundles the processed, redistributable data is in preparation. We are currently securing a hosting service for it; this README will be updated with access instructions once that is finalized. In the meantime, researchers who need access to the restricted inputs for replication should contact the corresponding author of the manuscript.
 
-## Citation
-
-If you use this code, please cite the manuscript:
-
-> Molina, R. *The Economic and Environmental Impact of Modern Piracy on Global Shipping.* Working paper.
-
 ## License
 
 The code in this repository is released under the MIT License. See [`LICENSE`](LICENSE). Note that the underlying data are subject to separate terms and are not covered by this license.
