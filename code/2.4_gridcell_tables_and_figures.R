@@ -118,7 +118,7 @@ unstyle_panel_headers(spec_buildup_table_name)
 create_event_study_plot <- function(outcome_var, res, title, y_label = "Estimate ± (std.error & 95% CI)") {
   data <- switch(res, "0_1" = panel_0_1, "0_5" = panel_0_5, "1" = panel_1)
   model <- feols(
-    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id^month + date")),
+    as.formula(paste("asinh(", outcome_var, ") ~ i(relative_time, ref = -1) | id^month + date + best_vessel_type")),
     data = data,
     vcov = conley(cutoff = 50)
   )

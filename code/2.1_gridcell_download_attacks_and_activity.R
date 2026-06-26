@@ -54,13 +54,23 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
     filter(days_since_attack == 0) %>%
     select(grid_id) %>%
     distinct()
+  
+  vessel_info <- tbl(con,
+                     DBI::Id(project = "emlab-gcp",
+                             dataset = "piracy",
+                             table = "vessel_info_v_20260420")) |> 
+    filter(best_vessel_type_cargo) |> 
+    select(mmsi, best_vessel_type)
 
   # Get grid-level information from the tracks ---------------------------------
   track_info <- tbl(con,
                     DBI::Id(project = "emlab-gcp",
                     dataset = "piracy",
                     table = paste0("gridded_data_", tbl_sufix, "_v_20260420"))) |>
-    group_by(date, lat_bin, lon_bin) %>%
+    filter(best_vessel_type_cargo) |> 
+    left_join(vessel_info, by = "mmsi") |>
+    group_by(date, best_vessel_type, 
+             lat_bin, lon_bin)  |> 
     summarize(time_hours = sum(hours, na.rm = T),
               distance_km = sum(distance_km, na.rm = T),
               n_vessels = n_distinct(mmsi),
@@ -119,7 +129,9 @@ get_gridded_data <- function(tbl_sufix = "0_5") {
                                          lat_bin == gap_lat_bin,
                                          lon_bin == gap_lon_bin))
 
-  local_gridded_panel <- collect(gridded_panel)
+  local_gridded_panel <- collect(gridded_panel) |> 
+    select(date, grid_id, best_vessel_type, 
+           lat_bin, lon_bin, everything())
 
   # Add FAO zone info  -----------------------------------------------------------
   sf_use_s2(F)
